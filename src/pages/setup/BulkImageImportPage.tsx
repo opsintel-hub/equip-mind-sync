@@ -123,11 +123,21 @@ export default function BulkImageImportPage() {
       const records = await loadTargets();
       const index = buildKeyIndex(records);
 
-      // existing image counts
-      const { data: existing, error: exErr } = await supabase
-        .from(cfg.table as any)
-        .select(`${cfg.fk}, image_url`);
-      if (exErr) throw exErr;
+      // existing image counts (paged — table can exceed the 1,000-row cap)
+      const existing: any[] = [];
+      let exFrom = 0;
+      const exSize = 1000;
+      while (true) {
+        const { data, error: exErr } = await supabase
+          .from(cfg.table as any)
+          .select(`${cfg.fk}, image_url`)
+          .range(exFrom, exFrom + exSize - 1);
+        if (exErr) throw exErr;
+        if (!data?.length) break;
+        existing.push(...data);
+        if (data.length < exSize) break;
+        exFrom += exSize;
+      }
       const counts = new Map<string, number>();
       const urls = new Set<string>();
       (existing || []).forEach((row: any) => {
@@ -204,11 +214,22 @@ export default function BulkImageImportPage() {
     const work = rows.map((r, i) => ({ r, i })).filter(({ r }) => r.status === "matched");
     let done = 0;
 
-    // records that already have a primary image
-    const { data: primaryRows } = await supabase
-      .from(cfg.table as any)
-      .select(`${cfg.fk}, is_primary`)
-      .eq("is_primary", true);
+    // records that already have a primary image (paged)
+    const primaryRows: any[] = [];
+    let prFrom = 0;
+    const prSize = 1000;
+    while (true) {
+      const { data, error: prErr } = await supabase
+        .from(cfg.table as any)
+        .select(`${cfg.fk}, is_primary`)
+        .eq("is_primary", true)
+        .range(prFrom, prFrom + prSize - 1);
+      if (prErr) throw prErr;
+      if (!data?.length) break;
+      primaryRows.push(...data);
+      if (data.length < prSize) break;
+      prFrom += prSize;
+    }
     const hasPrimary = new Set<string>((primaryRows || []).map((r: any) => r[cfg.fk]));
 
     const BATCH = 5;

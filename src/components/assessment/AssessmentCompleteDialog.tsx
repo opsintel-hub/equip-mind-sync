@@ -264,7 +264,7 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
         } else if (log.equipment_id) {
           const { data: eq } = await supabase
             .from("equipment")
-            .select("code, name, brand:brand_id(name), supplier:supplier_id(name, phone, contact_person), unit_price, depreciation_months, po_item_no")
+            .select("code, name, brand:brand_id(name), supplier:supplier_id(name, phone, contact_person), unit_price, depreciation_months, po_item_no, warranty_expiry_date")
             .eq("id", log.equipment_id)
             .maybeSingle() as any;
           if (eq) {
@@ -290,16 +290,16 @@ export function AssessmentCompleteDialog({ open, onOpenChange, log, onCompleted 
           if (log.serial_number) {
             const { data: sn } = await supabase
               .from("equipment_serial_numbers")
-              .select("warranty_expiry_date, warehouse_entry_date")
+              .select("received_at")
               .eq("serial_number", log.serial_number)
               .maybeSingle() as any;
             if (sn) {
-              ctx.dateOfReceipt = sn.warehouse_entry_date || null;
-              if (sn.warehouse_entry_date) ctx.ageMonths = differenceInMonths(new Date(), parseISO(sn.warehouse_entry_date));
+              ctx.dateOfReceipt = sn.received_at || null;
+              if (sn.received_at) ctx.ageMonths = differenceInMonths(new Date(), parseISO(sn.received_at));
               setSupplierAutofill({
                 name: eq?.supplier?.name || "",
                 manufacturer: eq?.brand?.name || null,
-                warranty: sn.warranty_expiry_date || null,
+                warranty: eq?.warranty_expiry_date || null,
                 phone: eq?.supplier?.phone || null,
                 contact: eq?.supplier?.contact_person || null,
               });
