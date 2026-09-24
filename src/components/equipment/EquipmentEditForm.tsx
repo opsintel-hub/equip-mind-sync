@@ -22,6 +22,7 @@ import { WarehouseLocationSelect } from "@/components/location/WarehouseLocation
 import { CompanySelect } from "@/components/company/CompanySelect";
 import { SupplierSelect } from "@/components/supplier/SupplierSelect";
 import { EquipmentImageUpload } from "./EquipmentImageUpload";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import {
   BillboardCompatibilityField,
   CompatibilityValue,
