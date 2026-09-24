@@ -231,7 +231,7 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
     return "border-emerald-500/50 bg-emerald-500/10";
   };
 
-  const filtersActive = search.trim() !== "" || conditionFilter !== "all" || categoryFilter !== "all";
+  const filtersActive = search.trim() !== "" || conditionFilter !== "all" || categoryFilter !== "all" || serialOnly;
   const hasSpace = (l: LocationRow) => {
     const pct = fillPct(l);
     return pct === null ? true : pct < 80;
