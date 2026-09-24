@@ -439,7 +439,7 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
                       ) : (
                         <Badge variant="outline" className="text-muted-foreground italic">ไม่ระบุฝ่าย</Badge>
                       )}
-                    </span>
+                    </div>
                   </div>
                   <div
                     className="ml-auto flex shrink-0 gap-0.5 border-l border-border bg-card pl-1"
