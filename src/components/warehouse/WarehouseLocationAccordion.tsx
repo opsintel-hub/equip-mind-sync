@@ -1,3 +1,4 @@
+import { MasterDataFilterBar, ALL, uniqOptions, matchText } from "@/components/master-data/MasterDataFilterBar";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -197,11 +198,13 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
     return map;
   }, [locations]);
 
+  const [fDept, setFDept] = useState(ALL);
   const filtered = useMemo(() => {
-    if (!search.trim()) return { warehouses, autoExpand: new Set<string>() };
+    const base = fDept === ALL ? warehouses : warehouses.filter((w) => warehouseDepts(w).includes(fDept));
+    if (!search.trim()) return { warehouses: base, autoExpand: new Set<string>() };
     const q = search.trim().toLowerCase();
     const autoExpand = new Set<string>();
-    const matchedWH = warehouses.filter((w) => {
+    const matchedWH = base.filter((w) => {
       const wMatch =
         w.code.toLowerCase().includes(q) ||
         w.name.toLowerCase().includes(q) ||
@@ -216,7 +219,7 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
       return wMatch || kidMatch || zMatch;
     });
     return { warehouses: matchedWH, autoExpand };
-  }, [warehouses, locsByWh, zonesByWh, search]);
+  }, [warehouses, locsByWh, zonesByWh, search, fDept]);
 
   const isOpen = (id: string) => expanded.has(id) || filtered.autoExpand.has(id);
   const isZoneOpen = (id: string) => zonesExpanded.has(id) || !!search.trim();
@@ -343,14 +346,14 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
     <>
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
-        <div className="relative flex-1 min-w-[220px] max-w-md">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="ค้นหา รหัส / ชื่อ / ฝ่าย / โซน / ตำแหน่ง"
-            className="pl-8"
-          />
+        <div className="flex-1 min-w-[320px] [&>div]:mb-0">
+          <MasterDataFilterBar search={search} onSearchChange={setSearch} placeholder="ค้นหา รหัส / ชื่อ / ฝ่าย / โซน / ตำแหน่ง"
+            preview={search.trim() ? [
+              ...filtered.warehouses.filter((w) => matchText(search, w.code, w.name)).map((w) => ({ id: w.id, title: `${w.code} — ${w.name}`, subtitle: `คลัง • ${warehouseDepts(w).join(", ")}` })),
+              ...filtered.warehouses.flatMap((w) => (locsByWh[w.id] || []).filter((l) => matchText(search, l.code, l.name)).map((l) => ({ id: l.id, title: `${l.code} — ${l.name}`, subtitle: `ตำแหน่ง • ${w.code}` }))),
+            ] : []}
+            onPreviewSelect={(p) => setSearch(p.title.split(" — ")[0])}
+            filters={[{ key: "dept", label: "ฝ่าย", value: fDept, onChange: setFDept, options: uniqOptions(warehouses.flatMap((w) => warehouseDepts(w))) }]} />
         </div>
         <div className="flex gap-2 ml-auto flex-wrap">
           <Button variant="outline" size="sm" onClick={expandAll}>

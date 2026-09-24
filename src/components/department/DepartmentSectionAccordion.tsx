@@ -1,3 +1,4 @@
+import { MasterDataFilterBar, ALL, uniqOptions, matchText } from "@/components/master-data/MasterDataFilterBar";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -195,14 +196,12 @@ export function DepartmentSectionAccordion({ canManageDepartment, canManageSecti
     <>
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
-        <div className="relative flex-1 min-w-[220px] max-w-md">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="ค้นหา ชื่อฝ่าย / ชื่อแผนก / รายละเอียด"
-            className="pl-8"
-          />
+        <div className="flex-1 min-w-[260px] max-w-xl [&>div]:mb-0">
+          <MasterDataFilterBar search={search} onSearchChange={setSearch} placeholder="ค้นหา ชื่อฝ่าย / ชื่อแผนก / รายละเอียด"
+            preview={search.trim() ? [
+              ...departments.filter((d) => matchText(search, d.name, d.description)).map((d) => ({ id: d.id, title: d.name, subtitle: "ฝ่าย" })),
+              ...departments.flatMap((d) => (secByDept[d.id] || []).filter((x) => matchText(search, x.name, x.description)).map((x) => ({ id: x.id, title: x.name, subtitle: `แผนก • ${d.name}` }))),
+            ] : []} />
         </div>
         <div className="flex gap-2 ml-auto flex-wrap">
           <Button variant="outline" size="sm" onClick={expandAll}>

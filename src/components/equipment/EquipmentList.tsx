@@ -10,6 +10,7 @@ import { EquipmentSNViewer } from "./EquipmentSNViewer";
 import { EquipmentImageViewer } from "./EquipmentImageViewer";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { MasterDataFilterBar, ALL, uniqOptions, matchText } from "@/components/master-data/MasterDataFilterBar";
 import * as XLSX from "xlsx";
 import {
   Table,
@@ -79,6 +80,11 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [fCat, setFCat] = useState(ALL);
+  const [fDept, setFDept] = useState(ALL);
+  const [fCompany, setFCompany] = useState(ALL);
+  const [fCond, setFCond] = useState(ALL);
+  const [fStock, setFStock] = useState(ALL);
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
   const { applyEquipmentScope, scopeKey } = useSectionScope();
 
@@ -139,21 +145,19 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
   };
 
   useEffect(() => {
-    if (searchTerm) {
-      const filtered = equipment.filter(
-        (item) =>
-          item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (item.department && item.department.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (item.brand && item.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (item.serial_number && item.serial_number.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-      setFilteredEquipment(filtered);
-    } else {
-      setFilteredEquipment(equipment);
-    }
-  }, [searchTerm, equipment]);
+    const filtered = equipment.filter((item: any) => {
+      if (fCat !== ALL && item.category !== fCat) return false;
+      if (fDept !== ALL && item.department !== fDept) return false;
+      if (fCompany !== ALL && item.companies?.name !== fCompany) return false;
+      if (fCond !== ALL && (item.item_condition || "normal") !== fCond) return false;
+      const q = Number(item.quantity_in_stock ?? 0), min = Number(item.min_stock_level ?? 0);
+      if (fStock === "out" && q > 0) return false;
+      if (fStock === "low" && !(q > 0 && min > 0 && q <= min)) return false;
+      if (fStock === "in" && q <= 0) return false;
+      return matchText(searchTerm, item.code, item.name, item.category, item.department, item.brand, item.serial_number, item.locations?.code);
+    });
+    setFilteredEquipment(filtered);
+  }, [searchTerm, equipment, fCat, fDept, fCompany, fCond, fStock]);
 
   const {
     paginatedData: paginatedEquipment,
@@ -217,21 +221,23 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
 
   return (
     <>
-      <div className="flex items-center gap-2 mb-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="ค้นหาด้วยรหัส, ชื่อ, S/N, หมวดหมู่, ฝ่าย, หรือยี่ห้อ..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Button onClick={handleExport} variant="outline" size="sm">
-          <Download className="h-4 w-4 mr-2" />
-          ส่งออก Excel
-        </Button>
-      </div>
+      <MasterDataFilterBar
+        search={searchTerm}
+        onSearchChange={setSearchTerm}
+        placeholder="ค้นหาด้วยรหัส, ชื่อ, S/N, หมวดหมู่, ฝ่าย, ยี่ห้อ หรือตำแหน่ง..."
+        preview={filteredEquipment.map((e: any) => ({ id: e.id, title: `${e.code} — ${e.name}`, subtitle: [e.category, e.department, e.locations?.code].filter(Boolean).join(" • ") }))}
+        onPreviewSelect={(p) => setSearchTerm(p.title.split(" — ")[0])}
+        resultCount={filteredEquipment.length}
+        totalCount={equipment.length}
+        filters={[
+          { key: "cat", label: "หมวดหมู่", value: fCat, onChange: setFCat, options: uniqOptions(equipment.map((e) => e.category)) },
+          { key: "dept", label: "ฝ่าย", value: fDept, onChange: setFDept, options: uniqOptions(equipment.map((e) => e.department)) },
+          { key: "company", label: "บริษัท", value: fCompany, onChange: setFCompany, options: uniqOptions(equipment.map((e) => e.companies?.name)) },
+          { key: "cond", label: "สภาพ", value: fCond, onChange: setFCond, width: "w-[130px]", options: uniqOptions(equipment.map((e) => e.item_condition || "normal")).map((o) => ({ ...o, label: o.value === "normal" ? "ปกติ" : o.value })) },
+          { key: "stock", label: "สต็อก", value: fStock, onChange: setFStock, width: "w-[140px]", options: [{ value: "in", label: "มีสต็อก" }, { value: "low", label: "ต่ำกว่า Min" }, { value: "out", label: "หมด" }] },
+        ]}
+        actions={<Button onClick={handleExport} variant="outline" size="sm"><Download className="h-4 w-4 mr-2" />ส่งออก Excel</Button>}
+      />
       <div className="rounded-lg border overflow-x-auto">
         <Table>
           <TableHeader>

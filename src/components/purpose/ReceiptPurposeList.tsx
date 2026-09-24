@@ -5,6 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { MasterDataFilterBar, ALL, matchText } from "@/components/master-data/MasterDataFilterBar";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { Trash2, Package, MapPin, Clock } from "lucide-react";
 import {
   AlertDialog,
@@ -87,6 +90,12 @@ export function ReceiptPurposeList({ refresh, onRefresh }: ReceiptPurposeListPro
     }
   };
 
+  const [q, setQ] = useState("");
+  const [fType, setFType] = useState(ALL);
+  const [fStatus, setFStatus] = useState(ALL);
+  const shown = purposes.filter((x) => (fType === ALL || x.purpose_type === fType) && (fStatus === ALL || (fStatus === "active") === !!x.is_active) && matchText(q, x.name, x.description));
+  const pg = useTablePagination(shown, 20);
+
   if (loading) {
     return <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>;
   }
@@ -96,6 +105,11 @@ export function ReceiptPurposeList({ refresh, onRefresh }: ReceiptPurposeListPro
   }
 
   return (
+    <div className="space-y-2">
+    <MasterDataFilterBar search={q} onSearchChange={setQ} placeholder="ค้นหาชื่อหรือคำอธิบายวัตถุประสงค์..."
+      preview={shown.map((x) => ({ id: x.id, title: x.name, subtitle: x.purpose_type === "storage" ? "ฝากเก็บ" : "นำเข้าปกติ" }))}
+      resultCount={shown.length} totalCount={purposes.length}
+      filters={[{ key: "type", label: "ประเภท", value: fType, onChange: setFType, width: "w-[150px]", options: [{ value: "normal", label: "นำเข้าปกติ" }, { value: "storage", label: "ฝากเก็บ" }] }, { key: "status", label: "สถานะ", value: fStatus, onChange: setFStatus, width: "w-[140px]", options: [{ value: "active", label: "ใช้งาน" }, { value: "inactive", label: "ปิดใช้งาน" }] }]} />
     <div className="rounded-lg border">
       <Table>
         <TableHeader>
@@ -109,7 +123,7 @@ export function ReceiptPurposeList({ refresh, onRefresh }: ReceiptPurposeListPro
           </TableRow>
         </TableHeader>
         <TableBody>
-          {purposes.map((purpose) => (
+          {pg.paginatedData.map((purpose) => (
             <TableRow key={purpose.id}>
               <TableCell className="font-medium">{purpose.name}</TableCell>
               <TableCell>
@@ -184,6 +198,8 @@ export function ReceiptPurposeList({ refresh, onRefresh }: ReceiptPurposeListPro
           ))}
         </TableBody>
       </Table>
+    </div>
+      <TablePagination currentPage={pg.currentPage} totalPages={pg.totalPages} totalItems={pg.totalItems} pageSize={pg.pageSize} onPageChange={pg.handlePageChange} onPageSizeChange={pg.handlePageSizeChange} />
     </div>
   );
 }

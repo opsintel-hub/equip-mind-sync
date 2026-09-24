@@ -26,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Trash2, Download, Search } from "lucide-react";
 import { ContractorForm } from "./ContractorForm";
+import { MasterDataFilterBar, ALL, matchText } from "@/components/master-data/MasterDataFilterBar";
 import * as XLSX from "xlsx";
 
 interface Contractor {
@@ -53,6 +54,8 @@ export function ContractorList({ refresh }: ContractorListProps) {
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [fType, setFType] = useState(ALL);
+  const [fStatus, setFStatus] = useState(ALL);
   const pagination = useTablePagination(filteredContractors);
 
   useEffect(() => {
@@ -95,20 +98,8 @@ export function ContractorList({ refresh }: ContractorListProps) {
   };
 
   useEffect(() => {
-    if (searchTerm) {
-      const filtered = contractors.filter(
-        (contractor) =>
-          contractor.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          contractor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (contractor.tax_id && contractor.tax_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (contractor.contact_person && contractor.contact_person.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (contractor.email && contractor.email.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-      setFilteredContractors(filtered);
-    } else {
-      setFilteredContractors(contractors);
-    }
-  }, [searchTerm, contractors]);
+    setFilteredContractors(contractors.filter((c) => (fType === ALL || c.entity_type === fType) && (fStatus === ALL || (fStatus === "active") === !!c.is_active) && matchText(searchTerm, c.code, c.name, c.tax_id, c.contact_person, c.email, c.phone)));
+  }, [searchTerm, contractors, fType, fStatus]);
 
   const handleExport = () => {
     const exportData = filteredContractors.map((contractor) => ({
@@ -152,21 +143,11 @@ export function ContractorList({ refresh }: ContractorListProps) {
 
   return (
     <>
-      <div className="flex items-center gap-2 mb-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="ค้นหาด้วยรหัส, ชื่อ, เลขผู้เสียภาษี, ผู้ติดต่อ, หรืออีเมล..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Button onClick={handleExport} variant="outline" size="sm">
-          <Download className="h-4 w-4 mr-2" />
-          ส่งออก Excel
-        </Button>
-      </div>
+      <MasterDataFilterBar search={searchTerm} onSearchChange={setSearchTerm} placeholder="ค้นหาด้วยรหัส, ชื่อ, เลขผู้เสียภาษี, ผู้ติดต่อ, อีเมล หรือเบอร์โทร..."
+        preview={filteredContractors.map((c) => ({ id: c.id, title: c.name, subtitle: [c.code, c.contact_person, c.phone].filter(Boolean).join(" • ") }))}
+        resultCount={filteredContractors.length} totalCount={contractors.length}
+        filters={[{ key: "type", label: "ประเภท", value: fType, onChange: setFType, width: "w-[160px]", options: [{ value: "corporate", label: "นิติบุคคล" }, { value: "individual", label: "บุคคลธรรมดา" }] }, { key: "status", label: "สถานะ", value: fStatus, onChange: setFStatus, width: "w-[140px]", options: [{ value: "active", label: "ใช้งาน" }, { value: "inactive", label: "ปิดใช้งาน" }] }]}
+        actions={<Button onClick={handleExport} variant="outline" size="sm"><Download className="h-4 w-4 mr-2" />ส่งออก Excel</Button>} />
       <Table>
         <TableHeader>
           <TableRow>

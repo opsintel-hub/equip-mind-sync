@@ -6,6 +6,9 @@ import { Switch } from "@/components/ui/switch";
 import { Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { MasterDataFilterBar, ALL, matchText } from "@/components/master-data/MasterDataFilterBar";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { PMActionTypeForm } from "./PMActionTypeForm";
 
 interface PMActionType {
@@ -56,10 +59,20 @@ export function PMActionTypeList({ refresh }: PMActionTypeListProps) {
     }
   };
 
+  const [q, setQ] = useState("");
+  const [fType, setFType] = useState(ALL);
+  const [fStatus, setFStatus] = useState(ALL);
+  const shown = items.filter((x) => (fType === ALL || (fType === "snooze") === !!x.is_snooze) && (fStatus === ALL || (fStatus === "active") === !!x.is_active) && matchText(q, x.name, x.code));
+  const pg = useTablePagination(shown, 20);
+
   if (loading) return <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>;
 
   return (
     <>
+      <MasterDataFilterBar search={q} onSearchChange={setQ} placeholder="ค้นหาชื่อ Action หรือ Code..."
+        preview={shown.map((x) => ({ id: x.id, title: x.name, subtitle: x.code }))}
+        resultCount={shown.length} totalCount={items.length}
+        filters={[{ key: "type", label: "ประเภท", value: fType, onChange: setFType, width: "w-[150px]", options: [{ value: "snooze", label: "เลื่อน/ซ่อน" }, { value: "action", label: "ดำเนินการ" }] }, { key: "status", label: "สถานะ", value: fStatus, onChange: setFStatus, width: "w-[140px]", options: [{ value: "active", label: "ใช้งาน" }, { value: "inactive", label: "ปิดใช้งาน" }] }]} />
       <Table>
         <TableHeader>
           <TableRow>
@@ -73,7 +86,7 @@ export function PMActionTypeList({ refresh }: PMActionTypeListProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {items.map(item => (
+          {pg.paginatedData.map(item => (
             <TableRow key={item.id}>
               <TableCell>{item.sort_order}</TableCell>
               <TableCell className="font-medium">{item.name}</TableCell>
@@ -105,6 +118,7 @@ export function PMActionTypeList({ refresh }: PMActionTypeListProps) {
           ))}
         </TableBody>
       </Table>
+      <TablePagination currentPage={pg.currentPage} totalPages={pg.totalPages} totalItems={pg.totalItems} pageSize={pg.pageSize} onPageChange={pg.handlePageChange} onPageSizeChange={pg.handlePageSizeChange} />
 
       {editItem && (
         <PMActionTypeForm

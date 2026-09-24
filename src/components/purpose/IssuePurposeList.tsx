@@ -5,6 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { MasterDataFilterBar, ALL, matchText } from "@/components/master-data/MasterDataFilterBar";
+import { useTablePagination } from "@/hooks/useTablePagination";
+import { TablePagination } from "@/components/TablePagination";
 import { Trash2, MapPin, RotateCcw, Layers, Pencil } from "lucide-react";
 import { IssuePurposeEditDialog } from "./IssuePurposeEditDialog";
 import {
@@ -122,6 +125,17 @@ export function IssuePurposeList({ refresh }: IssuePurposeListProps) {
     }
   };
 
+  const [q, setQ] = useState("");
+  const [fCond, setFCond] = useState(ALL);
+  const [fStatus, setFStatus] = useState(ALL);
+  const shown = purposes.filter((x) => {
+    if (fCond === "billboard" && !x.requires_billboard) return false;
+    if (fCond === "return" && !x.requires_return) return false;
+    if (fCond === "allcat" && !x.allow_all_categories) return false;
+    return (fStatus === ALL || (fStatus === "active") === !!x.is_active) && matchText(q, x.name, x.description, ...getCategoriesForPurpose(x.id));
+  });
+  const pg = useTablePagination(shown, 20);
+
   if (loading) {
     return <div className="text-center py-8 text-muted-foreground">กำลังโหลด...</div>;
   }
@@ -131,6 +145,11 @@ export function IssuePurposeList({ refresh }: IssuePurposeListProps) {
   }
 
   return (
+    <div className="space-y-2">
+    <MasterDataFilterBar search={q} onSearchChange={setQ} placeholder="ค้นหาชื่อ คำอธิบาย หรือหมวดหมู่ที่เบิกได้..."
+      preview={shown.map((x) => ({ id: x.id, title: x.name, subtitle: x.description || undefined }))}
+      resultCount={shown.length} totalCount={purposes.length}
+      filters={[{ key: "cond", label: "เงื่อนไข", value: fCond, onChange: setFCond, options: [{ value: "billboard", label: "ต้องระบุป้าย" }, { value: "return", label: "ต้องคืน" }, { value: "allcat", label: "เบิกได้ทุกหมวด" }] }, { key: "status", label: "สถานะ", value: fStatus, onChange: setFStatus, width: "w-[140px]", options: [{ value: "active", label: "ใช้งาน" }, { value: "inactive", label: "ปิดใช้งาน" }] }]} />
     <div className="rounded-lg border">
       <Table>
         <TableHeader>
@@ -144,7 +163,7 @@ export function IssuePurposeList({ refresh }: IssuePurposeListProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {purposes.map((purpose) => {
+          {pg.paginatedData.map((purpose) => {
             const allowedCategories = getCategoriesForPurpose(purpose.id);
             
             return (
@@ -243,6 +262,8 @@ export function IssuePurposeList({ refresh }: IssuePurposeListProps) {
           })}
         </TableBody>
       </Table>
+    </div>
+      <TablePagination currentPage={pg.currentPage} totalPages={pg.totalPages} totalItems={pg.totalItems} pageSize={pg.pageSize} onPageChange={pg.handlePageChange} onPageSizeChange={pg.handlePageSizeChange} />
 
       <IssuePurposeEditDialog
         purpose={editingPurpose}

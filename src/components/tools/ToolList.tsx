@@ -1,3 +1,4 @@
+import { MasterDataFilterBar, ALL, uniqOptions, matchText } from "@/components/master-data/MasterDataFilterBar";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -240,9 +241,10 @@ export function ToolList({ refreshKey, readOnly = false, showSummary = false }: 
       {/* Filters */}
       <div className="flex flex-col gap-3">
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="ค้นหารหัส, ชื่อ, S/N, ยี่ห้อ, ผู้รับผิดชอบ..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
+          <div className="flex-1 [&>div]:mb-0">
+            <MasterDataFilterBar search={searchTerm} onSearchChange={setSearchTerm} placeholder="ค้นหารหัส, ชื่อ, S/N, ยี่ห้อ, ผู้รับผิดชอบ..."
+              preview={filteredTools.map((t: any) => ({ id: t.id, title: `${t.code} — ${t.name}`, subtitle: [t.serial_number, t.tool_category?.name, t.department].filter(Boolean).join(" • ") }))}
+              onPreviewSelect={(p) => setSearchTerm(p.title.split(" — ")[0])} />
           </div>
           <div className="flex gap-2">
             <ViewModeToggle value={viewMode} onChange={setViewMode} />
