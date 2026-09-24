@@ -37,6 +37,8 @@ import { ViewModeToggle, useViewMode } from "@/components/common/ViewModeToggle"
 import { EntityCardGrid, CardItem } from "@/components/common/EntityCardGrid";
 import { EntityCalendarView, CalendarItem } from "@/components/common/EntityCalendarView";
 import { usePrimaryImages } from "@/hooks/usePrimaryImages";
+import { WarehouseMapView } from "@/components/inventory/WarehouseMapView";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 // Removed hardcoded ITEMS_PER_PAGE - now using useTablePagination hook
@@ -111,6 +113,7 @@ export default function InventoryReport() {
   const { applyEquipmentScope, applyToolScope, applyMediaPlayerScope, scopeKey } = useSectionScope();
   const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
   const [viewMode, setViewMode] = useViewMode("inventory-report", "table");
+  const [mainTab, setMainTab] = useState<"list" | "map">("list");
 
   // Pagination is handled by useTablePagination below
 
@@ -954,13 +957,20 @@ export default function InventoryReport() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <ViewModeToggle value={viewMode} onChange={setViewMode} />
+            {mainTab === "list" && <ViewModeToggle value={viewMode} onChange={setViewMode} />}
             <Button onClick={handleExport} disabled={filteredData.length === 0}>
               <Download className="mr-2 h-4 w-4" />
               Export Excel
             </Button>
           </div>
         </div>
+
+        <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as "list" | "map")}>
+          <TabsList>
+            <TabsTrigger value="list">📋 รายการตาราง</TabsTrigger>
+            <TabsTrigger value="map">🗺️ ผังตำแหน่งจัดเก็บ</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {/* Summary Cards */}
         <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
@@ -1063,8 +1073,25 @@ export default function InventoryReport() {
 
         </Card>
 
+        {/* Warehouse map view */}
+        {mainTab === "map" && (
+          <WarehouseMapView
+            items={filteredData.map((i) => ({
+              id: i.id,
+              code: i.code,
+              name: i.name,
+              serial_number: i.serial_number,
+              quantity_in_stock: i.quantity_in_stock,
+              unit: i.unit,
+              item_type: i.item_type,
+              item_condition: i.item_condition,
+              location_id: i.location_id,
+            }))}
+          />
+        )}
+
         {/* Card / Calendar view */}
-        {viewMode !== "table" && (
+        {mainTab === "list" && viewMode !== "table" && (
           <Card>
             <CardContent className="p-4">
               {viewMode === "card" ? (
@@ -1114,7 +1141,7 @@ export default function InventoryReport() {
         )}
 
         {/* Data Table */}
-        {viewMode === "table" && (
+        {mainTab === "list" && viewMode === "table" && (
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
