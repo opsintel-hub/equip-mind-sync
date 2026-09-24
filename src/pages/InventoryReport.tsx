@@ -113,6 +113,7 @@ export default function InventoryReport() {
   const { applyEquipmentScope, applyToolScope, applyMediaPlayerScope, scopeKey } = useSectionScope();
   const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
   const [viewMode, setViewMode] = useViewMode("inventory-report", "table");
+  const [mainTab, setMainTab] = useState<"list" | "map">("list");
 
   // Pagination is handled by useTablePagination below
 
