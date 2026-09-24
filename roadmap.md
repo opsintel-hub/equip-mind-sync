@@ -3,5 +3,5 @@
 - [x] Fix the confirmed root cause
 - [x] Verify document creation and stock behavior
 - [x] Add a Super Admin action that clears only equipment, Media Player, and tool test images
-- [ ] Standardize wide tables with horizontal scrolling and persistent action columns
-- [ ] Verify the issue-request cart and shared layout at desktop and tablet widths
+- [x] Standardize wide tables with horizontal scrolling and persistent action columns
+- [x] Verify the issue-request page loads without browser errors; authenticated cart verification requires an active preview session

@@ -1851,7 +1851,7 @@ const IssueRequest = () => {
                               </div>
                             ) : <span className="text-muted-foreground text-sm">-</span>}
                           </TableCell>
-                          <TableCell className="sticky right-0 z-20 bg-card text-center shadow-[-2px_0_5px_hsl(var(--border))] group-hover:bg-muted">
+                          <TableCell>
                             {item.location_name ? (
                               <div className="flex items-center gap-1">
                                 <MapPin className="h-3 w-3 text-muted-foreground" />
@@ -1860,7 +1860,7 @@ const IssueRequest = () => {
                             ) : <span className="text-muted-foreground text-sm">-</span>}
                           </TableCell>
                           <TableCell className="text-right">{item.quantity} {item.unit}</TableCell>
-                          <TableCell>
+                          <TableCell className="sticky right-0 z-20 bg-card text-center shadow-[-2px_0_5px_hsl(var(--border))] group-hover:bg-muted">
                             {item.billboard_id ? (
                               <Badge variant="outline" className="text-xs">
                                 <MapPin className="h-3 w-3 mr-1" />
