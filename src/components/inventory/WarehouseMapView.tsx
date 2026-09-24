@@ -376,20 +376,25 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
                                   [ + ช่องว่าง ]
                                 </div>
                               ) : (
-                                entries.map((e, idx) => (
-                                  <button
-                                    key={`${e.id}-${idx}`}
-                                    onClick={() => setOpenSlot(l.id)}
-                                    className={cn("rounded-md border px-2 py-1.5 text-left min-w-[150px] max-w-[220px]", typeClass(e.item_type))}
-                                  >
-                                    <div className="flex items-center gap-1.5">
-                                      <Package className="h-3.5 w-3.5 shrink-0" />
-                                      <span className="text-xs font-semibold truncate">{e.code}</span>
-                                      <Badge variant="secondary" className="ml-auto text-[10px] shrink-0">{e.slotQty}</Badge>
-                                    </div>
-                                    <div className="text-[11px] opacity-80 truncate">{e.name}</div>
-                                  </button>
-                                ))
+                                  entries.map((e, idx) => (
+                                    <button
+                                      key={`${e.id}-${idx}`}
+                                      onClick={() => setOpenSlot(l.id)}
+                                      className={cn("rounded-md border px-2 py-1.5 text-left min-w-[150px] max-w-[220px]", typeClass(e.item_type))}
+                                    >
+                                      {e.serial_number && (
+                                        <div className="text-[11px] font-mono font-semibold whitespace-pre-line break-all leading-tight">
+                                          {e.serial_number}
+                                        </div>
+                                      )}
+                                      <div className="flex items-center gap-1.5">
+                                        <Package className="h-3.5 w-3.5 shrink-0" />
+                                        <span className="text-xs font-semibold truncate">{e.code}</span>
+                                        <Badge variant="secondary" className="ml-auto text-[10px] shrink-0">{e.slotQty}</Badge>
+                                      </div>
+                                      <div className="text-[11px] opacity-80 truncate">{e.name}</div>
+                                    </button>
+                                  ))
                               )}
                             </div>
                           </div>
