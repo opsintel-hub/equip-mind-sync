@@ -8,7 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { Boxes, Grid3X3, LayoutList, MapPin, Package, Search, Warehouse as WarehouseIcon } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { exportMapExcel, exportMapPdf, type MapExportRow } from "@/lib/warehouseMapExport";
+import { Download, Boxes, Grid3X3, LayoutList, MapPin, Package, Search, Warehouse as WarehouseIcon } from "lucide-react";
 
 export interface MapItem {
   id: string;
@@ -20,6 +25,7 @@ export interface MapItem {
   item_type: "equipment" | "tools" | "media_player";
   item_condition?: string;
   location_id: string | null;
+  category?: string | null;
 }
 
 interface LocationRow {
@@ -51,6 +57,17 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
   const [mode, setMode] = useState<"rack" | "grid">("rack");
   const [conditionFilter, setConditionFilter] = useState<string>("all");
   const [openSlot, setOpenSlot] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [slotStatus, setSlotStatus] = useState<"all" | "occupied" | "empty" | "near_full">("all");
+  const [spaceOnly, setSpaceOnly] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportWh, setExportWh] = useState<string>("__current__");
+  const [exportRange, setExportRange] = useState<"filtered" | "all" | "occupied" | "available">("filtered");
+  const [exporting, setExporting] = useState(false);
+  const categories = useMemo(
+    () => Array.from(new Set(items.map((i) => i.category || "").filter(Boolean))).sort((a, b) => a.localeCompare(b, "th")),
+    [items],
+  );
 
   const { data: warehouses = [] } = useQuery({
     queryKey: ["map-warehouses"],
@@ -146,6 +163,7 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
     const q = search.trim().toLowerCase();
     const condOk = conditionFilter === "all" || (e.item_condition || "good") === conditionFilter;
     if (!condOk) return false;
+    if (categoryFilter !== "all" && (e.category || "") !== categoryFilter) return false;
     if (!q) return true;
     return (
       e.code.toLowerCase().includes(q) ||
@@ -209,6 +227,107 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
     const pct = fillPct(l);
     if (pct !== null && pct >= 80) return "border-amber-500/50 bg-amber-500/10";
     return "border-emerald-500/50 bg-emerald-500/10";
+  };
+
+  const filtersActive = search.trim() !== "" || conditionFilter !== "all" || categoryFilter !== "all";
+  const hasSpace = (l: LocationRow) => {
+    const pct = fillPct(l);
+    return pct === null ? true : pct < 80;
+  };
+  const locOk = (l: LocationRow) => {
+    const entries = (bySlot.get(l.id) || []).filter(matches);
+    const occupied = entries.length > 0;
+    if (slotStatus === "occupied" && !occupied) return false;
+    if (slotStatus === "empty" && occupied) return false;
+    if (slotStatus === "near_full" && !(occupied && !hasSpace(l))) return false;
+    if (spaceOnly && !hasSpace(l)) return false;
+    if (filtersActive && slotStatus === "all" && !spaceOnly && !occupied) return false;
+    return true;
+  };
+  const displayGroups = grouped
+    .map((z) => ({ ...z, locs: z.locs.filter(locOk) }))
+    .filter((z) => z.locs.length > 0);
+
+  const conditionLabel = (c?: string) => (c === "repair" ? "ซ่อม" : c === "damaged" ? "ชำรุด" : "พร้อมใช้งาน");
+
+  const buildRows = (): { rows: MapExportRow[]; title: string } => {
+    const whId = exportWh === "__current__" ? activeWarehouse : exportWh;
+    const whList = whId === "__all__" ? warehouses : warehouses.filter((w: any) => w.id === whId);
+    const rows: MapExportRow[] = [];
+    const useFilter = exportRange === "filtered";
+    whList.forEach((w: any) => {
+      locations
+        .filter((l) => l.warehouse_id === w.id)
+        .sort((a, b) => a.code.localeCompare(b.code))
+        .forEach((l) => {
+          if (useFilter && !locOk(l)) return;
+          const entries = (bySlot.get(l.id) || []).filter((e) => (useFilter ? matches(e) : true));
+          const pct = fillPct(l);
+          const status = entries.length === 0 ? "ช่องว่าง" : hasSpace(l) ? "มีของ/ยังมีพื้นที่" : "ใกล้เต็ม";
+          if (exportRange === "occupied" && entries.length === 0) return;
+          if (exportRange === "available" && !hasSpace(l)) return;
+          const z = zones.find((zz: any) => zz.id === l.zone_id) as any;
+          const base = {
+            warehouse: w.code,
+            zone: z?.code || "-",
+            locationCode: l.code,
+            locationName: l.name,
+            usedPct: pct === null ? "-" : `${pct}`,
+            slotStatus: status,
+          };
+          if (entries.length === 0) {
+            rows.push({ ...base, itemType: "", category: "", code: "", name: "", serial: "", qty: "", unit: "", condition: "" });
+          } else {
+            entries.forEach((e) =>
+              rows.push({
+                ...base,
+                itemType: typeLabel(e.item_type),
+                category: e.category || "",
+                code: e.code,
+                name: e.name,
+                serial: e.serial_number || "",
+                qty: e.slotQty,
+                unit: e.unit || "",
+                condition: conditionLabel(e.item_condition),
+              }),
+            );
+          }
+        });
+    });
+    if (whId === UNASSIGNED || whId === "__all__") {
+      unassigned
+        .filter((e) => (useFilter ? matches(e) : true))
+        .forEach((e) =>
+          rows.push({
+            warehouse: "ยังไม่ระบุตำแหน่ง", zone: "-", locationCode: "-", locationName: "-", usedPct: "-", slotStatus: "-",
+            itemType: typeLabel(e.item_type), category: e.category || "", code: e.code, name: e.name,
+            serial: e.serial_number || "", qty: e.slotQty, unit: e.unit || "", condition: conditionLabel(e.item_condition),
+          }),
+        );
+    }
+    const title = whId === "__all__" ? "ทุกคลัง" : whId === UNASSIGNED ? "ยังไม่ระบุตำแหน่ง" : (whList[0] as any)?.code || "คลัง";
+    return { rows, title };
+  };
+
+  const rangeLabel = { filtered: "ตามตัวกรองปัจจุบัน", all: "ทุกช่อง", occupied: "เฉพาะช่องที่มีของ", available: "เฉพาะช่องที่ยังมีพื้นที่ว่าง" };
+
+  const doExport = async (fmt: "excel" | "pdf") => {
+    const { rows, title } = buildRows();
+    if (rows.length === 0) {
+      toast.error("ไม่มีข้อมูลในช่วงที่เลือก");
+      return;
+    }
+    setExporting(true);
+    try {
+      if (fmt === "excel") exportMapExcel(rows, title);
+      else await exportMapPdf(rows, title, rangeLabel[exportRange]);
+      toast.success(`ส่งออก ${rows.length} แถวแล้ว`);
+      setExportOpen(false);
+    } catch (err: any) {
+      toast.error("ส่งออกไม่สำเร็จ: " + (err?.message || err));
+    } finally {
+      setExporting(false);
+    }
   };
 
   const openLoc = locations.find((l) => l.id === openSlot) || null;
@@ -282,6 +401,9 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
               <SelectItem value="damaged">ชำรุด</SelectItem>
             </SelectContent>
           </Select>
+          <Button variant="outline" size="sm" className="shrink-0" onClick={() => setExportOpen(true)}>
+            <Download className="h-4 w-4 mr-1" /> ส่งออก
+          </Button>
           <div className="flex rounded-md border overflow-hidden shrink-0">
             <Button variant={mode === "rack" ? "default" : "ghost"} size="sm" className="rounded-none" onClick={() => setMode("rack")}>
               <LayoutList className="h-4 w-4 mr-1" /> ชั้นวาง
@@ -290,6 +412,34 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
               <Grid3X3 className="h-4 w-4 mr-1" /> ตารางช่อง
             </Button>
           </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">ทุกหมวดอุปกรณ์</SelectItem>
+              {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={slotStatus} onValueChange={(v) => setSlotStatus(v as any)}>
+            <SelectTrigger className="w-full sm:w-[200px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">ทุกสถานะการจัดเก็บ</SelectItem>
+              <SelectItem value="occupied">มีของจัดเก็บ</SelectItem>
+              <SelectItem value="empty">ช่องว่าง</SelectItem>
+              <SelectItem value="near_full">ใกล้เต็มความจุ</SelectItem>
+            </SelectContent>
+          </Select>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <Checkbox checked={spaceOnly} onCheckedChange={(v) => setSpaceOnly(!!v)} />
+            เฉพาะช่องที่ยังมีพื้นที่ว่าง
+          </label>
+          {(categoryFilter !== "all" || slotStatus !== "all" || spaceOnly) && (
+            <Button variant="ghost" size="sm" onClick={() => { setCategoryFilter("all"); setSlotStatus("all"); setSpaceOnly(false); }}>
+              ล้างตัวกรอง
+            </Button>
+          )}
         </div>
 
         {activeWarehouse === UNASSIGNED ? (
@@ -315,15 +465,15 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
               </div>
             </CardContent>
           </Card>
-        ) : grouped.length === 0 ? (
+        ) : displayGroups.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center text-sm text-muted-foreground">
-              คลังนี้ยังไม่มีตำแหน่งจัดเก็บ
+              {grouped.length === 0 ? "คลังนี้ยังไม่มีตำแหน่งจัดเก็บ" : "ไม่พบช่องที่ตรงกับตัวกรอง"}
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-4">
-            {grouped.map((zone) => (
+            {displayGroups.map((zone) => (
               <Card key={zone.id}>
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center gap-2">
@@ -425,6 +575,39 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
           <span className="flex items-center gap-1"><span className="h-3 w-3 rounded border border-dashed border-muted-foreground/40 bg-muted/30" /> ช่องว่าง</span>
         </div>
       </div>
+
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>ส่งออกผังตำแหน่งจัดเก็บ</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>คลัง</Label>
+              <Select value={exportWh} onValueChange={setExportWh}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__current__">คลังที่เลือกอยู่</SelectItem>
+                  <SelectItem value="__all__">ทุกคลัง</SelectItem>
+                  {warehouses.map((w: any) => <SelectItem key={w.id} value={w.id}>{w.code} — {w.name}</SelectItem>)}
+                  {unassigned.length > 0 && <SelectItem value={UNASSIGNED}>ยังไม่ระบุตำแหน่ง</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>ช่วงข้อมูล</Label>
+              <Select value={exportRange} onValueChange={(v) => setExportRange(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(rangeLabel).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" disabled={exporting} onClick={() => doExport("excel")}>Excel</Button>
+            <Button disabled={exporting} onClick={() => doExport("pdf")}>{exporting ? "กำลังสร้าง..." : "PDF"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Quick peek */}
       <Sheet open={!!openSlot} onOpenChange={(o) => !o && setOpenSlot(null)}>
