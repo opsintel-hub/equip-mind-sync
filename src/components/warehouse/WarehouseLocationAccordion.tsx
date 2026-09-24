@@ -396,8 +396,7 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
                 {/* Warehouse header */}
                 <div
                   className={cn(
-                    "relative flex items-center gap-2 overflow-hidden px-3 py-2.5 hover:bg-muted/50 transition-colors cursor-pointer",
-                    canManageWarehouse && "pr-20",
+                    "flex items-start gap-2 px-3 py-2.5 hover:bg-muted/50 transition-colors cursor-pointer",
                     open && "bg-muted/30 border-b",
                   )}
                   onClick={() => toggle(w.id)}
@@ -408,52 +407,42 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
                       open && "rotate-90",
                     )}
                   />
-                  <WarehouseIcon className="h-4 w-4 shrink-0 text-primary" />
-                  <span className="font-medium shrink-0">{w.code}</span>
-                  <span className="text-muted-foreground shrink-0">·</span>
-                  <span className="min-w-0 max-w-[220px] truncate" title={w.name}>{w.name}</span>
-                  {warehouseDepts(w).length > 0 ? (
-                    <span
-                      className="flex min-w-0 flex-1 flex-nowrap gap-1 overflow-x-auto pb-0.5 [scrollbar-width:thin]"
-                      title={warehouseDepts(w).join(", ")}
-                    >
-                      {warehouseDepts(w).map((d) =>
+                  <WarehouseIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="font-medium shrink-0">{w.code}</span>
+                      <span className="text-muted-foreground shrink-0">·</span>
+                      <span className="min-w-0 truncate" title={w.name}>{w.name}</span>
+                      <span className="shrink-0 hidden md:inline-flex">{areaBadge(w.storage_area)}</span>
+                      <Badge variant="secondary" className="shrink-0">
+                        {whZones.length} โซน · {whLocs.length} ตำแหน่ง
+                      </Badge>
+                      <span className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+                        <span>{M3(usedVol)} / {M3(totalVol)} m³</span>
+                        <span className={cn("font-medium", remainVol < 0 ? "text-destructive" : "text-emerald-600")}>
+                          เหลือ {M3(remainVol)} m³
+                        </span>
+                      </span>
+                    </div>
+                    <div className="flex min-w-0 flex-wrap gap-1" title={warehouseDepts(w).join(", ")}>
+                      {warehouseDepts(w).length > 0 ? warehouseDepts(w).map((d) =>
                         departments.includes(d) ? (
-                          <Badge key={d} variant="outline" className="shrink-0 gap-1">
+                          <Badge key={d} variant="outline" className="max-w-full gap-1 whitespace-normal text-left">
                             <span className="text-muted-foreground">ฝ่าย:</span>
                             {d}
                           </Badge>
                         ) : (
-                          <Badge
-                            key={d}
-                            variant="outline"
-                            className="shrink-0 gap-1 border-destructive text-destructive"
-                            title="ชื่อฝ่ายนี้ไม่ตรงกับข้อมูลฝ่ายในระบบ"
-                          >
+                          <Badge key={d} variant="outline" className="max-w-full gap-1 whitespace-normal text-left border-destructive text-destructive" title="ชื่อฝ่ายนี้ไม่ตรงกับข้อมูลฝ่ายในระบบ">
                             ⚠ ฝ่าย: {d}
                           </Badge>
                         ),
+                      ) : (
+                        <Badge variant="outline" className="text-muted-foreground italic">ไม่ระบุฝ่าย</Badge>
                       )}
-                    </span>
-                  ) : (
-                    <Badge variant="outline" className="shrink-0 text-muted-foreground italic">
-                      ไม่ระบุฝ่าย
-                    </Badge>
-                  )}
-                  <span className="shrink-0 hidden md:inline-flex">{areaBadge(w.storage_area)}</span>
-                  <Badge variant="secondary" className="shrink-0">
-                    {whZones.length} โซน · {whLocs.length} ตำแหน่ง
-                  </Badge>
-                  <span className="hidden lg:flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-                    <span>{M3(usedVol)}</span>
-                    <span>/</span>
-                    <span>{M3(totalVol)} m³</span>
-                    <span className={cn("ml-2 font-medium", remainVol < 0 ? "text-destructive" : "text-emerald-600")}>
-                      เหลือ {M3(remainVol)} m³
-                    </span>
-                  </span>
+                    </div>
+                  </div>
                   <div
-                    className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 shrink-0 gap-0.5 border-l border-border bg-card pl-1"
+                    className="ml-auto flex shrink-0 gap-0.5 border-l border-border bg-card pl-1"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {canManageWarehouse && (
