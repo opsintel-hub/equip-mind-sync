@@ -1141,7 +1141,7 @@ export default function InventoryReport() {
         )}
 
         {/* Data Table */}
-        {viewMode === "table" && (
+        {mainTab === "list" && viewMode === "table" && (
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
