@@ -150,7 +150,7 @@ export function EquipmentList({ refresh }: EquipmentListProps) {
       if (fDept !== ALL && item.department !== fDept) return false;
       if (fCompany !== ALL && item.companies?.name !== fCompany) return false;
       if (fCond !== ALL && (item.item_condition || "normal") !== fCond) return false;
-      const q = Number(item.quantity ?? 0), min = Number(item.min_stock ?? 0);
+      const q = Number(item.quantity_in_stock ?? 0), min = Number(item.min_stock_level ?? 0);
       if (fStock === "out" && q > 0) return false;
       if (fStock === "low" && !(q > 0 && min > 0 && q <= min)) return false;
       if (fStock === "in" && q <= 0) return false;
