@@ -325,7 +325,7 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
                     <Boxes className="h-4 w-4 text-muted-foreground" />
                     <span className="font-semibold">{zone.code}</span>
                     <span className="text-sm text-muted-foreground truncate">{zone.name}</span>
-                    <Badge variant="secondary" className="ml-auto">{zone.locs.length} ช่อง</Badge>
+                    <Badge variant="secondary" className="ml-auto">มีของ {zone.occupied}/{zone.locs.length} ช่อง</Badge>
                   </div>
 
                   {mode === "grid" ? (
