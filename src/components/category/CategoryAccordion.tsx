@@ -1,3 +1,4 @@
+import { MasterDataFilterBar, ALL, uniqOptions, matchText } from "@/components/master-data/MasterDataFilterBar";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -132,6 +133,20 @@ export function CategoryAccordion({
     return map;
   }, [children]);
 
+  const [q, setQ] = useState("");
+  const [fStatus, setFStatus] = useState(ALL);
+  const stOk = (r: Row) => fStatus === ALL || (fStatus === "active") === (r.is_active !== false);
+  const kidsOf = (pid: string) => {
+    const kids = (childrenByParent[pid] || []).filter(stOk);
+    const par = parents.find((x) => x.id === pid);
+    if (!q.trim() || (par && matchText(q, par.name, par.description, ...(par.keywords ?? [])))) return kids;
+    return kids.filter((c) => matchText(q, c.name, c.description, ...(c.keywords ?? [])));
+  };
+  const shownParents = parents.filter((p) => stOk(p) && (matchText(q, p.name, p.description, ...(p.keywords ?? [])) || (q.trim() !== "" && kidsOf(p.id).length > 0)));
+  const previewItems = [
+    ...parents.filter((p) => q.trim() && matchText(q, p.name, p.description)).map((p) => ({ id: p.id, title: p.name, subtitle: labels.parentSingular })),
+    ...children.filter((c) => q.trim() && matchText(q, c.name, c.description)).map((c) => ({ id: c.id, title: c.name, subtitle: `${labels.childSingular} • ${parents.find((p) => p.id === c.parentId)?.name ?? ""}` })),
+  ];
   const expandAll = () => persistExpanded(new Set(parents.map((p) => p.id)));
   const collapseAll = () => persistExpanded(new Set());
 
@@ -171,6 +186,9 @@ export function CategoryAccordion({
 
   return (
     <>
+      <MasterDataFilterBar search={q} onSearchChange={setQ} placeholder={`ค้นหา${labels.parentSingular} / ${labels.childSingular} / คำสำคัญ...`}
+        preview={previewItems} resultCount={shownParents.length} totalCount={parents.length}
+        filters={[{ key: "status", label: "สถานะ", value: fStatus, onChange: setFStatus, width: "w-[140px]", options: [{ value: "active", label: "ใช้งาน" }, { value: "inactive", label: "ปิดใช้งาน" }] }]} />
       <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={expandAll}>
@@ -200,9 +218,10 @@ export function CategoryAccordion({
         </div>
       ) : (
         <div className="space-y-2">
-          {parents.map((p) => {
-            const isOpen = expanded.has(p.id);
-            const kids = childrenByParent[p.id] || [];
+          {shownParents.length === 0 && <div className="text-center py-8 text-muted-foreground border rounded-lg">ไม่พบรายการที่ค้นหา</div>}
+          {shownParents.map((p) => {
+            const isOpen = expanded.has(p.id) || (q.trim() !== "" && kidsOf(p.id).length > 0);
+            const kids = kidsOf(p.id);
             return (
               <div key={p.id} className="border rounded-lg bg-card overflow-hidden">
                 {/* Header row */}
