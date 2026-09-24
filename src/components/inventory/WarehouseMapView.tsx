@@ -299,6 +299,11 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 {unassigned.filter(matches).map((e, idx) => (
                   <div key={`${e.id}-${idx}`} className="rounded-md border p-2 text-sm">
+                    {e.serial_number && (
+                      <div className="text-xs font-mono font-semibold whitespace-pre-line break-all">
+                        {e.serial_number}
+                      </div>
+                    )}
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium truncate">{e.code}</span>
                       <Badge variant="outline" className={cn("text-[10px]", typeClass(e.item_type))}>{typeLabel(e.item_type)}</Badge>
