@@ -27,6 +27,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { SubMediaTypeBadge } from "@/components/media-player/SubMediaTypeBadge";
 import { useDeptScope } from "@/hooks/useDeptScope";
 import { useSectionScope } from "@/hooks/useSectionScope";
+import { cn } from "@/lib/utils";
 interface EquipmentWithDetails {
   id: string;
   code: string;
