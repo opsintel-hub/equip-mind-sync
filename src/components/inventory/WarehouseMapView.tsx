@@ -437,8 +437,12 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
             <Checkbox checked={spaceOnly} onCheckedChange={(v) => setSpaceOnly(!!v)} />
             เฉพาะช่องที่ยังมีพื้นที่ว่าง
           </label>
-          {(categoryFilter !== "all" || slotStatus !== "all" || spaceOnly) && (
-            <Button variant="ghost" size="sm" onClick={() => { setCategoryFilter("all"); setSlotStatus("all"); setSpaceOnly(false); }}>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <Checkbox checked={serialOnly} onCheckedChange={(v) => setSerialOnly(!!v)} />
+            เฉพาะสินค้าที่มี S/N
+          </label>
+          {(categoryFilter !== "all" || slotStatus !== "all" || spaceOnly || serialOnly) && (
+            <Button variant="ghost" size="sm" onClick={() => { setCategoryFilter("all"); setSlotStatus("all"); setSpaceOnly(false); setSerialOnly(false); }}>
               ล้างตัวกรอง
             </Button>
           )}
