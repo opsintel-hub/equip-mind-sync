@@ -396,7 +396,8 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
                 {/* Warehouse header */}
                 <div
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2.5 hover:bg-muted/50 transition-colors cursor-pointer",
+                    "relative flex items-center gap-2 overflow-hidden px-3 py-2.5 hover:bg-muted/50 transition-colors cursor-pointer",
+                    canManageWarehouse && "pr-20",
                     open && "bg-muted/30 border-b",
                   )}
                   onClick={() => toggle(w.id)}
@@ -452,7 +453,7 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
                     </span>
                   </span>
                   <div
-                    className="ml-auto flex shrink-0 gap-0.5 border-l border-border bg-card pl-1"
+                    className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 shrink-0 gap-0.5 border-l border-border bg-card pl-1"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {canManageWarehouse && (
