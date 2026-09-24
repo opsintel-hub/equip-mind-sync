@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSidebar } from "@/components/ui/sidebar";
 
 const STORAGE_KEY = "sidebar-width-rem";
 const MIN_REM = 12;
@@ -17,6 +18,7 @@ export function getStoredSidebarWidthRem(): number {
  * by writing to the `--sidebar-width` CSS var on the wrapper.
  */
 export function SidebarResizer() {
+  const { state } = useSidebar();
   const [widthRem, setWidthRem] = useState<number>(() => getStoredSidebarWidthRem());
   const draggingRef = useRef(false);
 
@@ -62,6 +64,8 @@ export function SidebarResizer() {
     setWidthRem(DEFAULT_REM);
     localStorage.setItem(STORAGE_KEY, String(DEFAULT_REM));
   };
+
+  if (state === "collapsed") return null;
 
   return (
     <div
