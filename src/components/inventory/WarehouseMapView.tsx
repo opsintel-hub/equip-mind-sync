@@ -60,6 +60,7 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [slotStatus, setSlotStatus] = useState<"all" | "occupied" | "empty" | "near_full">("all");
   const [spaceOnly, setSpaceOnly] = useState(false);
+  const [serialOnly, setSerialOnly] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportWh, setExportWh] = useState<string>("__current__");
   const [exportRange, setExportRange] = useState<"filtered" | "all" | "occupied" | "available">("filtered");
@@ -164,6 +165,7 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
     const condOk = conditionFilter === "all" || (e.item_condition || "good") === conditionFilter;
     if (!condOk) return false;
     if (categoryFilter !== "all" && (e.category || "") !== categoryFilter) return false;
+    if (serialOnly && !e.serial_number) return false;
     if (!q) return true;
     return (
       e.code.toLowerCase().includes(q) ||
@@ -229,7 +231,7 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
     return "border-emerald-500/50 bg-emerald-500/10";
   };
 
-  const filtersActive = search.trim() !== "" || conditionFilter !== "all" || categoryFilter !== "all";
+  const filtersActive = search.trim() !== "" || conditionFilter !== "all" || categoryFilter !== "all" || serialOnly;
   const hasSpace = (l: LocationRow) => {
     const pct = fillPct(l);
     return pct === null ? true : pct < 80;
@@ -435,8 +437,12 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
             <Checkbox checked={spaceOnly} onCheckedChange={(v) => setSpaceOnly(!!v)} />
             เฉพาะช่องที่ยังมีพื้นที่ว่าง
           </label>
-          {(categoryFilter !== "all" || slotStatus !== "all" || spaceOnly) && (
-            <Button variant="ghost" size="sm" onClick={() => { setCategoryFilter("all"); setSlotStatus("all"); setSpaceOnly(false); }}>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <Checkbox checked={serialOnly} onCheckedChange={(v) => setSerialOnly(!!v)} />
+            เฉพาะสินค้าที่มี S/N
+          </label>
+          {(categoryFilter !== "all" || slotStatus !== "all" || spaceOnly || serialOnly) && (
+            <Button variant="ghost" size="sm" onClick={() => { setCategoryFilter("all"); setSlotStatus("all"); setSpaceOnly(false); setSerialOnly(false); }}>
               ล้างตัวกรอง
             </Button>
           )}
