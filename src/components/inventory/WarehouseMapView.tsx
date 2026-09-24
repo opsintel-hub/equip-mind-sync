@@ -166,7 +166,11 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
     });
   }, [warehouses, locations, bySlot]);
 
-  const activeWarehouse = warehouseId || warehouseStats[0]?.id || "";
+  const defaultWarehouse = useMemo(() => {
+    const withItems = warehouseStats.filter((w: any) => w.qty > 0).sort((a: any, b: any) => b.qty - a.qty);
+    return withItems[0]?.id || warehouseStats[0]?.id || "";
+  }, [warehouseStats]);
+  const activeWarehouse = warehouseId || defaultWarehouse;
   const unassigned = bySlot.get(UNASSIGNED) || [];
 
   const visibleLocations = useMemo(() => {
