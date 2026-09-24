@@ -299,6 +299,11 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 {unassigned.filter(matches).map((e, idx) => (
                   <div key={`${e.id}-${idx}`} className="rounded-md border p-2 text-sm">
+                    {e.serial_number && (
+                      <div className="text-xs font-mono font-semibold whitespace-pre-line break-all">
+                        {e.serial_number}
+                      </div>
+                    )}
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium truncate">{e.code}</span>
                       <Badge variant="outline" className={cn("text-[10px]", typeClass(e.item_type))}>{typeLabel(e.item_type)}</Badge>
@@ -341,7 +346,13 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
                             className={cn("rounded-md border p-2 text-left transition-transform hover:scale-[1.02]", slotColor(l))}
                           >
                             <div className="font-mono text-sm font-semibold truncate">{l.code}</div>
-                            <div className="text-[11px] truncate opacity-80">{l.name}</div>
+                            {entries.length === 1 && entries[0].serial_number ? (
+                              <div className="text-[11px] font-mono font-semibold whitespace-pre-line break-all truncate">
+                                {entries[0].serial_number}
+                              </div>
+                            ) : (
+                              <div className="text-[11px] truncate opacity-80">{l.name}</div>
+                            )}
                             <div className="text-xs mt-1">
                               {entries.length > 0 ? `${entries.length} รายการ • ${qty} ชิ้น` : "ช่องว่าง"}
                             </div>
@@ -376,20 +387,25 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
                                   [ + ช่องว่าง ]
                                 </div>
                               ) : (
-                                entries.map((e, idx) => (
-                                  <button
-                                    key={`${e.id}-${idx}`}
-                                    onClick={() => setOpenSlot(l.id)}
-                                    className={cn("rounded-md border px-2 py-1.5 text-left min-w-[150px] max-w-[220px]", typeClass(e.item_type))}
-                                  >
-                                    <div className="flex items-center gap-1.5">
-                                      <Package className="h-3.5 w-3.5 shrink-0" />
-                                      <span className="text-xs font-semibold truncate">{e.code}</span>
-                                      <Badge variant="secondary" className="ml-auto text-[10px] shrink-0">{e.slotQty}</Badge>
-                                    </div>
-                                    <div className="text-[11px] opacity-80 truncate">{e.name}</div>
-                                  </button>
-                                ))
+                                  entries.map((e, idx) => (
+                                    <button
+                                      key={`${e.id}-${idx}`}
+                                      onClick={() => setOpenSlot(l.id)}
+                                      className={cn("rounded-md border px-2 py-1.5 text-left min-w-[150px] max-w-[220px]", typeClass(e.item_type))}
+                                    >
+                                      {e.serial_number && (
+                                        <div className="text-[11px] font-mono font-semibold whitespace-pre-line break-all leading-tight">
+                                          {e.serial_number}
+                                        </div>
+                                      )}
+                                      <div className="flex items-center gap-1.5">
+                                        <Package className="h-3.5 w-3.5 shrink-0" />
+                                        <span className="text-xs font-semibold truncate">{e.code}</span>
+                                        <Badge variant="secondary" className="ml-auto text-[10px] shrink-0">{e.slotQty}</Badge>
+                                      </div>
+                                      <div className="text-[11px] opacity-80 truncate">{e.name}</div>
+                                    </button>
+                                  ))
                               )}
                             </div>
                           </div>
@@ -423,18 +439,17 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
             ) : (
               openEntries.map((e, idx) => (
                 <div key={`${e.id}-${idx}`} className="rounded-md border p-3 space-y-1">
+                  {e.serial_number && (
+                    <div className="text-sm font-mono font-semibold whitespace-pre-line break-all">
+                      {e.serial_number}
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">{e.code}</span>
                     <Badge variant="outline" className={cn("text-[10px]", typeClass(e.item_type))}>{typeLabel(e.item_type)}</Badge>
                     <Badge variant="secondary" className="ml-auto">{e.slotQty} {e.unit || ""}</Badge>
                   </div>
                   <div className="text-sm text-muted-foreground">{e.name}</div>
-                  {e.serial_number && (
-                    <div className="text-xs whitespace-pre-line">
-                      <span className="text-muted-foreground">S/N: </span>
-                      {e.serial_number}
-                    </div>
-                  )}
                 </div>
               ))
             )}
