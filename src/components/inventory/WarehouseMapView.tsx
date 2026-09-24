@@ -423,18 +423,17 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
             ) : (
               openEntries.map((e, idx) => (
                 <div key={`${e.id}-${idx}`} className="rounded-md border p-3 space-y-1">
+                  {e.serial_number && (
+                    <div className="text-sm font-mono font-semibold whitespace-pre-line break-all">
+                      {e.serial_number}
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">{e.code}</span>
                     <Badge variant="outline" className={cn("text-[10px]", typeClass(e.item_type))}>{typeLabel(e.item_type)}</Badge>
                     <Badge variant="secondary" className="ml-auto">{e.slotQty} {e.unit || ""}</Badge>
                   </div>
                   <div className="text-sm text-muted-foreground">{e.name}</div>
-                  {e.serial_number && (
-                    <div className="text-xs whitespace-pre-line">
-                      <span className="text-muted-foreground">S/N: </span>
-                      {e.serial_number}
-                    </div>
-                  )}
                 </div>
               ))
             )}
