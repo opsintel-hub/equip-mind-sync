@@ -1791,7 +1791,7 @@ const IssueRequest = () => {
                     </TableHeader>
                     <TableBody>
                       {cartItems.map((item, index) => (
-                        <TableRow key={item.id} className={selectedCartIds.has(item.id) ? "bg-primary/5" : ""}>
+                        <TableRow key={item.id} className={cn("group", selectedCartIds.has(item.id) && "bg-primary/5")}>
                           <TableCell className="sticky left-0 z-20 bg-card shadow-[2px_0_5px_hsl(var(--border))] group-hover:bg-muted">
                             <Checkbox
                               checked={selectedCartIds.has(item.id)}
@@ -1842,7 +1842,7 @@ const IssueRequest = () => {
                             </div>
                           </TableCell>
                           <TableCell>{item.serial_number || "-"}</TableCell>
-                          <TableCell className="sticky right-0 z-20 bg-card text-center shadow-[-2px_0_5px_hsl(var(--border))] group-hover:bg-muted">
+                          <TableCell>
                             {item.warehouse_name ? (
                               <div className="flex items-center gap-1">
                                 <Warehouse className="h-3 w-3 text-muted-foreground" />
@@ -1850,7 +1850,7 @@ const IssueRequest = () => {
                               </div>
                             ) : <span className="text-muted-foreground text-sm">-</span>}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="sticky right-0 z-20 bg-card text-center shadow-[-2px_0_5px_hsl(var(--border))] group-hover:bg-muted">
                             {item.location_name ? (
                               <div className="flex items-center gap-1">
                                 <MapPin className="h-3 w-3 text-muted-foreground" />
