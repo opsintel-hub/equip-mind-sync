@@ -60,6 +60,7 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [slotStatus, setSlotStatus] = useState<"all" | "occupied" | "empty" | "near_full">("all");
   const [spaceOnly, setSpaceOnly] = useState(false);
+  const [serialOnly, setSerialOnly] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportWh, setExportWh] = useState<string>("__current__");
   const [exportRange, setExportRange] = useState<"filtered" | "all" | "occupied" | "available">("filtered");
