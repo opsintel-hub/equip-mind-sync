@@ -1073,8 +1073,25 @@ export default function InventoryReport() {
 
         </Card>
 
+        {/* Warehouse map view */}
+        {mainTab === "map" && (
+          <WarehouseMapView
+            items={filteredData.map((i) => ({
+              id: i.id,
+              code: i.code,
+              name: i.name,
+              serial_number: i.serial_number,
+              quantity_in_stock: i.quantity_in_stock,
+              unit: i.unit,
+              item_type: i.item_type,
+              item_condition: i.item_condition,
+              location_id: i.location_id,
+            }))}
+          />
+        )}
+
         {/* Card / Calendar view */}
-        {viewMode !== "table" && (
+        {mainTab === "list" && viewMode !== "table" && (
           <Card>
             <CardContent className="p-4">
               {viewMode === "card" ? (
