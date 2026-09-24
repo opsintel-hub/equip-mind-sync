@@ -1,3 +1,4 @@
+import { MasterDataFilterBar, ALL, uniqOptions, matchText } from "@/components/master-data/MasterDataFilterBar";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -88,12 +89,12 @@ export function TechnicianList({ refreshKey }: TechnicianListProps) {
     }
   };
 
-  const filteredTechnicians = technicians.filter(
-    (t) =>
-      t.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.department?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const [fDept, setFDept] = useState(ALL);
+  const [fStatus, setFStatus] = useState(ALL);
+  const filteredTechnicians = technicians.filter((t) =>
+    (fDept === ALL || t.department === fDept) &&
+    (fStatus === ALL || (fStatus === "active") === !!t.is_active) &&
+    matchText(searchTerm, t.code, t.name, t.department, t.phone));
 
   const { paginatedData, currentPage, pageSize, totalPages, totalItems, handlePageChange, handlePageSizeChange } =
     useTablePagination(filteredTechnicians, 20);
@@ -108,9 +109,13 @@ export function TechnicianList({ refreshKey }: TechnicianListProps) {
               รายชื่อช่าง ({filteredTechnicians.length} คน)
             </CardTitle>
             <div className="flex gap-2 w-full sm:w-auto">
-              <div className="relative flex-1 sm:w-64">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="ค้นหารหัส, ชื่อ, ฝ่าย..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
+              <div className="flex-1 sm:min-w-[560px] [&>div]:mb-0">
+                <MasterDataFilterBar search={searchTerm} onSearchChange={setSearchTerm} placeholder="ค้นหารหัส, ชื่อ, ฝ่าย, เบอร์โทร..."
+                  preview={filteredTechnicians.map((t) => ({ id: t.id, title: t.name, subtitle: [t.code, t.department].filter(Boolean).join(" • ") }))}
+                  filters={[
+                    { key: "dept", label: "ฝ่าย", value: fDept, onChange: setFDept, width: "w-[150px]", options: uniqOptions(technicians.map((t) => t.department)) },
+                    { key: "status", label: "สถานะ", value: fStatus, onChange: setFStatus, width: "w-[130px]", options: [{ value: "active", label: "ใช้งาน" }, { value: "inactive", label: "ปิดใช้งาน" }] },
+                  ]} />
               </div>
               <Button variant="outline" size="icon" onClick={fetchTechnicians}><RefreshCw className="h-4 w-4" /></Button>
             </div>
