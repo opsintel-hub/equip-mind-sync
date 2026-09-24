@@ -396,7 +396,8 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
                 {/* Warehouse header */}
                 <div
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2.5 hover:bg-muted/50 transition-colors cursor-pointer",
+                    "relative flex items-center gap-2 overflow-hidden px-3 py-2.5 hover:bg-muted/50 transition-colors cursor-pointer",
+                    canManageWarehouse && "pr-20",
                     open && "bg-muted/30 border-b",
                   )}
                   onClick={() => toggle(w.id)}
@@ -410,9 +411,12 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
                   <WarehouseIcon className="h-4 w-4 shrink-0 text-primary" />
                   <span className="font-medium shrink-0">{w.code}</span>
                   <span className="text-muted-foreground shrink-0">·</span>
-                  <span className="truncate flex-1">{w.name}</span>
+                  <span className="min-w-0 max-w-[220px] truncate" title={w.name}>{w.name}</span>
                   {warehouseDepts(w).length > 0 ? (
-                    <span className="flex flex-wrap gap-1 shrink-0">
+                    <span
+                      className="flex min-w-0 flex-1 flex-nowrap gap-1 overflow-x-auto pb-0.5 [scrollbar-width:thin]"
+                      title={warehouseDepts(w).join(", ")}
+                    >
                       {warehouseDepts(w).map((d) =>
                         departments.includes(d) ? (
                           <Badge key={d} variant="outline" className="shrink-0 gap-1">
@@ -448,7 +452,10 @@ export function WarehouseLocationAccordion({ canManageWarehouse, canManageLocati
                       เหลือ {M3(remainVol)} m³
                     </span>
                   </span>
-                  <div className="flex gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <div
+                    className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 shrink-0 gap-0.5 border-l border-border bg-card pl-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {canManageWarehouse && (
                       <>
                         <WarehouseForm editData={w as any} onSuccess={load} />
