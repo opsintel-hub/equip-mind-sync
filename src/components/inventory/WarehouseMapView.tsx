@@ -346,7 +346,13 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
                             className={cn("rounded-md border p-2 text-left transition-transform hover:scale-[1.02]", slotColor(l))}
                           >
                             <div className="font-mono text-sm font-semibold truncate">{l.code}</div>
-                            <div className="text-[11px] truncate opacity-80">{l.name}</div>
+                            {entries.length === 1 && entries[0].serial_number ? (
+                              <div className="text-[11px] font-mono font-semibold whitespace-pre-line break-all truncate">
+                                {entries[0].serial_number}
+                              </div>
+                            ) : (
+                              <div className="text-[11px] truncate opacity-80">{l.name}</div>
+                            )}
                             <div className="text-xs mt-1">
                               {entries.length > 0 ? `${entries.length} รายการ • ${qty} ชิ้น` : "ช่องว่าง"}
                             </div>
