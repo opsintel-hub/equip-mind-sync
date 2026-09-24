@@ -9,7 +9,7 @@ interface TableProps extends React.HTMLAttributes<HTMLTableElement> {
 
 const Table = React.forwardRef<HTMLTableElement, TableProps>(
   ({ className, disableWrapper = false, wrapperClassName, ...props }, ref) => {
-    const table = <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />;
+    const table = <table ref={ref} className={cn("min-w-full w-max caption-bottom text-sm", className)} {...props} />;
 
     if (disableWrapper) {
       return table;
@@ -17,7 +17,11 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
 
     return (
       <div
-        className={cn("relative w-full overflow-auto rounded-xl border border-border/60", wrapperClassName)}
+        className={cn(
+          "relative w-full max-w-full overflow-x-auto overscroll-x-contain rounded-xl border border-border/60",
+          "[scrollbar-color:hsl(var(--border))_transparent] [scrollbar-width:thin]",
+          wrapperClassName,
+        )}
         style={{ boxShadow: "var(--shadow-sm)" }}
       >
         {table}
@@ -29,7 +33,7 @@ Table.displayName = "Table";
 
 const TableHeader = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
   ({ className, ...props }, ref) => (
-    <thead ref={ref} className={cn("bg-muted/40 [&_tr]:border-b [&_tr]:border-border/60", className)} {...props} />
+    <thead ref={ref} className={cn("sticky top-0 z-10 bg-muted/40 [&_tr]:border-b [&_tr]:border-border/60", className)} {...props} />
   ),
 );
 TableHeader.displayName = "TableHeader";

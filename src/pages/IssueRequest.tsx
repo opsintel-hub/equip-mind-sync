@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertTriangle, MapPin, RotateCcw, Image, Filter, X, Trash2, ShoppingCart, ChevronDown, ChevronUp, Lock, Layers, Eye, Pencil, Warehouse } from "lucide-react";
@@ -1738,8 +1737,8 @@ const IssueRequest = () => {
 
             {/* Cart Items */}
             {cartItems.length > 0 && (
-              <div className="p-4 border border-primary/30 bg-primary/5 rounded-lg space-y-4">
-                <div className="flex items-center justify-between">
+              <div className="overflow-hidden rounded-lg border border-primary/30 bg-card">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/20 p-4">
                   <h3 className="font-medium flex items-center gap-2">
                     <ShoppingCart className="h-4 w-4" />
                     ตะกร้าสินค้าขอเบิก ({cartItems.length} รายการ)
@@ -1769,31 +1768,31 @@ const IssueRequest = () => {
                     </Button>
                   </div>
                 </div>
-                <ScrollArea className="max-h-60">
-                  <Table>
+                <div className="max-h-80 overflow-auto">
+                  <Table disableWrapper className="min-w-[1180px] border-separate border-spacing-0">
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-10">
+                        <TableHead className="sticky left-0 z-30 w-12 min-w-12 bg-muted shadow-[2px_0_5px_hsl(var(--border))]">
                           <Checkbox
                             checked={cartItems.length > 0 && selectedCartIds.size === cartItems.length}
                             onCheckedChange={handleToggleSelectAll}
                           />
                         </TableHead>
-                        <TableHead>#</TableHead>
-                        <TableHead>รหัส/ชื่อสินค้า</TableHead>
+                        <TableHead className="w-12 min-w-12">#</TableHead>
+                        <TableHead className="sticky left-12 z-30 min-w-[260px] bg-muted shadow-[2px_0_5px_hsl(var(--border))]">รหัส/ชื่อสินค้า</TableHead>
                         <TableHead>S/N</TableHead>
                         <TableHead>คลังสินค้า</TableHead>
                         <TableHead>ตำแหน่งจัดเก็บ</TableHead>
                         <TableHead className="text-right">จำนวน</TableHead>
                         <TableHead>ป้ายโฆษณา</TableHead>
                         <TableHead>หมายเหตุ</TableHead>
-                        <TableHead className="w-[80px]">จัดการ</TableHead>
+                        <TableHead className="sticky right-0 z-30 w-24 min-w-24 bg-muted text-center shadow-[-2px_0_5px_hsl(var(--border))]">จัดการ</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {cartItems.map((item, index) => (
                         <TableRow key={item.id} className={selectedCartIds.has(item.id) ? "bg-primary/5" : ""}>
-                          <TableCell>
+                          <TableCell className="sticky left-0 z-20 bg-card shadow-[2px_0_5px_hsl(var(--border))] group-hover:bg-muted">
                             <Checkbox
                               checked={selectedCartIds.has(item.id)}
                               onCheckedChange={(checked) => {
@@ -1807,7 +1806,7 @@ const IssueRequest = () => {
                             />
                           </TableCell>
                           <TableCell className="text-muted-foreground">{index + 1}</TableCell>
-                          <TableCell>
+                          <TableCell className="sticky left-12 z-20 bg-card shadow-[2px_0_5px_hsl(var(--border))] group-hover:bg-muted">
                             {item.equipment_code && <div className="font-medium">{item.equipment_code}</div>}
                             <div className="text-sm text-muted-foreground">{item.equipment_name}</div>
                             <div className="mt-1 flex flex-wrap items-center gap-1">
@@ -1843,7 +1842,7 @@ const IssueRequest = () => {
                             </div>
                           </TableCell>
                           <TableCell>{item.serial_number || "-"}</TableCell>
-                          <TableCell>
+                          <TableCell className="sticky right-0 z-20 bg-card text-center shadow-[-2px_0_5px_hsl(var(--border))] group-hover:bg-muted">
                             {item.warehouse_name ? (
                               <div className="flex items-center gap-1">
                                 <Warehouse className="h-3 w-3 text-muted-foreground" />
@@ -1897,10 +1896,10 @@ const IssueRequest = () => {
                       ))}
                     </TableBody>
                   </Table>
-                </ScrollArea>
+                </div>
 
                 {/* Summary */}
-                <div className="flex flex-wrap items-center gap-4 text-sm pt-2 border-t">
+                <div className="flex flex-wrap items-center gap-4 border-t bg-muted/20 px-4 pt-3 text-sm">
                   <span className="text-muted-foreground">
                     ทั้งหมด: <strong className="text-foreground">{cartItems.length} รายการ</strong>
                   </span>
@@ -1908,7 +1907,7 @@ const IssueRequest = () => {
                     จำนวนรวม: <strong className="text-foreground">{cartItems.reduce((s, i) => s + i.quantity, 0)} ชิ้น</strong>
                   </span>
                 </div>
-                <div className="flex flex-wrap items-center gap-4 text-sm">
+                <div className="flex flex-wrap items-center gap-4 bg-muted/20 px-4 pb-3 pt-2 text-sm">
                   <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
                     <CheckCircle className="h-3 w-3 mr-1" />
                     เลือก {selectedCartIds.size} รายการ
