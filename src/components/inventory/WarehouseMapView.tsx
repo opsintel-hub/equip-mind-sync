@@ -160,9 +160,13 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
     return map;
   }, [items, allocByItem]);
 
+  // ค่าจริงในฐานข้อมูลอาจเป็น 'new' (ค่าเริ่มต้นเก่า) — ถือเป็น 'normal'
+  const normCond = (c?: string) =>
+    c === "defective" || c === "pending_inspection" ? c : "normal";
+
   const matches = (e: SlotEntry) => {
     const q = search.trim().toLowerCase();
-    const condOk = conditionFilter === "all" || (e.item_condition || "normal") === conditionFilter;
+    const condOk = conditionFilter === "all" || normCond(e.item_condition) === conditionFilter;
     if (!condOk) return false;
     if (categoryFilter !== "all" && (e.category || "") !== categoryFilter) return false;
     if (serialOnly && !e.serial_number) return false;
@@ -251,7 +255,7 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
     .filter((z) => z.locs.length > 0);
 
   const conditionLabel = (c?: string) =>
-    c === "defective" ? "เสีย/ชำรุด" : c === "pending_inspection" ? "รอตรวจสอบ" : "ปกติ";
+    normCond(c) === "defective" ? "เสีย/ชำรุด" : normCond(c) === "pending_inspection" ? "รอตรวจสอบ" : "ปกติ";
 
   const buildRows = (): { rows: MapExportRow[]; title: string } => {
     const whId = exportWh === "__current__" ? activeWarehouse : exportWh;
