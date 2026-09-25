@@ -336,3 +336,11 @@
     }
   }
 }
+/* Fix: nested AlertDialog (e.g. delete confirm) opened from inside a modal Dialog
+   is unclickable because the modal sets pointer-events:none on body.
+   Re-enable pointer events on the alertdialog overlay + content layers. */
+[data-radix-popper-content-wrapper],
+[role="alertdialog"],
+[role="alertdialog"] * {
+  pointer-events: auto;
+}
