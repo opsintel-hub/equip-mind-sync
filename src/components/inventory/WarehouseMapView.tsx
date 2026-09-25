@@ -160,9 +160,13 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
     return map;
   }, [items, allocByItem]);
 
+  // ค่าจริงในฐานข้อมูลอาจเป็น 'new' (ค่าเริ่มต้นเก่า) — ถือเป็น 'normal'
+  const normCond = (c?: string) =>
+    c === "defective" || c === "pending_inspection" ? c : "normal";
+
   const matches = (e: SlotEntry) => {
     const q = search.trim().toLowerCase();
-    const condOk = conditionFilter === "all" || (e.item_condition || "good") === conditionFilter;
+    const condOk = conditionFilter === "all" || normCond(e.item_condition) === conditionFilter;
     if (!condOk) return false;
     if (categoryFilter !== "all" && (e.category || "") !== categoryFilter) return false;
     if (serialOnly && !e.serial_number) return false;
@@ -250,7 +254,8 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
     .map((z) => ({ ...z, locs: z.locs.filter(locOk) }))
     .filter((z) => z.locs.length > 0);
 
-  const conditionLabel = (c?: string) => (c === "repair" ? "ซ่อม" : c === "damaged" ? "ชำรุด" : "พร้อมใช้งาน");
+  const conditionLabel = (c?: string) =>
+    normCond(c) === "defective" ? "เสีย/ชำรุด" : normCond(c) === "pending_inspection" ? "รอตรวจสอบ" : "ปกติ";
 
   const buildRows = (): { rows: MapExportRow[]; title: string } => {
     const whId = exportWh === "__current__" ? activeWarehouse : exportWh;
@@ -398,9 +403,9 @@ export function WarehouseMapView({ items }: { items: MapItem[] }) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">ทุกสภาพ</SelectItem>
-              <SelectItem value="good">พร้อมใช้งาน</SelectItem>
-              <SelectItem value="repair">ซ่อม</SelectItem>
-              <SelectItem value="damaged">ชำรุด</SelectItem>
+              <SelectItem value="normal">ปกติ</SelectItem>
+              <SelectItem value="defective">เสีย/ชำรุด</SelectItem>
+              <SelectItem value="pending_inspection">รอตรวจสอบ</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" size="sm" className="shrink-0" onClick={() => setExportOpen(true)}>
