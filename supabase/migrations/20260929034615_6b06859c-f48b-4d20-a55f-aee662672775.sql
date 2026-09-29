@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.set_access_ticket_no() FROM public, anon, authenticated;

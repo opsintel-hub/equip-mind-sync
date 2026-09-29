@@ -6624,6 +6624,149 @@ export type Database = {
           },
         ]
       }
+      warehouse_access_photos: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          photo_type: string
+          ticket_id: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          photo_type: string
+          ticket_id: string
+          uploaded_by?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          photo_type?: string
+          ticket_id?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warehouse_access_photos_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_access_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      warehouse_access_tickets: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_location_id: string | null
+          assigned_location_note: string | null
+          checkin_at: string | null
+          checkin_by: string | null
+          checkout_at: string | null
+          checkout_by: string | null
+          contractor_name: string
+          created_at: string
+          created_by: string
+          id: string
+          items_description: string | null
+          notes: string | null
+          planned_end_at: string
+          planned_start_at: string
+          purpose: string
+          reject_reason: string | null
+          safety_acknowledged: boolean
+          status: string
+          supervisor_id: string
+          supervisor_name: string
+          supervisor_phone: string | null
+          ticket_no: string | null
+          updated_at: string
+          vehicle_plates: string[]
+          warehouse_id: string | null
+          worker_count: number
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_location_id?: string | null
+          assigned_location_note?: string | null
+          checkin_at?: string | null
+          checkin_by?: string | null
+          checkout_at?: string | null
+          checkout_by?: string | null
+          contractor_name: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          items_description?: string | null
+          notes?: string | null
+          planned_end_at: string
+          planned_start_at: string
+          purpose?: string
+          reject_reason?: string | null
+          safety_acknowledged?: boolean
+          status?: string
+          supervisor_id: string
+          supervisor_name: string
+          supervisor_phone?: string | null
+          ticket_no?: string | null
+          updated_at?: string
+          vehicle_plates?: string[]
+          warehouse_id?: string | null
+          worker_count?: number
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_location_id?: string | null
+          assigned_location_note?: string | null
+          checkin_at?: string | null
+          checkin_by?: string | null
+          checkout_at?: string | null
+          checkout_by?: string | null
+          contractor_name?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          items_description?: string | null
+          notes?: string | null
+          planned_end_at?: string
+          planned_start_at?: string
+          purpose?: string
+          reject_reason?: string | null
+          safety_acknowledged?: boolean
+          status?: string
+          supervisor_id?: string
+          supervisor_name?: string
+          supervisor_phone?: string | null
+          ticket_no?: string | null
+          updated_at?: string
+          vehicle_plates?: string[]
+          warehouse_id?: string | null
+          worker_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warehouse_access_tickets_assigned_location_id_fkey"
+            columns: ["assigned_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_access_tickets_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       warehouses: {
         Row: {
           code: string
@@ -6715,6 +6858,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      access_ticket_gate_stamp: {
+        Args: { _action: string; _ticket_id: string }
+        Returns: Json
+      }
       adjust_equipment_quantity: {
         Args: { _equipment_id: string; _new_qty: number; _reason: string }
         Returns: Json
