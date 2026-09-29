@@ -3,7 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { syncAuthSessionToBridge } from '@/lib/sessionBridge';
+import { clearAuthSessionBridge, syncAuthSessionToBridge } from '@/lib/sessionBridge';
 import { ALLOWED_EMAIL_DOMAIN, isAllowedEmail } from '@/lib/authDomain';
 
 interface AuthContextType {
@@ -160,6 +160,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       try { localStorage.removeItem('lastRoute'); } catch { /* ignore */ }
       await supabase.auth.signOut();
+      clearAuthSessionBridge();
       toast.success('ออกจากระบบสำเร็จ');
       navigate('/');
     } catch (error: any) {
