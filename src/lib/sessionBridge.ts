@@ -58,11 +58,15 @@ export const syncAuthSessionToBridge = () => {
         return;
       }
     }
-    // ไม่มี session ในแท็บนี้ (logout) -> ล้าง mirror ให้แท็บอื่นด้วย
-    if (localStorage.getItem(MIRROR_KEY)) {
-      localStorage.removeItem(MIRROR_KEY);
-      localStorage.removeItem(HEARTBEAT_KEY);
-    }
+    // แท็บที่ยังไม่มี session ต้องไม่ล้าง mirror เพราะอาจเป็นแท็บเก่า
+    // ที่เปิดค้างอยู่ ขณะที่อีกแท็บเพิ่ง login สำเร็จ
+  } catch { /* ignore */ }
+};
+
+export const clearAuthSessionBridge = () => {
+  try {
+    localStorage.removeItem(MIRROR_KEY);
+    localStorage.removeItem(HEARTBEAT_KEY);
   } catch { /* ignore */ }
 };
 
