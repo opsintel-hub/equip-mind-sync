@@ -39,6 +39,9 @@ export function useSectionScope() {
         supabase.rpc("get_user_section_scopes" as any, { _user_id: user!.id }),
       ]);
       if (secRes.error) throw secRes.error;
+      const sectionIds = ((secRes.data || []) as any[])
+        .filter((r) => r.can_view)
+        .map((r) => r.section_id as string);
       if (scopeRes.error) {
         // Graceful fallback: a missing/broken session makes the RPC fail with
         // "permission denied for function get_user_section_scopes". Instead of
@@ -47,9 +50,6 @@ export function useSectionScope() {
         console.warn("get_user_section_scopes failed, falling back to unrestricted scope:", scopeRes.error.message);
         return { sectionIds, scopes: [] as SectionScopeRow[] };
       }
-      const sectionIds = ((secRes.data || []) as any[])
-        .filter((r) => r.can_view)
-        .map((r) => r.section_id as string);
       return { sectionIds, scopes: (scopeRes.data || []) as unknown as SectionScopeRow[] };
     },
   });
