@@ -457,7 +457,26 @@ type LocationInfo = {
   sublabel?: string;
 };
 
+type DocColKey = "doc_no" | "type" | "status" | "equipment" | "serial" | "location" | "supplier" | "qty" | "created" | "progress" | "updated" | "docs";
+const DOC_COLUMNS: ColumnDef<DocColKey>[] = [
+  { key: "doc_no", label: "เลขที่เอกสาร", locked: true },
+  { key: "type", label: "ประเภท" },
+  { key: "status", label: "สถานะปัจจุบัน" },
+  { key: "equipment", label: "รหัส/ชื่ออุปกรณ์" },
+  { key: "serial", label: "Serial Number", defaultVisible: false },
+  { key: "location", label: "ตำแหน่งปัจจุบัน", defaultVisible: false },
+  { key: "supplier", label: "ผู้จำหน่าย/ผู้ขอ" },
+  { key: "qty", label: "จำนวนในเอกสาร" },
+  { key: "created", label: "วันที่สร้าง" },
+  { key: "progress", label: "ความคืบหน้า", defaultVisible: false },
+  { key: "updated", label: "อัปเดตล่าสุด", defaultVisible: false },
+  { key: "docs", label: "เอกสาร" },
+];
+
 export default function DocumentSearch() {
+  const [visibleCols, setVisibleCols] = useVisibleCols<DocColKey>("docSearch:cols:v1", DOC_COLUMNS);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggleRow = (k: string) => setExpanded((prev) => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; });
   const navigate = useNavigate();
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1148,6 +1167,12 @@ export default function DocumentSearch() {
                 />
                 ซ่อน Stock Card ที่มีเอกสารต้นทาง
               </label>
+              {expanded.size > 0 && (
+                <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={() => setExpanded(new Set())}>
+                  <ChevronsDownUp className="h-3.5 w-3.5" /> ยุบทั้งหมด
+                </Button>
+              )}
+              <ColumnChooser columns={DOC_COLUMNS} visible={visibleCols} onChange={setVisibleCols} />
               <span className="text-xs text-muted-foreground">พบ {filteredDocuments.length} รายการ</span>
             </div>
           </div>
