@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { ColumnChooser, useVisibleCols, type ColumnDef } from "@/components/ColumnChooser";
+import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { DateRange } from "react-day-picker";
-import { Search, FileText, Download, ExternalLink, Loader2 } from "lucide-react";
+import { Search, FileText, Download, ExternalLink, Loader2, ChevronRight, ChevronsDownUp } from "lucide-react";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -455,7 +457,26 @@ type LocationInfo = {
   sublabel?: string;
 };
 
+type DocColKey = "doc_no" | "type" | "status" | "equipment" | "serial" | "location" | "supplier" | "qty" | "created" | "progress" | "updated" | "docs";
+const DOC_COLUMNS: ColumnDef<DocColKey>[] = [
+  { key: "doc_no", label: "เลขที่เอกสาร", locked: true },
+  { key: "type", label: "ประเภท" },
+  { key: "status", label: "สถานะปัจจุบัน" },
+  { key: "equipment", label: "รหัส/ชื่ออุปกรณ์" },
+  { key: "serial", label: "Serial Number", defaultVisible: false },
+  { key: "location", label: "ตำแหน่งปัจจุบัน", defaultVisible: false },
+  { key: "supplier", label: "ผู้จำหน่าย/ผู้ขอ" },
+  { key: "qty", label: "จำนวนในเอกสาร" },
+  { key: "created", label: "วันที่สร้าง" },
+  { key: "progress", label: "ความคืบหน้า", defaultVisible: false },
+  { key: "updated", label: "อัปเดตล่าสุด", defaultVisible: false },
+  { key: "docs", label: "เอกสาร" },
+];
+
 export default function DocumentSearch() {
+  const [visibleCols, setVisibleCols] = useVisibleCols<DocColKey>("docSearch:cols:v1", DOC_COLUMNS);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggleRow = (k: string) => setExpanded((prev) => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; });
   const navigate = useNavigate();
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1146,6 +1167,12 @@ export default function DocumentSearch() {
                 />
                 ซ่อน Stock Card ที่มีเอกสารต้นทาง
               </label>
+              {expanded.size > 0 && (
+                <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={() => setExpanded(new Set())}>
+                  <ChevronsDownUp className="h-3.5 w-3.5" /> ยุบทั้งหมด
+                </Button>
+              )}
+              <ColumnChooser columns={DOC_COLUMNS} visible={visibleCols} onChange={setVisibleCols} />
               <span className="text-xs text-muted-foreground">พบ {filteredDocuments.length} รายการ</span>
             </div>
           </div>
@@ -1160,21 +1187,13 @@ export default function DocumentSearch() {
           ) : (
             <>
             <div className="max-w-full overflow-auto rounded-lg border" style={{ maxHeight: "70vh" }}>
-              <Table className="min-w-[2400px]">
+              <Table className="min-w-full">
                 <TableHeader className="sticky top-0 z-20 bg-background">
                   <TableRow className="hover:bg-transparent border-border/40">
-                    <TableHead className="text-xs font-semibold text-muted-foreground pl-6 min-w-[180px] sticky left-0 z-30 bg-background shadow-[1px_0_0_0_hsl(var(--border))]">เลขที่เอกสาร</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[140px]">ประเภท</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[140px]">สถานะปัจจุบัน</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[260px]">รหัส/ชื่ออุปกรณ์</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[220px]">Serial Number</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[220px]" title="ตำแหน่งปัจจุบันของอุปกรณ์/S/N">ตำแหน่งปัจจุบัน</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[200px]">ผู้จำหน่าย/ผู้ขอ</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground text-right min-w-[140px]" title="จำนวนรวมในเอกสารนี้">จำนวนในเอกสาร</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[140px]">วันที่สร้าง</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[280px]">ความคืบหน้า</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground min-w-[140px]">อัปเดตล่าสุด</TableHead>
-                    <TableHead className="text-xs font-semibold text-muted-foreground text-center pr-6 min-w-[120px]">เอกสาร</TableHead>
+                    <TableHead className="w-8 pl-3 pr-0 sticky left-0 z-30 bg-background" />
+                    {DOC_COLUMNS.filter((c) => visibleCols.includes(c.key)).map((c) => (
+                      <TableHead key={c.key} className={cn("text-xs font-semibold text-muted-foreground whitespace-nowrap", c.key === "doc_no" && "sticky left-10 z-30 bg-background pl-2 shadow-[1px_0_0_0_hsl(var(--border))]", c.key === "qty" && "text-right", c.key === "docs" && "text-center pr-6")}>{c.label}</TableHead>
+                    ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1186,11 +1205,23 @@ export default function DocumentSearch() {
                     const statusInfo = getCurrentStatusBadge(doc);
                     const r = doc.raw || {};
                     const lastUpdate = r.confirmed_at || r.rejected_at || r.stock_deducted_at || r.issued_at || r.approved_at || r.received_at || r.updated_at || doc.created_at;
-                    return (
-                      <TableRow key={`${doc.source}-${doc.id}`} className="border-border/30 hover:bg-muted/30">
-                        <TableCell className="font-mono text-xs font-medium pl-6 whitespace-nowrap sticky left-0 z-10 bg-background shadow-[1px_0_0_0_hsl(var(--border))]">{doc.document_no}</TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
+                    const cellCls: Record<DocColKey, string> = {
+                      doc_no: "font-mono text-xs font-medium pl-6 whitespace-nowrap sticky left-0 z-10 bg-background shadow-[1px_0_0_0_hsl(var(--border))]",
+                      type: "",
+                      status: "",
+                      equipment: "",
+                      serial: "",
+                      location: "text-xs",
+                      supplier: "text-sm",
+                      qty: "text-right text-sm tabular-nums whitespace-nowrap",
+                      created: "text-sm tabular-nums whitespace-nowrap",
+                      progress: "py-3",
+                      updated: "text-xs whitespace-nowrap",
+                      docs: "text-center pr-6",
+                    };
+                    const cellContent: Record<DocColKey, React.ReactNode> = {
+                      doc_no: (<>{doc.document_no}</>),
+                      type: (<>                          <div className="space-y-1">
                             {getSourceBadge(doc.source)}
                             {(() => {
                               const origin = getOriginLabel(doc);
@@ -1198,11 +1229,9 @@ export default function DocumentSearch() {
                                 <div className="text-[10px] text-muted-foreground leading-tight max-w-[180px]">{origin}</div>
                               ) : null;
                             })()}
-                          </div>
-                        </TableCell>
-                        <TableCell><Badge variant={statusInfo.variant}>{statusInfo.label}</Badge></TableCell>
-                        <TableCell>
-                          {doc.equipment_code || doc.equipment_name ? (
+                          </div></>),
+                      status: (<><Badge variant={statusInfo.variant}>{statusInfo.label}</Badge></>),
+                      equipment: (<>                          {doc.equipment_code || doc.equipment_name ? (
                             <div className="space-y-0.5">
                               {doc.equipment_code && <div className="font-semibold text-sm leading-tight">{doc.equipment_code}</div>}
                               {doc.equipment_name && <div className="text-xs text-muted-foreground leading-tight">{doc.equipment_name}</div>}
@@ -1246,10 +1275,8 @@ export default function DocumentSearch() {
                                 );
                               })()}
                             </div>
-                          ) : <span className="text-muted-foreground/40">-</span>}
-                        </TableCell>
-                        <TableCell>
-                          {snList.length > 0 ? (
+                          ) : <span className="text-muted-foreground/40">-</span>}</>),
+                      serial: (<>                          {snList.length > 0 ? (
                             <div className="flex flex-wrap gap-1 max-w-[260px]">
                               {snList.map((sn, i) => (
                                 <Badge
@@ -1263,10 +1290,8 @@ export default function DocumentSearch() {
                             </div>
                           ) : (
                             <span className="text-muted-foreground/40">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {(() => {
+                          )}</>),
+                      location: (<>                          {(() => {
                             const colorFor = (k: LocationInfo["kind"]) =>
                               k === "billboard" ? "info"
                               : k === "warehouse" ? "success"
@@ -1342,24 +1367,18 @@ export default function DocumentSearch() {
                               return <Badge variant="warning" className="text-[10px]">จ่ายออกแล้ว</Badge>;
                             }
                             return <span className="text-muted-foreground/40">-</span>;
-                          })()}
-                        </TableCell>
-                        <TableCell className="text-sm">{doc.supplier_name || doc.delivery_person_name || <span className="text-muted-foreground/40">-</span>}</TableCell>
-                        <TableCell className="text-right text-sm tabular-nums whitespace-nowrap">{doc.quantity > 0 ? `${doc.quantity} ${doc.unit}` : <span className="text-muted-foreground/40">-</span>}</TableCell>
-                        <TableCell className="text-sm tabular-nums whitespace-nowrap">{format(new Date(doc.created_at), "dd/MM/yyyy", { locale: th })}</TableCell>
-                        <TableCell className="py-3">
-                          {trackerSteps ? (
+                          })()}</>),
+                      supplier: (<>{doc.supplier_name || doc.delivery_person_name || <span className="text-muted-foreground/40">-</span>}</>),
+                      qty: (<>{doc.quantity > 0 ? `${doc.quantity} ${doc.unit}` : <span className="text-muted-foreground/40">-</span>}</>),
+                      created: (<>{format(new Date(doc.created_at), "dd/MM/yyyy", { locale: th })}</>),
+                      progress: (<>                          {trackerSteps ? (
                             <ProcessTracker steps={trackerSteps} size="sm" />
                           ) : (
                             <span className="text-muted-foreground/40 text-xs">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">
-                          <div className="text-foreground tabular-nums">{format(new Date(lastUpdate), "dd/MM/yy HH:mm", { locale: th })}</div>
-                          <div className="text-muted-foreground">{formatRelativeTimeTh(lastUpdate)}</div>
-                        </TableCell>
-                        <TableCell className="text-center pr-6">
-                          {(() => {
+                          )}</>),
+                      updated: (<>                          <div className="text-foreground tabular-nums">{format(new Date(lastUpdate), "dd/MM/yy HH:mm", { locale: th })}</div>
+                          <div className="text-muted-foreground">{formatRelativeTimeTh(lastUpdate)}</div></>),
+                      docs: (<>                          {(() => {
                             const cats = getDocumentCategories(doc);
                             if (cats.length === 0) {
                               return <span className="text-muted-foreground/30">-</span>;
@@ -1384,9 +1403,37 @@ export default function DocumentSearch() {
                                 <span className="text-xs tabular-nums">{fileCount}/{cats.length}</span>
                               </Button>
                             );
-                          })()}
+                          })()}</>),
+                    };
+                    const rowKey = `${doc.source}-${doc.id}`;
+                    const isOpen = expanded.has(rowKey);
+                    return (
+                      <React.Fragment key={rowKey}>
+                      <TableRow className={cn("border-border/30 hover:bg-muted/30 cursor-pointer", isOpen && "bg-muted/20")} onClick={(e) => { if ((e.target as HTMLElement).closest("button,a,input")) return; toggleRow(rowKey); }}>
+                        <TableCell className="w-8 pl-3 pr-0 sticky left-0 z-10 bg-background">
+                          <Button variant="ghost" size="icon" className="h-6 w-6" aria-label={isOpen ? "ยุบรายละเอียด" : "ขยายรายละเอียด"} onClick={() => toggleRow(rowKey)}>
+                            <ChevronRight className={cn("h-4 w-4 transition-transform", isOpen && "rotate-90")} />
+                          </Button>
                         </TableCell>
+                        {DOC_COLUMNS.filter((c) => visibleCols.includes(c.key)).map((c) => (
+                          <TableCell key={c.key} className={c.key === "doc_no" ? cn(cellCls.doc_no, "left-10 pl-2") : cellCls[c.key]}>{cellContent[c.key]}</TableCell>
+                        ))}
                       </TableRow>
+                      {isOpen && (
+                        <TableRow className="bg-muted/10 hover:bg-muted/10 border-border/30">
+                          <TableCell colSpan={visibleCols.length + 1} className="p-0">
+                            <div className="sticky left-0 max-w-[min(100vw-4rem,1200px)] grid gap-x-6 gap-y-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+                              {DOC_COLUMNS.filter((c) => c.key !== "doc_no").map((c) => (
+                                <div key={c.key} className={cn("min-w-0", c.key === "progress" && "sm:col-span-2 lg:col-span-3")}>
+                                  <div className="text-[11px] font-medium text-muted-foreground mb-1">{c.label}</div>
+                                  <div className="text-sm">{cellContent[c.key]}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      </React.Fragment>
                     );
                   })}
                 </TableBody>
