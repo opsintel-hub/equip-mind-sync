@@ -28,6 +28,8 @@ import { SubMediaTypeBadge } from "@/components/media-player/SubMediaTypeBadge";
 import { useDeptScope } from "@/hooks/useDeptScope";
 import { useSectionScope } from "@/hooks/useSectionScope";
 import { cn } from "@/lib/utils";
+import BillboardDisplay from "@/components/billboard/BillboardDisplay";
+import { LinkedDocsPanel } from "@/components/document-search/LinkedDocsPanel";
 interface EquipmentWithDetails {
   id: string;
   code: string;
@@ -2056,33 +2058,45 @@ const IssueRequest = () => {
                                     <TableRow>
                                       <TableHead>รหัส/ชื่อสินค้า</TableHead>
                                       <TableHead>S/N</TableHead>
-                                      <TableHead className="text-right">จำนวน</TableHead>
+                                      <TableHead className="text-right">ขอ</TableHead>
+                                      <TableHead className="text-right">จ่ายแล้ว</TableHead>
+                                      <TableHead className="text-right">ค้าง</TableHead>
                                       <TableHead>ป้ายโฆษณา</TableHead>
                                       <TableHead>สถานะ</TableHead>
+                                      <TableHead>หมายเหตุ</TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
-                                    {items.map((item) => (
+                                    {items.map((item: any) => (
                                       <TableRow key={item.id}>
                                         <TableCell>
                                           {item.equipment_code && <span className="font-medium">{item.equipment_code} - </span>}
                                           {item.equipment_name || "-"}
                                         </TableCell>
-                                        <TableCell>{item.serial_number || "-"}</TableCell>
+                                        <TableCell className="font-mono text-xs whitespace-pre-line">
+                                          {item.serial_number || <span className="text-muted-foreground font-sans">ไม่มี S/N (จ่ายตามจำนวน)</span>}
+                                        </TableCell>
                                         <TableCell className="text-right">{item.quantity} {item.unit}</TableCell>
+                                        <TableCell className="text-right text-green-600 font-medium">{item.issued_quantity || 0}</TableCell>
+                                        <TableCell className="text-right">{(item.remaining_quantity || 0) > 0 ? <span className="text-orange-600">{item.remaining_quantity}</span> : "-"}</TableCell>
                                         <TableCell>
                                           {item.billboard_id ? (
-                                            <Badge variant="outline" className="text-xs">
-                                              <MapPin className="h-3 w-3 mr-1" />ระบุแล้ว
-                                            </Badge>
-                                          ) : "-"}
+                                            <BillboardDisplay billboardId={item.billboard_id} />
+                                          ) : item.intended_billboard_id ? (
+                                            <div className="space-y-1">
+                                              <BillboardDisplay billboardId={item.intended_billboard_id} />
+                                              <Badge variant="outline" className="text-[10px]">รอระบุป้ายจริง</Badge>
+                                            </div>
+                                          ) : <span className="text-muted-foreground text-xs">ยังไม่ระบุ (ระบุภายหลัง)</span>}
                                         </TableCell>
                                         <TableCell>{getStatusBadge(item.status)}</TableCell>
+                                        <TableCell className="text-xs text-muted-foreground max-w-[200px] whitespace-pre-line">{item.notes || "-"}</TableCell>
                                       </TableRow>
                                     ))}
                                   </TableBody>
                                 </Table>
                               </div>
+                              <LinkedDocsPanel source="issue" id={req.id} documentNo={req.document_no} raw={req} onOpenDoc={(no) => window.open(`/document-search?q=${encodeURIComponent(no)}`, "_blank")} />
                             </TableCell>
                           </TableRow>
                         )}
