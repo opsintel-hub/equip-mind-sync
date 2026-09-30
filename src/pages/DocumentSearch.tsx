@@ -1435,6 +1435,7 @@ export default function DocumentSearch() {
                       )}
                       </React.Fragment>
                     );
+                  })}
                 </TableBody>
               </Table>
             </div>
