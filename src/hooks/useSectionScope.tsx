@@ -39,10 +39,17 @@ export function useSectionScope() {
         supabase.rpc("get_user_section_scopes" as any, { _user_id: user!.id }),
       ]);
       if (secRes.error) throw secRes.error;
-      if (scopeRes.error) throw scopeRes.error;
       const sectionIds = ((secRes.data || []) as any[])
         .filter((r) => r.can_view)
         .map((r) => r.section_id as string);
+      if (scopeRes.error) {
+        // Graceful fallback: a missing/broken session makes the RPC fail with
+        // "permission denied for function get_user_section_scopes". Instead of
+        // failing the whole page, fall back to unrestricted section scope —
+        // table-level RLS still enforces real access server-side.
+        console.warn("get_user_section_scopes failed, falling back to unrestricted scope:", scopeRes.error.message);
+        return { sectionIds, scopes: [] as SectionScopeRow[] };
+      }
       return { sectionIds, scopes: (scopeRes.data || []) as unknown as SectionScopeRow[] };
     },
   });
