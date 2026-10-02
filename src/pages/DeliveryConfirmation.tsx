@@ -571,11 +571,11 @@ const DeliveryConfirmation = () => {
                           </TableCell>
                           <TableCell className="text-center">
                             {confirmed ? (
-                              <Button size="sm" variant="outline" onClick={() => { setViewConfirmation(getConfirmation(req.id)); setViewDialogOpen(true); }}>
-                                <Eye className="h-4 w-4 mr-1" />ดูรายละเอียด
-                              </Button>
-                            ) : canConfirmRequest(req) ? (
-                              <Button size="sm" onClick={() => { setSelectedRequest(req); setConfirmDialogOpen(true); }}>
+                               <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setViewConfirmation(getConfirmation(req.id)); setViewDialogOpen(true); }}>
+                                 <Eye className="h-4 w-4 mr-1" />ดูรายละเอียด
+                               </Button>
+                             ) : canConfirmRequest(req) ? (
+                               <Button size="sm" onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); setConfirmDialogOpen(true); }}>
                                 <CheckCircle className="h-4 w-4 mr-1" />ยืนยันรับ
                               </Button>
                             ) : (
@@ -636,11 +636,11 @@ const DeliveryConfirmation = () => {
                           </TableCell>
                           <TableCell className="text-center">
                             {confirmed ? (
-                              <Button size="sm" variant="outline" onClick={() => { setViewConfirmation(getConfirmation(ds.id, true)); setViewDialogOpen(true); }}>
-                                <Eye className="h-4 w-4 mr-1" />ดูรายละเอียด
-                              </Button>
-                            ) : (
-                              <Button size="sm" onClick={() => { setSelectedRequest({ ...ds, _isDirectShipment: true }); setConfirmDialogOpen(true); }}>
+                               <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setViewConfirmation(getConfirmation(ds.id, true)); setViewDialogOpen(true); }}>
+                                 <Eye className="h-4 w-4 mr-1" />ดูรายละเอียด
+                               </Button>
+                             ) : (
+                               <Button size="sm" onClick={(e) => { e.stopPropagation(); setSelectedRequest({ ...ds, _isDirectShipment: true }); setConfirmDialogOpen(true); }}>
                                 <CheckCircle className="h-4 w-4 mr-1" />ยืนยันรับ
                               </Button>
                             )}

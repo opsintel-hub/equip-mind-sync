@@ -16,6 +16,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { EquipmentForm, EquipmentPrefillData } from "@/components/equipment/EquipmentForm";
 import { ReceiveGroupedItems, PendingReceipt } from "@/components/receive/ReceiveGroupedItems";
 import { DocumentPreviewDialog, DocumentCategory } from "@/components/DocumentPreviewDialog";
+import { LinkedDocsPanel } from "@/components/document-search/LinkedDocsPanel";
 
 const isImageUrl = (url: string) => /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url);
 const splitUrls = (combined: string | null | undefined): string[] =>
