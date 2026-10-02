@@ -1418,6 +1418,14 @@ const ReceiveGoods = () => {
                 </div>
               </div>
 
+              <LinkedDocsPanel
+                source="received"
+                id={receiptDetail.id}
+                documentNo={receiptDetail.document_no || "-"}
+                raw={receiptDetail}
+                onOpenDoc={(no) => window.open(`/document-search?q=${encodeURIComponent(no)}`, "_blank")}
+              />
+
               <div className="p-3 border rounded-lg space-y-3">
                 <p className="text-sm font-medium text-foreground flex items-center gap-2"><MapPin className="w-4 h-4" />ข้อมูลคลังและที่เก็บ</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
