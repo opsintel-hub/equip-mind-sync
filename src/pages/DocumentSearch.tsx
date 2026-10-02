@@ -21,6 +21,7 @@ import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
 import { DocumentPreviewDialog, DocumentCategory } from "@/components/DocumentPreviewDialog";
 import { LinkedDocsPanel } from "@/components/document-search/LinkedDocsPanel";
+import { DocItemsPanel } from "@/components/document-search/DocItemsPanel";
 
 const isImageUrl = (url: string) => /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url);
 const splitUrls = (combined: string | null | undefined): string[] =>
@@ -1432,6 +1433,7 @@ export default function DocumentSearch() {
                               ))}
                             </div>
                             <div className="sticky left-0 max-w-[min(100vw-4rem,1200px)]">
+                              <DocItemsPanel source={doc.source} id={doc.id} raw={doc.raw} />
                               <LinkedDocsPanel source={doc.source} id={doc.id} documentNo={doc.document_no} raw={doc.raw} onOpenDoc={(no) => { setSearchType("all"); setSearchTerm(no); }} />
                             </div>
                           </TableCell>
