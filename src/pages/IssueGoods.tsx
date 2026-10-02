@@ -25,6 +25,7 @@ import BillboardDisplay from "@/components/billboard/BillboardDisplay";
 import { LocationPickEditor } from "@/components/location/LocationPickEditor";
 import { LocationAllocation, allocationTotal, deductLocationAllocations } from "@/lib/locationAllocations";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
+import { LinkedDocsPanel } from "@/components/document-search/LinkedDocsPanel";
 import { SubMediaTypeSelect } from "@/components/media-player/SubMediaTypeSelect";
 import { requiresSubMediaType } from "@/lib/mediaPlayerSubTypes";
 import { logStockMovement } from "@/lib/stockMovement";
@@ -1354,6 +1355,13 @@ const IssueGoods = () => {
                                       })}
                                     </TableBody>
                                   </Table>
+                                  <LinkedDocsPanel
+                                    source="issue"
+                                    id={req.id}
+                                    documentNo={req.document_no}
+                                    raw={req}
+                                    onOpenDoc={(no) => window.open(`/document-search?q=${encodeURIComponent(no)}`, "_blank")}
+                                  />
                                 </div>
                               </TableCell>
                             </TableRow>
