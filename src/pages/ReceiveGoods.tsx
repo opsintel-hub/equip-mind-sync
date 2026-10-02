@@ -16,6 +16,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { EquipmentForm, EquipmentPrefillData } from "@/components/equipment/EquipmentForm";
 import { ReceiveGroupedItems, PendingReceipt } from "@/components/receive/ReceiveGroupedItems";
 import { DocumentPreviewDialog, DocumentCategory } from "@/components/DocumentPreviewDialog";
+import { LinkedDocsPanel } from "@/components/document-search/LinkedDocsPanel";
 
 const isImageUrl = (url: string) => /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url);
 const splitUrls = (combined: string | null | undefined): string[] =>
@@ -1416,6 +1417,14 @@ const ReceiveGoods = () => {
                   <Input value={receiptDetail.companies ? `${receiptDetail.companies.code || ""} - ${receiptDetail.companies.name}` : getCompanyName(receiptDetail.company_id) || "-"} disabled className="bg-muted" />
                 </div>
               </div>
+
+              <LinkedDocsPanel
+                source="received"
+                id={receiptDetail.id}
+                documentNo={receiptDetail.document_no || "-"}
+                raw={receiptDetail}
+                onOpenDoc={(no) => window.open(`/document-search?q=${encodeURIComponent(no)}`, "_blank")}
+              />
 
               <div className="p-3 border rounded-lg space-y-3">
                 <p className="text-sm font-medium text-foreground flex items-center gap-2"><MapPin className="w-4 h-4" />ข้อมูลคลังและที่เก็บ</p>

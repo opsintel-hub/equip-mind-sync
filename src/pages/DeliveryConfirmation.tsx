@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,7 +14,8 @@ import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, CheckCircle, AlertTriangle, Camera, Upload, Package, Truck, Eye, X, Store, CalendarClock, MapPin } from "lucide-react";
+import { Search, CheckCircle, AlertTriangle, Camera, Upload, Package, Truck, Eye, X, Store, CalendarClock, MapPin, ChevronDown, ChevronUp } from "lucide-react";
+import { LinkedDocsPanel } from "@/components/document-search/LinkedDocsPanel";
 import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
@@ -54,6 +55,7 @@ const DeliveryConfirmation = () => {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [hasIssue, setHasIssue] = useState(false);
   const [issueType, setIssueType] = useState("");
   const [issueDescription, setIssueDescription] = useState("");
@@ -513,9 +515,15 @@ const DeliveryConfirmation = () => {
                       const confirmed = isAlreadyConfirmed(req.id);
                       const confirmation = getConfirmation(req.id);
                       const items = getItemsForRequest(req.id);
-                      return (
-                        <TableRow key={req.id}>
-                          <TableCell className="font-medium">{req.document_no}</TableCell>
+                       return (
+                         <Fragment key={req.id}>
+                         <TableRow className="cursor-pointer" onClick={() => setExpandedId(expandedId === req.id ? null : req.id)}>
+                           <TableCell className="font-medium">
+                             <div className="flex items-center gap-1">
+                               {expandedId === req.id ? <ChevronUp className="h-4 w-4 shrink-0" /> : <ChevronDown className="h-4 w-4 shrink-0" />}
+                               {req.document_no}
+                             </div>
+                           </TableCell>
                           <TableCell>{req.issued_at ? format(new Date(req.issued_at), "dd/MM/yyyy HH:mm", { locale: th }) : "-"}</TableCell>
                           <TableCell>{req.companies?.name || "-"}</TableCell>
                           <TableCell>
@@ -563,33 +571,49 @@ const DeliveryConfirmation = () => {
                           </TableCell>
                           <TableCell className="text-center">
                             {confirmed ? (
-                              <Button size="sm" variant="outline" onClick={() => { setViewConfirmation(getConfirmation(req.id)); setViewDialogOpen(true); }}>
-                                <Eye className="h-4 w-4 mr-1" />ดูรายละเอียด
-                              </Button>
-                            ) : canConfirmRequest(req) ? (
-                              <Button size="sm" onClick={() => { setSelectedRequest(req); setConfirmDialogOpen(true); }}>
+                               <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setViewConfirmation(getConfirmation(req.id)); setViewDialogOpen(true); }}>
+                                 <Eye className="h-4 w-4 mr-1" />ดูรายละเอียด
+                               </Button>
+                             ) : canConfirmRequest(req) ? (
+                               <Button size="sm" onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); setConfirmDialogOpen(true); }}>
                                 <CheckCircle className="h-4 w-4 mr-1" />ยืนยันรับ
                               </Button>
                             ) : (
                               <Badge variant="outline" className="text-xs">เฉพาะผู้ขอ/แอดมินฝ่าย</Badge>
                             )}
                           </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                    {/* Direct Shipping rows */}
+                         </TableRow>
+                         {expandedId === req.id && (
+                           <TableRow>
+                             <TableCell colSpan={9} className="bg-muted/30 p-0">
+                               <LinkedDocsPanel
+                                 source="issue"
+                                 id={req.id}
+                                 documentNo={req.document_no}
+                                 raw={req}
+                                 onOpenDoc={(no) => window.open(`/document-search?q=${encodeURIComponent(no)}`, "_blank")}
+                               />
+                             </TableCell>
+                           </TableRow>
+                         )}
+                         </Fragment>
+                       );
+                     })}
+                     {/* Direct Shipping rows */}
                     {directShipments?.map((ds: any) => {
                       const confirmed = isAlreadyConfirmed(ds.id, true);
                       const confirmation = getConfirmation(ds.id, true);
                       const dsItems = ds.direct_shipment_items || [];
-                      return (
-                        <TableRow key={`ds-${ds.id}`}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center gap-1">
-                              <Badge variant="outline" className="text-xs">DS</Badge>
-                              {ds.document_no}
-                            </div>
-                          </TableCell>
+                       return (
+                         <Fragment key={`ds-${ds.id}`}>
+                         <TableRow className="cursor-pointer" onClick={() => setExpandedId(expandedId === ds.id ? null : ds.id)}>
+                           <TableCell className="font-medium">
+                             <div className="flex items-center gap-1">
+                               {expandedId === ds.id ? <ChevronUp className="h-4 w-4 shrink-0" /> : <ChevronDown className="h-4 w-4 shrink-0" />}
+                               <Badge variant="outline" className="text-xs">DS</Badge>
+                               {ds.document_no}
+                             </div>
+                           </TableCell>
                           <TableCell>{ds.shipping_date ? format(new Date(ds.shipping_date), "dd/MM/yyyy") : "-"}</TableCell>
                           <TableCell>{ds.companies?.name || "-"}</TableCell>
                           <TableCell>
@@ -612,19 +636,33 @@ const DeliveryConfirmation = () => {
                           </TableCell>
                           <TableCell className="text-center">
                             {confirmed ? (
-                              <Button size="sm" variant="outline" onClick={() => { setViewConfirmation(getConfirmation(ds.id, true)); setViewDialogOpen(true); }}>
-                                <Eye className="h-4 w-4 mr-1" />ดูรายละเอียด
-                              </Button>
-                            ) : (
-                              <Button size="sm" onClick={() => { setSelectedRequest({ ...ds, _isDirectShipment: true }); setConfirmDialogOpen(true); }}>
+                               <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setViewConfirmation(getConfirmation(ds.id, true)); setViewDialogOpen(true); }}>
+                                 <Eye className="h-4 w-4 mr-1" />ดูรายละเอียด
+                               </Button>
+                             ) : (
+                               <Button size="sm" onClick={(e) => { e.stopPropagation(); setSelectedRequest({ ...ds, _isDirectShipment: true }); setConfirmDialogOpen(true); }}>
                                 <CheckCircle className="h-4 w-4 mr-1" />ยืนยันรับ
                               </Button>
                             )}
                           </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </>
+                         </TableRow>
+                         {expandedId === ds.id && (
+                           <TableRow>
+                             <TableCell colSpan={9} className="bg-muted/30 p-0">
+                               <LinkedDocsPanel
+                                 source="direct_shipping"
+                                 id={ds.id}
+                                 documentNo={ds.document_no}
+                                 raw={ds}
+                                 onOpenDoc={(no) => window.open(`/document-search?q=${encodeURIComponent(no)}`, "_blank")}
+                               />
+                             </TableCell>
+                           </TableRow>
+                         )}
+                         </Fragment>
+                       );
+                     })}
+                   </>
                 
                 )}
               </TableBody>
