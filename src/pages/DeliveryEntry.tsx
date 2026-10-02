@@ -597,8 +597,8 @@ const DeliveryEntry = () => {
     if (files.length === 0) return;
     const valid: File[] = [];
     for (const file of files) {
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error(`${file.name}: ขนาดใหญ่เกิน 10MB`);
+      if (file.size > 30 * 1024 * 1024) {
+        toast.error(`${file.name}: ขนาดใหญ่เกิน 30MB`);
         continue;
       }
       valid.push(file);
@@ -611,8 +611,8 @@ const DeliveryEntry = () => {
     if (files.length === 0) return;
     const valid: File[] = [];
     for (const file of files) {
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error(`${file.name}: ขนาดใหญ่เกิน 10MB`);
+      if (file.size > 30 * 1024 * 1024) {
+        toast.error(`${file.name}: ขนาดใหญ่เกิน 30MB`);
         continue;
       }
       if (!file.type.startsWith("image/")) {
@@ -641,8 +641,8 @@ const DeliveryEntry = () => {
   const handlePurchaseFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
+      if (file.size > 30 * 1024 * 1024) {
+        toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 30MB)");
         return;
       }
       const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "image/jpg"];
@@ -2114,8 +2114,8 @@ const DeliveryEntry = () => {
                                   onChange={(e) => {
                                     const file = e.target.files?.[0];
                                     if (file) {
-                                      if (file.size > 10 * 1024 * 1024) {
-                                        toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
+                                      if (file.size > 30 * 1024 * 1024) {
+                                        toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 30MB)");
                                         return;
                                       }
                                       if (device.image_preview) URL.revokeObjectURL(device.image_preview);
@@ -2722,8 +2722,8 @@ const DeliveryEntry = () => {
                                     onChange={(e) => {
                                       const file = e.target.files?.[0];
                                       if (file) {
-                                        if (file.size > 10 * 1024 * 1024) {
-                                          toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)");
+                                        if (file.size > 30 * 1024 * 1024) {
+                                          toast.error("ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 30MB)");
                                           return;
                                         }
                                         if (unitEntry.image_preview) URL.revokeObjectURL(unitEntry.image_preview);
