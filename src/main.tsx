@@ -3,6 +3,9 @@ import "./lib/sessionBridge";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { installUploadCompression } from "./lib/storageUploadCompression";
+
+installUploadCompression();
 
 // เมื่อมีเวอร์ชันใหม่ ไฟล์ chunk เก่าจะหายไป -> โหลดหน้าใหม่อัตโนมัติ 1 ครั้ง
 const RELOAD_KEY = "chunk-reload-at";
