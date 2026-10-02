@@ -205,8 +205,8 @@ export function POUploadOCR({
       toast.error("รองรับเฉพาะไฟล์ PDF เท่านั้น");
       return;
     }
-    if (selected.size > 10 * 1024 * 1024) {
-      toast.error("ไฟล์ต้องมีขนาดไม่เกิน 10MB");
+    if (selected.size > 30 * 1024 * 1024) {
+      toast.error("ไฟล์ต้องมีขนาดไม่เกิน 30MB");
       return;
     }
     setFile(selected);
@@ -619,7 +619,7 @@ export function POUploadOCR({
                 <div className="space-y-1">
                   <Upload className="w-8 h-8 mx-auto text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">
-                    คลิกเลือกไฟล์ PDF หรือลากมาวาง (จำกัด 10MB)
+                    คลิกเลือกไฟล์ PDF หรือลากมาวาง (จำกัด 30MB)
                   </p>
                 </div>
               )}

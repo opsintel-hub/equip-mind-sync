@@ -34,8 +34,8 @@ export function DocumentUploadField({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("ไฟล์ต้องมีขนาดไม่เกิน 10MB");
+    if (file.size > 30 * 1024 * 1024) {
+      toast.error("ไฟล์ต้องมีขนาดไม่เกิน 30MB");
       return;
     }
 

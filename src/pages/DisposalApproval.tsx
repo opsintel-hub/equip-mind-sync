@@ -255,7 +255,7 @@ export default function DisposalApproval() {
   const handleAddEvidence = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const valid = files.filter((f) => {
-      if (f.size > 10 * 1024 * 1024) { toast.error(`${f.name}: ใหญ่กว่า 10MB`); return false; }
+      if (f.size > 30 * 1024 * 1024) { toast.error(`${f.name}: ใหญ่กว่า 30MB`); return false; }
       return true;
     });
     setEvidenceFiles((p) => [...p, ...valid]);
@@ -362,7 +362,7 @@ export default function DisposalApproval() {
   const handleAddCompleteEvidence = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const valid = files.filter((f) => {
-      if (f.size > 10 * 1024 * 1024) { toast.error(`${f.name}: ใหญ่กว่า 10MB`); return false; }
+      if (f.size > 30 * 1024 * 1024) { toast.error(`${f.name}: ใหญ่กว่า 30MB`); return false; }
       return true;
     });
     setCompleteFiles((p) => [...p, ...valid]);

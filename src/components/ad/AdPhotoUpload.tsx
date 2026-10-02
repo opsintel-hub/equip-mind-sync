@@ -47,8 +47,8 @@ export function AdPhotoUpload({
         if (!file.type.startsWith("image/")) {
           throw new Error(`ไฟล์ ${file.name} ไม่ใช่รูปภาพ`);
         }
-        if (file.size > 10 * 1024 * 1024) {
-          throw new Error(`ไฟล์ ${file.name} มีขนาดใหญ่เกิน 10MB`);
+        if (file.size > 30 * 1024 * 1024) {
+          throw new Error(`ไฟล์ ${file.name} มีขนาดใหญ่เกิน 30MB`);
         }
 
         const fileExt = file.name.split(".").pop();
@@ -190,8 +190,8 @@ export function AdDocUpload({ docUrl, onChange, disabled }: AdDocUploadProps) {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("ไฟล์มีขนาดใหญ่เกิน 10MB");
+    if (file.size > 30 * 1024 * 1024) {
+      toast.error("ไฟล์มีขนาดใหญ่เกิน 30MB");
       return;
     }
 

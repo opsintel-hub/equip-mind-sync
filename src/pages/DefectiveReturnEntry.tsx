@@ -1238,7 +1238,7 @@ const DefectiveReturnEntry = () => {
                               <input type="file" accept="image/*" className="hidden" id={`defect-image-${unitEntry.id}`} onChange={e => {
                                 const file = e.target.files?.[0];
                                 if (file) {
-                                  if (file.size > 10 * 1024 * 1024) { toast.error("ไฟล์ใหญ่เกินไป (สูงสุด 10MB)"); return; }
+                                  if (file.size > 30 * 1024 * 1024) { toast.error("ไฟล์ใหญ่เกินไป (สูงสุด 30MB)"); return; }
                                   if (unitEntry.image_preview) URL.revokeObjectURL(unitEntry.image_preview);
                                   const preview = URL.createObjectURL(file);
                                   setDefectiveUnits(prev => prev.map(u => u.id === unitEntry.id ? { ...u, image_file: file, image_preview: preview } : u));

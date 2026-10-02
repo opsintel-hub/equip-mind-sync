@@ -34,7 +34,7 @@ const STATUS_LABEL: Record<RowStatus, string> = {
   matched: "พร้อมอัปโหลด",
   not_found: "ไม่พบ S/N ในระบบ",
   ambiguous: "S/N ซ้ำหลายรายการ",
-  too_large: "ไฟล์ใหญ่เกิน 10MB",
+  too_large: "ไฟล์ใหญ่เกิน 30MB",
   full: "รูปครบจำนวนแล้ว",
   uploaded: "อัปโหลดแล้ว",
   skipped: "มีรูปนี้อยู่แล้ว",
@@ -167,7 +167,7 @@ export default function BulkImageImportPage() {
             note = `${key} ตรงกับหลายรายการ`;
           } else {
             target = found;
-            if (file.size > 10 * 1024 * 1024) {
+            if (file.size > 30 * 1024 * 1024) {
               status = "too_large";
               note = `${(file.size / 1024 / 1024).toFixed(1)} MB`;
             } else if (urls.has(storagePathFor(target.id, key, sequence))) {

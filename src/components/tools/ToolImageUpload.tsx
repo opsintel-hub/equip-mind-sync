@@ -54,8 +54,8 @@ export function ToolImageUpload({
           toast.error(`ไฟล์ ${file.name} ไม่ใช่รูปภาพ`);
           continue;
         }
-        if (file.size > 10 * 1024 * 1024) {
-          toast.error(`ไฟล์ ${file.name} ใหญ่เกิน 10MB`);
+        if (file.size > 30 * 1024 * 1024) {
+          toast.error(`ไฟล์ ${file.name} ใหญ่เกิน 30MB`);
           continue;
         }
         const ext = file.name.split(".").pop();
@@ -153,7 +153,7 @@ export function ToolImageUpload({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        อัพโหลดได้ 1-{maxImages} รูป (สูงสุด 10MB ต่อรูป) —
+        อัพโหลดได้ 1-{maxImages} รูป (สูงสุด 30MB ต่อรูป) —
         <strong> แนะนำให้มีรูป Serial Number (S/N) ของเครื่องมือรวมอยู่ด้วย 1 รูป</strong>
       </p>
 
