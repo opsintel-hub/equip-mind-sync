@@ -555,14 +555,14 @@ export default function DocumentSearch() {
       // Note: confirmed_at lives on delivery_confirmations, not on goods_issue_pending
       const { data: issueData, error: issueError } = await supabase
         .from("goods_issue_pending")
-        .select("id, document_no, created_at, status, equipment_name, equipment_code, requester_name, requester_department, approval_status, approved_at, issued_at, pickup_type, goods_issue_pending_items(serial_number), delivery_confirmations(confirmed_at)")
+        .select("id, document_no, created_at, status, equipment_name, equipment_code, requester_name, requester_department, approval_status, approved_at, issued_at, pickup_type, goods_issue_pending_items(serial_number, equipment_code, equipment_name), delivery_confirmations(confirmed_at)")
         .order("created_at", { ascending: false });
       if (issueError) console.error("issue fetch error", issueError);
 
       // Fetch from delivery_confirmations
       const { data: dcData } = await supabase
         .from("delivery_confirmations")
-        .select("*, goods_issue_pending:goods_issue_pending_id(equipment_code, equipment_name, requester_name, goods_issue_pending_items(serial_number))")
+        .select("*, goods_issue_pending:goods_issue_pending_id(equipment_code, equipment_name, requester_name, goods_issue_pending_items(serial_number, equipment_code, equipment_name))")
         .order("created_at", { ascending: false });
 
       // Fetch from direct_shipments (with extended fields for tracker)
@@ -777,19 +777,30 @@ export default function DocumentSearch() {
         };
       });
 
+      const summarizeItems = (items: any[]) => {
+        const seen = new Map<string, string>();
+        for (const it of items || []) {
+          const code = (it.equipment_code || "").trim();
+          const key = code || (it.equipment_name || "").trim();
+          if (key && !seen.has(key)) seen.set(key, it.equipment_name || "");
+        }
+        return Array.from(seen.entries()).map(([code, name]) => ({ code, name }));
+      };
+
       const issueDocs: DocumentRecord[] = (issueData || []).map((item: any) => {
         const sns = (item.goods_issue_pending_items || [])
           .map((it: any) => it.serial_number?.trim())
           .filter(Boolean);
         const confirmedAt = item.delivery_confirmations?.[0]?.confirmed_at || null;
+        const lines = summarizeItems(item.goods_issue_pending_items);
         return {
           id: item.id, document_no: item.document_no, document_url: null,
-          equipment_code: item.equipment_code, equipment_name: item.equipment_name,
+          equipment_code: lines[0]?.code || item.equipment_code, equipment_name: lines[0]?.name || item.equipment_name,
           serial_number: sns.length > 0 ? sns.join(", ") : null,
           supplier_name: null, delivery_person_name: item.requester_name,
           quantity: 0, unit: "-", created_at: item.created_at,
           status: item.status, source: "issue" as const,
-          raw: { ...item, confirmed_at: confirmedAt },
+          raw: { ...item, confirmed_at: confirmedAt, _item_lines: lines },
         };
       });
 
@@ -797,14 +808,15 @@ export default function DocumentSearch() {
         const gip = item.goods_issue_pending;
         const sns = (gip?.goods_issue_pending_items || [])
           .map((it: any) => it.serial_number?.trim()).filter(Boolean);
+        const lines = summarizeItems(gip?.goods_issue_pending_items);
         return {
           id: item.id, document_no: item.document_no, document_url: null,
-          equipment_code: gip?.equipment_code || null,
-          equipment_name: gip?.equipment_name || null,
+          equipment_code: lines[0]?.code || gip?.equipment_code || null,
+          equipment_name: lines[0]?.name || gip?.equipment_name || null,
           serial_number: sns.length > 0 ? sns.join("\n") : null,
           supplier_name: null, delivery_person_name: gip?.requester_name || null,
           quantity: item.actual_quantity || 0, unit: "-", created_at: item.created_at,
-          status: item.status, source: "delivery_confirm" as const, raw: item,
+          status: item.status, source: "delivery_confirm" as const, raw: { ...item, _item_lines: lines },
         };
       });
 
@@ -812,16 +824,17 @@ export default function DocumentSearch() {
         const sns = (item.direct_shipment_items || [])
           .flatMap((i: any) => [i.serial_number, i.serial_number_2])
           .map((s: any) => s?.trim()).filter(Boolean);
+        const lines = summarizeItems(item.direct_shipment_items);
         return {
           id: item.id, document_no: item.document_no, document_url: null,
-          equipment_code: item.direct_shipment_items?.[0]?.equipment_code || null,
-          equipment_name: item.direct_shipment_items?.map((i: any) => i.equipment_name).join(", ") || null,
+          equipment_code: lines[0]?.code || null,
+          equipment_name: lines[0]?.name || null,
           serial_number: sns.length > 0 ? sns.join(", ") : null,
           supplier_name: item.supplier_name, delivery_person_name: item.delivery_person_name,
           quantity: item.direct_shipment_items?.reduce((sum: number, i: any) => sum + (i.quantity || 0), 0) || 0,
           unit: item.direct_shipment_items?.[0]?.unit || "-",
           created_at: item.created_at,
-          status: item.status, source: "direct_shipping" as const, raw: item,
+          status: item.status, source: "direct_shipping" as const, raw: { ...item, _item_lines: lines },
         };
       });
 
@@ -1238,6 +1251,15 @@ export default function DocumentSearch() {
                               {doc.equipment_code && <div className="font-semibold text-sm leading-tight">{doc.equipment_code}</div>}
                               {doc.equipment_name && <div className="text-xs text-muted-foreground leading-tight">{doc.equipment_name}</div>}
                               {(() => {
+                                const lines: { code: string }[] = (doc.raw as any)?._item_lines || [];
+                                if (lines.length < 2) return null;
+                                return (
+                                  <Badge variant="secondary" className="mt-1 text-[10px]" title={lines.map((l) => l.code).join(", ")}>
+                                    + อีก {lines.length - 1} รายการ
+                                  </Badge>
+                                );
+                              })()}
+                              {(() => {
                                 let smt: string | undefined;
                                 for (const sn of snList) {
                                   const v = subMediaTypeMap.get(sn.toLowerCase());
@@ -1371,7 +1393,12 @@ export default function DocumentSearch() {
                             return <span className="text-muted-foreground/40">-</span>;
                           })()}</>),
                       supplier: (<>{doc.supplier_name || doc.delivery_person_name || <span className="text-muted-foreground/40">-</span>}</>),
-                      qty: (<>{doc.quantity > 0 ? `${doc.quantity} ${doc.unit}` : <span className="text-muted-foreground/40">-</span>}</>),
+                      qty: (<>{(() => {
+                        const n = ((doc.raw as any)?._item_lines || []).length;
+                        if (n > 0 && (doc.source === "issue" || doc.source === "delivery_confirm")) return `${n} รายการ`;
+                        if (n > 1) return `${n} รายการ`;
+                        return doc.quantity > 0 ? `${doc.quantity} ${doc.unit}` : <span className="text-muted-foreground/40">-</span>;
+                      })()}</>),
                       created: (<>{format(new Date(doc.created_at), "dd/MM/yyyy", { locale: th })}</>),
                       progress: (<>                          {trackerSteps ? (
                             <ProcessTracker steps={trackerSteps} size="sm" />
@@ -1425,7 +1452,7 @@ export default function DocumentSearch() {
                         <TableRow className="bg-muted/10 hover:bg-muted/10 border-border/30">
                           <TableCell colSpan={visibleCols.length + 1} className="p-0">
                             <div className="sticky left-0 max-w-[min(100vw-4rem,1200px)] grid gap-x-6 gap-y-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
-                              {DOC_COLUMNS.filter((c) => c.key !== "doc_no").map((c) => (
+                              {DOC_COLUMNS.filter((c) => c.key !== "doc_no" && !(["issue", "delivery_confirm", "direct_shipping"].includes(doc.source) && ["equipment", "serial", "qty"].includes(c.key))).map((c) => (
                                 <div key={c.key} className={cn("min-w-0", c.key === "progress" && "sm:col-span-2 lg:col-span-3")}>
                                   <div className="text-[11px] font-medium text-muted-foreground mb-1">{c.label}</div>
                                   <div className="text-sm">{cellContent[c.key]}</div>
