@@ -9,7 +9,6 @@ import {
   Search,
   Shield,
   Ticket,
-  ClipboardCheck,
   History,
   Truck,
   Bell,
