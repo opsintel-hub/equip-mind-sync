@@ -42,6 +42,10 @@ export const ROUTE_PERMISSIONS: Record<string, RoutePermissionRule> = {
   "/direct-shipping-approval": { fns: ["direct_shipping_approval"] },
   "/direct-shipping-procurement": { fns: ["direct_shipping_procurement"] },
 
+  // Site access
+  "/site-access": { fns: ["site_access_request"] },
+  "/site-access-manage": { fns: ["site_access_manage"] },
+
   // Transfer
   "/transfer-history": { fns: ["transfer"] },
 
