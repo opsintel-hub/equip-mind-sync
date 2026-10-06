@@ -8,6 +8,8 @@ import {
   LogOut,
   Search,
   Shield,
+  Ticket,
+  ClipboardCheck,
   History,
   Truck,
   Bell,
@@ -187,6 +189,13 @@ const menuGroups: MenuGroup[] = [
       { title: "ขอส่งตรง", url: "/direct-shipping", icon: Send, functionName: "direct_shipping_request" },
       { title: "อนุมัติส่งตรง", url: "/direct-shipping-approval", icon: Shield, functionName: "direct_shipping_approval" },
       { title: "จัดซื้อ-ดำเนินการ", url: "/direct-shipping-procurement", icon: Package, functionName: "direct_shipping_procurement" },
+    ]
+  },
+  {
+    label: "เข้าพื้นที่คลัง",
+    items: [
+      { title: "จองเข้าพื้นที่คลัง", url: "/site-access", icon: Ticket, functionName: "site_access_request" },
+      { title: "จัดการตั๋วเข้าพื้นที่", url: "/site-access-manage", icon: ClipboardCheck, functionName: "site_access_manage" },
     ]
   },
   {
