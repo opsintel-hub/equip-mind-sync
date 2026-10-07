@@ -411,7 +411,7 @@ const DeliveryEntry = () => {
           supabase
             .from("equipment")
             .select(
-              "id, code, name, unit, category, subcategory_id, quantity_in_stock, unit_price, width_cm, height_cm, depth_cm, volume_cm3",
+              "id, code, name, unit, category, subcategory_id, quantity_in_stock, unit_price, width_cm, height_cm, depth_cm, volume_cm3, is_asset",
             )
             .eq("is_active", true),
         ) as any)
@@ -1501,8 +1501,19 @@ const DeliveryEntry = () => {
       const modelNote = item.model ? `รุ่น: ${item.model}` : "";
       const composedNotes = [item.description, modelNote].filter(Boolean).join(" | ");
 
-      for (let unitIdx = 0; unitIdx < qty; unitIdx++) {
-        const assetCodeForUnit = qty === 1 ? baseAssetNo : (unitIdx === 0 ? baseAssetNo : "");
+      // แตกรายชิ้นเฉพาะ Media Player / ทรัพย์สิน (มี Asset No หรือ master เป็น is_asset)
+      // สินค้าทั่วไป/วัสดุสิ้นเปลือง → 1 บรรทัด จำนวนเท่ากับ PO
+      const matchedEq = item.matched_equipment_id && !item.matched_is_media_player
+        ? (equipment as any[]).find((e) => e.id === item.matched_equipment_id)
+        : null;
+      const splitPerUnit = item.split_per_unit ?? (
+        !!item.matched_is_media_player || !!baseAssetNo || !!matchedEq?.is_asset
+      );
+      const loopCount = splitPerUnit ? qty : 1;
+      const rowQty = splitPerUnit ? 1 : qty;
+
+      for (let unitIdx = 0; unitIdx < loopCount; unitIdx++) {
+        const assetCodeForUnit = loopCount === 1 ? baseAssetNo : (unitIdx === 0 ? baseAssetNo : "");
 
         if (item.matched_equipment_id && item.matched_is_media_player) {
           const mp = mediaPlayers.find((m) => m.id === item.matched_equipment_id);
@@ -1551,7 +1562,7 @@ const DeliveryEntry = () => {
               equipment_id: eq.id,
               equipment_code: eq.code,
               equipment_name: eq.name,
-              quantity: 1,
+              quantity: rowQty,
               unit: eq.unit || item.unit,
               supplier_name: data.supplierName,
               supplier_id: data.supplierId,
@@ -1584,7 +1595,7 @@ const DeliveryEntry = () => {
             equipment_id: null,
             equipment_code: item.item_no || "",
             equipment_name: item.description,
-            quantity: 1,
+            quantity: rowQty,
             unit: item.unit,
             supplier_name: data.supplierName,
             supplier_id: data.supplierId,
