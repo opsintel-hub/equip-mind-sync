@@ -59,6 +59,8 @@ export interface POOCRItem {
   matched_is_media_player?: boolean;
   device_kind?: "MEDIA_PLAYER" | "MONITOR" | "EQUIPMENT";
   match_status?: "matched" | "not_found" | "new";
+  // แตกเป็น 1 บรรทัดต่อชิ้น (undefined = ให้ระบบตัดสินอัตโนมัติ)
+  split_per_unit?: boolean;
 }
 
 export interface POImportResult {
