@@ -858,6 +858,7 @@ export function POUploadOCR({
                         <TableHead className="w-[110px]">แยกรายชิ้น</TableHead>
                         <TableHead className="w-16">หน่วย</TableHead>
                         <TableHead className="w-24 text-right">ราคา/หน่วย</TableHead>
+                        <TableHead className="w-[170px] text-right">รวมเงิน (PO) / ตรวจสอบ</TableHead>
                         <TableHead className="w-[120px]">Asset No.</TableHead>
                         <TableHead className="w-[150px]">รุ่น</TableHead>
                         <TableHead className="w-[90px] text-right">รับประกัน (ปี)</TableHead>
@@ -891,6 +892,30 @@ export function POUploadOCR({
                           <TableCell>{item.unit}</TableCell>
                           <TableCell className="text-right">
                             {item.unit_price != null ? `฿${item.unit_price.toLocaleString()}` : "-"}
+                          </TableCell>
+                          <TableCell className="text-right text-xs">
+                            {(() => {
+                              const qty = Number(item.quantity) || 0;
+                              const calc = item.unit_price != null ? Math.round(qty * item.unit_price * 100) / 100 : null;
+                              const amt = item.amount;
+                              const mismatch = calc != null && amt != null && Math.abs(calc - amt) > 0.5;
+                              return (
+                                <div className="space-y-0.5">
+                                  <div className="font-medium">{amt != null ? `฿${amt.toLocaleString()}` : "-"}</div>
+                                  {calc != null && (
+                                    <div className={mismatch ? "text-destructive font-semibold" : "text-muted-foreground"}>
+                                      {mismatch ? "⚠ " : "✓ "}{qty}×{item.unit_price?.toLocaleString()} = ฿{calc.toLocaleString()}
+                                    </div>
+                                  )}
+                                  {mismatch && qty > 0 && (
+                                    <button type="button" className="text-[10px] underline text-primary"
+                                      onClick={() => handleItemFieldChange(idx, "unit_price", Math.round((amt! / qty) * 10000) / 10000)}>
+                                      ใช้ราคา/หน่วย = รวม÷จำนวน
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell>
                             <Input
@@ -994,6 +1019,22 @@ export function POUploadOCR({
                     </span>
                   </div>
                 )}
+                {(() => {
+                  const sumCalc = items.reduce((s, it) => s + (Number(it.quantity) || 0) * (Number(it.unit_price) || 0), 0);
+                  const sum = Math.round(sumCalc * 100) / 100;
+                  const po = ocrData.total_excl_vat;
+                  const bad = items.filter((it) => it.unit_price != null && it.amount != null && Math.abs((Number(it.quantity) || 0) * it.unit_price - it.amount) > 0.5).length;
+                  const totalBad = po != null && Math.abs(sum - po) > 0.5;
+                  if (!bad && !totalBad) {
+                    return <div className="text-right text-xs text-green-600">✓ ราคาตรวจสอบแล้ว: จำนวน × ราคา/หน่วย ตรงกับยอดรวมใน PO (฿{sum.toLocaleString()})</div>;
+                  }
+                  return (
+                    <div className="rounded-md border border-destructive/50 bg-destructive/10 p-2 text-xs text-destructive space-y-0.5">
+                      {bad > 0 && <div>⚠ มี {bad} รายการที่ จำนวน × ราคา/หน่วย ไม่ตรงกับรวมเงินใน PO — กรุณาตรวจสอบก่อนนำเข้า</div>}
+                      {totalBad && <div>⚠ ยอดคำนวณ ฿{sum.toLocaleString()} ไม่ตรงกับยอดรวมก่อน VAT ใน PO ฿{po!.toLocaleString()} (ต่าง ฿{Math.abs(sum - po!).toLocaleString()})</div>}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
