@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Ticket } from "lucide-react";
 import { SITE_ACCESS_PURPOSE, SITE_ACCESS_STATUS, fmtDT } from "@/lib/siteAccess";
+import QRCode from "react-qr-code";
 
 const schema = z.object({
   warehouse_id: z.string().uuid({ message: "กรุณาเลือกคลัง" }),
@@ -194,6 +195,13 @@ export default function SiteAccessRequest() {
                   <div>จุดวาง: <b>{t.locations.code} {t.locations.name}</b>{t.assigned_location_note ? ` — ${t.assigned_location_note}` : ""}</div>
                 )}
                 {t.status === "rejected" && t.reject_reason && <div className="text-destructive">เหตุผล: {t.reject_reason}</div>}
+                {t.status === "approved" && t.supervisor_id === user?.id && (
+                  <div className="mt-2 flex flex-col items-center gap-1 rounded-md border bg-card p-3">
+                    <div className="bg-background p-2 rounded"><QRCode value={t.ticket_no} size={160} /></div>
+                    <span className="text-xs text-muted-foreground">บัตรผ่าน — ยื่นให้ รปภ. สแกนที่ประตู</span>
+                  </div>
+                )}
+                {t.status === "checked_in" && t.checkin_at && <div className="text-primary">เข้าพื้นที่เมื่อ {fmtDT(t.checkin_at)}</div>}
                 {t.status === "pending_assignment" && (
                   <Button size="sm" variant="outline" onClick={() => cancel(t.id)}>ยกเลิกตั๋ว</Button>
                 )}
