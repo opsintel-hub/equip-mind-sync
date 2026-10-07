@@ -45,6 +45,7 @@ export const ROUTE_PERMISSIONS: Record<string, RoutePermissionRule> = {
   // Site access
   "/site-access": { fns: ["site_access_request"] },
   "/site-access-manage": { fns: ["site_access_manage"] },
+  "/site-access-gate": { fns: ["site_access_gate"] },
 
   // Transfer
   "/transfer-history": { fns: ["transfer"] },
