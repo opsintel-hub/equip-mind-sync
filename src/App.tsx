@@ -30,6 +30,7 @@ const Admin = lazyRetry(() => import("./pages/Admin"));
 const QRCodePage = lazyRetry(() => import("./pages/QRCode"));
 const SiteAccessRequest = lazyRetry(() => import("./pages/SiteAccessRequest"));
 const SiteAccessManage = lazyRetry(() => import("./pages/SiteAccessManage"));
+const SiteAccessGate = lazyRetry(() => import("./pages/SiteAccessGate"));
 const TransferHistory = lazyRetry(() => import("./pages/TransferHistory"));
 const PMHistory = lazyRetry(() => import("./pages/PMHistory"));
 const ToolPMTasks = lazyRetry(() => import("./pages/ToolPMTasks"));
@@ -149,6 +150,7 @@ const App = () => (
             <Route path="/qr-code" element={<Protected><QRCodePage /></Protected>} />
             <Route path="/site-access" element={<Protected><SiteAccessRequest /></Protected>} />
             <Route path="/site-access-manage" element={<Protected><SiteAccessManage /></Protected>} />
+            <Route path="/site-access-gate" element={<Protected><SiteAccessGate /></Protected>} />
             <Route path="/transfer-history" element={<Protected><TransferHistory /></Protected>} />
             <Route path="/pm-history" element={<Protected><PMHistory /></Protected>} />
             <Route path="/equipment-loans" element={<Protected><EquipmentLoans /></Protected>} />

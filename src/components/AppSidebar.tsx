@@ -195,6 +195,7 @@ const menuGroups: MenuGroup[] = [
     items: [
       { title: "จองเข้าพื้นที่คลัง", url: "/site-access", icon: Ticket, functionName: "site_access_request" },
       { title: "จัดการตั๋วเข้าพื้นที่", url: "/site-access-manage", icon: ClipboardCheck, functionName: "site_access_manage" },
+      { title: "จุดตรวจ รปภ.", url: "/site-access-gate", icon: ShieldCheck, functionName: "site_access_gate" },
     ]
   },
   {
