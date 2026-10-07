@@ -858,6 +858,7 @@ export function POUploadOCR({
                         <TableHead className="w-[110px]">แยกรายชิ้น</TableHead>
                         <TableHead className="w-16">หน่วย</TableHead>
                         <TableHead className="w-24 text-right">ราคา/หน่วย</TableHead>
+                        <TableHead className="w-[170px] text-right">รวมเงิน (PO) / ตรวจสอบ</TableHead>
                         <TableHead className="w-[120px]">Asset No.</TableHead>
                         <TableHead className="w-[150px]">รุ่น</TableHead>
                         <TableHead className="w-[90px] text-right">รับประกัน (ปี)</TableHead>
@@ -891,6 +892,30 @@ export function POUploadOCR({
                           <TableCell>{item.unit}</TableCell>
                           <TableCell className="text-right">
                             {item.unit_price != null ? `฿${item.unit_price.toLocaleString()}` : "-"}
+                          </TableCell>
+                          <TableCell className="text-right text-xs">
+                            {(() => {
+                              const qty = Number(item.quantity) || 0;
+                              const calc = item.unit_price != null ? Math.round(qty * item.unit_price * 100) / 100 : null;
+                              const amt = item.amount;
+                              const mismatch = calc != null && amt != null && Math.abs(calc - amt) > 0.5;
+                              return (
+                                <div className="space-y-0.5">
+                                  <div className="font-medium">{amt != null ? `฿${amt.toLocaleString()}` : "-"}</div>
+                                  {calc != null && (
+                                    <div className={mismatch ? "text-destructive font-semibold" : "text-muted-foreground"}>
+                                      {mismatch ? "⚠ " : "✓ "}{qty}×{item.unit_price?.toLocaleString()} = ฿{calc.toLocaleString()}
+                                    </div>
+                                  )}
+                                  {mismatch && qty > 0 && (
+                                    <button type="button" className="text-[10px] underline text-primary"
+                                      onClick={() => handleItemFieldChange(idx, "unit_price", Math.round((amt! / qty) * 10000) / 10000)}>
+                                      ใช้ราคา/หน่วย = รวม÷จำนวน
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell>
                             <Input
