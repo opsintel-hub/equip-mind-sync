@@ -1019,6 +1019,22 @@ export function POUploadOCR({
                     </span>
                   </div>
                 )}
+                {(() => {
+                  const sumCalc = items.reduce((s, it) => s + (Number(it.quantity) || 0) * (Number(it.unit_price) || 0), 0);
+                  const sum = Math.round(sumCalc * 100) / 100;
+                  const po = ocrData.total_excl_vat;
+                  const bad = items.filter((it) => it.unit_price != null && it.amount != null && Math.abs((Number(it.quantity) || 0) * it.unit_price - it.amount) > 0.5).length;
+                  const totalBad = po != null && Math.abs(sum - po) > 0.5;
+                  if (!bad && !totalBad) {
+                    return <div className="text-right text-xs text-green-600">✓ ราคาตรวจสอบแล้ว: จำนวน × ราคา/หน่วย ตรงกับยอดรวมใน PO (฿{sum.toLocaleString()})</div>;
+                  }
+                  return (
+                    <div className="rounded-md border border-destructive/50 bg-destructive/10 p-2 text-xs text-destructive space-y-0.5">
+                      {bad > 0 && <div>⚠ มี {bad} รายการที่ จำนวน × ราคา/หน่วย ไม่ตรงกับรวมเงินใน PO — กรุณาตรวจสอบก่อนนำเข้า</div>}
+                      {totalBad && <div>⚠ ยอดคำนวณ ฿{sum.toLocaleString()} ไม่ตรงกับยอดรวมก่อน VAT ใน PO ฿{po!.toLocaleString()} (ต่าง ฿{Math.abs(sum - po!).toLocaleString()})</div>}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
