@@ -855,6 +855,7 @@ export function POUploadOCR({
                         <TableHead className="w-[120px]">รหัสสินค้า</TableHead>
                         <TableHead className="w-[260px]">รายละเอียด</TableHead>
                         <TableHead className="w-16 text-right">จำนวน</TableHead>
+                        <TableHead className="w-[110px]">แยกรายชิ้น</TableHead>
                         <TableHead className="w-16">หน่วย</TableHead>
                         <TableHead className="w-24 text-right">ราคา/หน่วย</TableHead>
                         <TableHead className="w-[120px]">Asset No.</TableHead>
@@ -874,6 +875,19 @@ export function POUploadOCR({
                             <div className="line-clamp-4">{item.description}</div>
                           </TableCell>
                           <TableCell className="text-right">{item.quantity}</TableCell>
+                          <TableCell>
+                            {(() => {
+                              const auto = !!item.matched_is_media_player || !!item.asset_no || !!(equipment as any[]).find((e) => e.id === item.matched_equipment_id)?.is_asset;
+                              const on = item.split_per_unit ?? auto;
+                              return (
+                                <label className="flex items-center gap-1 text-xs cursor-pointer" title="เปิด = 1 บรรทัดต่อชิ้น (ทรัพย์สิน/S/N) · ปิด = 1 บรรทัดรวมจำนวน">
+                                  <input type="checkbox" checked={on} disabled={(item.quantity || 1) <= 1}
+                                    onChange={(e) => handleItemFieldChange(idx, "split_per_unit", e.target.checked)} />
+                                  {on ? `${Math.round(item.quantity || 1)} บรรทัด` : "1 บรรทัด"}
+                                </label>
+                              );
+                            })()}
+                          </TableCell>
                           <TableCell>{item.unit}</TableCell>
                           <TableCell className="text-right">
                             {item.unit_price != null ? `฿${item.unit_price.toLocaleString()}` : "-"}
