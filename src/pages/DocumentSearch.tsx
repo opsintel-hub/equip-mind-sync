@@ -478,7 +478,7 @@ const DOC_COLUMNS: ColumnDef<DocColKey>[] = [
 ];
 
 export default function DocumentSearch() {
-  const [visibleCols, setVisibleCols] = useVisibleCols<DocColKey>("docSearch:cols:v1", DOC_COLUMNS);
+  const [visibleCols, setVisibleCols] = useVisibleCols<DocColKey>("docSearch:cols:v2", DOC_COLUMNS);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const toggleRow = (k: string) => setExpanded((prev) => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; });
   const navigate = useNavigate();
@@ -557,14 +557,14 @@ export default function DocumentSearch() {
       // Note: confirmed_at lives on delivery_confirmations, not on goods_issue_pending
       const { data: issueData, error: issueError } = await supabase
         .from("goods_issue_pending")
-        .select("id, document_no, created_at, status, equipment_name, equipment_code, requester_name, requester_department, approval_status, approved_at, issued_at, pickup_type, goods_issue_pending_items(serial_number, equipment_code, equipment_name), delivery_confirmations(confirmed_at)")
+        .select("id, document_no, created_at, status, equipment_name, equipment_code, requester_name, requester_department, approval_status, approved_at, issued_at, pickup_type, purpose, purpose_id, goods_issue_pending_items(serial_number, equipment_code, equipment_name), delivery_confirmations(confirmed_at)")
         .order("created_at", { ascending: false });
       if (issueError) console.error("issue fetch error", issueError);
 
       // Fetch from delivery_confirmations
       const { data: dcData } = await supabase
         .from("delivery_confirmations")
-        .select("*, goods_issue_pending:goods_issue_pending_id(equipment_code, equipment_name, requester_name, goods_issue_pending_items(serial_number, equipment_code, equipment_name))")
+        .select("*, goods_issue_pending:goods_issue_pending_id(equipment_code, equipment_name, requester_name, purpose, purpose_id, goods_issue_pending_items(serial_number, equipment_code, equipment_name))")
         .order("created_at", { ascending: false });
 
       // Fetch from direct_shipments (with extended fields for tracker)
