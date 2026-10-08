@@ -5,3 +5,5 @@
 - [x] Add a Super Admin action that clears only equipment, Media Player, and tool test images
 - [x] Standardize wide tables with horizontal scrolling and persistent action columns
 - [x] Verify the issue-request page loads without browser errors; authenticated cart verification requires an active preview session
+- [x] Partial install + return per issue line (installed_qty), document shows in both tabs
+- [x] Show issue purpose in Document Search
