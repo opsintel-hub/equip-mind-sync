@@ -96,6 +96,7 @@ interface DocumentRecord {
   unit: string;
   created_at: string;
   status: string;
+  purpose_name?: string | null;
   source: "pending" | "received" | "issue" | "delivery_confirm" | "direct_shipping" | "advertisement" | "ad_issue" | "defective" | "assessment" | "claim" | "swap" | "stock_movement";
   // Extended fields for ProcessTracker
   raw?: any;
@@ -459,7 +460,7 @@ type LocationInfo = {
   sublabel?: string;
 };
 
-type DocColKey = "doc_no" | "type" | "status" | "equipment" | "serial" | "location" | "supplier" | "qty" | "created" | "progress" | "updated" | "docs";
+type DocColKey = "doc_no" | "type" | "status" | "equipment" | "serial" | "location" | "supplier" | "purpose" | "qty" | "created" | "progress" | "updated" | "docs";
 const DOC_COLUMNS: ColumnDef<DocColKey>[] = [
   { key: "doc_no", label: "เลขที่เอกสาร", locked: true },
   { key: "type", label: "ประเภท" },
@@ -468,6 +469,7 @@ const DOC_COLUMNS: ColumnDef<DocColKey>[] = [
   { key: "serial", label: "Serial Number", defaultVisible: false },
   { key: "location", label: "ตำแหน่งปัจจุบัน", defaultVisible: false },
   { key: "supplier", label: "ผู้จำหน่าย/ผู้ขอ" },
+  { key: "purpose", label: "จุดประสงค์การเบิก" },
   { key: "qty", label: "จำนวนในเอกสาร" },
   { key: "created", label: "วันที่สร้าง" },
   { key: "progress", label: "ความคืบหน้า", defaultVisible: false },
