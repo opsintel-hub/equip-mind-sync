@@ -1,0 +1,3 @@
+ALTER TABLE public.goods_issue_pending_items ADD COLUMN IF NOT EXISTS installed_qty numeric;
+UPDATE public.goods_issue_pending_items SET installed_qty = COALESCE(issued_quantity, quantity) WHERE billboard_id IS NOT NULL AND installed_qty IS NULL;
+COMMENT ON COLUMN public.goods_issue_pending_items.installed_qty IS 'Units of this line installed on a billboard (partial install supported). NULL = legacy: billboard_id implies fully installed.';
