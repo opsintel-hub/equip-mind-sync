@@ -97,6 +97,8 @@ interface DocumentRecord {
   created_at: string;
   status: string;
   purpose_name?: string | null;
+  purpose_bb?: boolean;
+  purpose_ret?: boolean;
   source: "pending" | "received" | "issue" | "delivery_confirm" | "direct_shipping" | "advertisement" | "ad_issue" | "defective" | "assessment" | "claim" | "swap" | "stock_movement";
   // Extended fields for ProcessTracker
   raw?: any;
@@ -563,10 +565,10 @@ export default function DocumentSearch() {
 
       // Resolve purpose_id -> purpose name (issue_purposes master)
       const purposeIds = Array.from(new Set((issueData || []).map((i: any) => i.purpose_id).filter(Boolean)));
-      const purposeMap = new Map<string, string>();
+      const purposeMap = new Map<string, { name: string; bb: boolean; ret: boolean }>();
       if (purposeIds.length > 0) {
-        const { data: purposes } = await supabase.from("issue_purposes").select("id, name").in("id", purposeIds);
-        for (const p of (purposes || []) as any[]) purposeMap.set(p.id, p.name);
+        const { data: purposes } = await supabase.from("issue_purposes").select("id, name, requires_billboard, requires_return").in("id", purposeIds);
+        for (const p of (purposes || []) as any[]) purposeMap.set(p.id, { name: p.name, bb: !!p.requires_billboard, ret: !!p.requires_return });
       }
 
       // Fetch from delivery_confirmations
@@ -810,7 +812,9 @@ export default function DocumentSearch() {
           supplier_name: null, delivery_person_name: item.requester_name,
           quantity: 0, unit: "-", created_at: item.created_at,
           status: item.status, source: "issue" as const,
-          purpose_name: item.purpose || (item.purpose_id ? purposeMap.get(item.purpose_id) : null) || null,
+          purpose_name: item.purpose || (item.purpose_id ? purposeMap.get(item.purpose_id)?.name : null) || null,
+          purpose_bb: item.purpose_id ? !!purposeMap.get(item.purpose_id)?.bb : false,
+          purpose_ret: item.purpose_id ? !!purposeMap.get(item.purpose_id)?.ret : false,
           raw: { ...item, confirmed_at: confirmedAt, _item_lines: lines },
         };
       });
@@ -828,7 +832,9 @@ export default function DocumentSearch() {
           supplier_name: null, delivery_person_name: gip?.requester_name || null,
           quantity: item.actual_quantity || 0, unit: "-", created_at: item.created_at,
           status: item.status, source: "delivery_confirm" as const,
-          purpose_name: gip?.purpose || (gip?.purpose_id ? purposeMap.get(gip.purpose_id) : null) || null,
+          purpose_name: gip?.purpose || (gip?.purpose_id ? purposeMap.get(gip.purpose_id)?.name : null) || null,
+          purpose_bb: gip?.purpose_id ? !!purposeMap.get(gip.purpose_id)?.bb : false,
+          purpose_ret: gip?.purpose_id ? !!purposeMap.get(gip.purpose_id)?.ret : false,
           raw: { ...item, _item_lines: lines },
         };
       });
@@ -1407,7 +1413,15 @@ export default function DocumentSearch() {
                             return <span className="text-muted-foreground/40">-</span>;
                           })()}</>),
                       supplier: (<>{doc.supplier_name || doc.delivery_person_name || <span className="text-muted-foreground/40">-</span>}</>),
-                      purpose: (<>{doc.purpose_name ? <span className="leading-tight">{doc.purpose_name}</span> : <span className="text-muted-foreground/40">-</span>}</>),
+                      purpose: (<>{doc.purpose_name ? (
+                        <div className="leading-tight space-y-0.5">
+                          <div>{doc.purpose_name}</div>
+                          <div className="flex flex-wrap gap-1">
+                            {doc.purpose_bb && <Badge variant="secondary" className="text-[10px] bg-blue-100 text-blue-800">ต้องระบุป้าย</Badge>}
+                            {doc.purpose_ret && <Badge variant="secondary" className="text-[10px] bg-orange-100 text-orange-800">ต้องรับคืน</Badge>}
+                          </div>
+                        </div>
+                      ) : <span className="text-muted-foreground/40">-</span>}</>),
                       qty: (<>{(() => {
                         const n = ((doc.raw as any)?._item_lines || []).length;
                         if (n > 0 && (doc.source === "issue" || doc.source === "delivery_confirm")) return `${n} รายการ`;
