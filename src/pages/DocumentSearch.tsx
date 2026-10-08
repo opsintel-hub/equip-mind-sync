@@ -96,6 +96,7 @@ interface DocumentRecord {
   unit: string;
   created_at: string;
   status: string;
+  purpose_name?: string | null;
   source: "pending" | "received" | "issue" | "delivery_confirm" | "direct_shipping" | "advertisement" | "ad_issue" | "defective" | "assessment" | "claim" | "swap" | "stock_movement";
   // Extended fields for ProcessTracker
   raw?: any;
@@ -459,7 +460,7 @@ type LocationInfo = {
   sublabel?: string;
 };
 
-type DocColKey = "doc_no" | "type" | "status" | "equipment" | "serial" | "location" | "supplier" | "qty" | "created" | "progress" | "updated" | "docs";
+type DocColKey = "doc_no" | "type" | "status" | "equipment" | "serial" | "location" | "supplier" | "purpose" | "qty" | "created" | "progress" | "updated" | "docs";
 const DOC_COLUMNS: ColumnDef<DocColKey>[] = [
   { key: "doc_no", label: "เลขที่เอกสาร", locked: true },
   { key: "type", label: "ประเภท" },
@@ -468,6 +469,7 @@ const DOC_COLUMNS: ColumnDef<DocColKey>[] = [
   { key: "serial", label: "Serial Number", defaultVisible: false },
   { key: "location", label: "ตำแหน่งปัจจุบัน", defaultVisible: false },
   { key: "supplier", label: "ผู้จำหน่าย/ผู้ขอ" },
+  { key: "purpose", label: "จุดประสงค์การเบิก" },
   { key: "qty", label: "จำนวนในเอกสาร" },
   { key: "created", label: "วันที่สร้าง" },
   { key: "progress", label: "ความคืบหน้า", defaultVisible: false },
@@ -476,7 +478,7 @@ const DOC_COLUMNS: ColumnDef<DocColKey>[] = [
 ];
 
 export default function DocumentSearch() {
-  const [visibleCols, setVisibleCols] = useVisibleCols<DocColKey>("docSearch:cols:v1", DOC_COLUMNS);
+  const [visibleCols, setVisibleCols] = useVisibleCols<DocColKey>("docSearch:cols:v2", DOC_COLUMNS);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const toggleRow = (k: string) => setExpanded((prev) => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n; });
   const navigate = useNavigate();
@@ -555,14 +557,22 @@ export default function DocumentSearch() {
       // Note: confirmed_at lives on delivery_confirmations, not on goods_issue_pending
       const { data: issueData, error: issueError } = await supabase
         .from("goods_issue_pending")
-        .select("id, document_no, created_at, status, equipment_name, equipment_code, requester_name, requester_department, approval_status, approved_at, issued_at, pickup_type, goods_issue_pending_items(serial_number, equipment_code, equipment_name), delivery_confirmations(confirmed_at)")
+        .select("id, document_no, created_at, status, equipment_name, equipment_code, requester_name, requester_department, approval_status, approved_at, issued_at, pickup_type, purpose, purpose_id, goods_issue_pending_items(serial_number, equipment_code, equipment_name), delivery_confirmations(confirmed_at)")
         .order("created_at", { ascending: false });
       if (issueError) console.error("issue fetch error", issueError);
+
+      // Resolve purpose_id -> purpose name (issue_purposes master)
+      const purposeIds = Array.from(new Set((issueData || []).map((i: any) => i.purpose_id).filter(Boolean)));
+      const purposeMap = new Map<string, string>();
+      if (purposeIds.length > 0) {
+        const { data: purposes } = await supabase.from("issue_purposes").select("id, name").in("id", purposeIds);
+        for (const p of (purposes || []) as any[]) purposeMap.set(p.id, p.name);
+      }
 
       // Fetch from delivery_confirmations
       const { data: dcData } = await supabase
         .from("delivery_confirmations")
-        .select("*, goods_issue_pending:goods_issue_pending_id(equipment_code, equipment_name, requester_name, goods_issue_pending_items(serial_number, equipment_code, equipment_name))")
+        .select("*, goods_issue_pending:goods_issue_pending_id(equipment_code, equipment_name, requester_name, purpose, purpose_id, goods_issue_pending_items(serial_number, equipment_code, equipment_name))")
         .order("created_at", { ascending: false });
 
       // Fetch from direct_shipments (with extended fields for tracker)
@@ -800,6 +810,7 @@ export default function DocumentSearch() {
           supplier_name: null, delivery_person_name: item.requester_name,
           quantity: 0, unit: "-", created_at: item.created_at,
           status: item.status, source: "issue" as const,
+          purpose_name: item.purpose || (item.purpose_id ? purposeMap.get(item.purpose_id) : null) || null,
           raw: { ...item, confirmed_at: confirmedAt, _item_lines: lines },
         };
       });
@@ -816,7 +827,9 @@ export default function DocumentSearch() {
           serial_number: sns.length > 0 ? sns.join("\n") : null,
           supplier_name: null, delivery_person_name: gip?.requester_name || null,
           quantity: item.actual_quantity || 0, unit: "-", created_at: item.created_at,
-          status: item.status, source: "delivery_confirm" as const, raw: { ...item, _item_lines: lines },
+          status: item.status, source: "delivery_confirm" as const,
+          purpose_name: gip?.purpose || (gip?.purpose_id ? purposeMap.get(gip.purpose_id) : null) || null,
+          raw: { ...item, _item_lines: lines },
         };
       });
 
@@ -853,7 +866,7 @@ export default function DocumentSearch() {
         serial_number: null,
         supplier_name: null, delivery_person_name: item.issue_purpose,
         quantity: item.issued_quantity || 0, unit: "ชิ้น", created_at: item.created_at,
-        status: item.status, source: "ad_issue" as const, raw: item,
+        status: item.status, source: "ad_issue" as const, purpose_name: item.issue_purpose || null, raw: item,
       }));
 
       const defectiveDocs: DocumentRecord[] = (defData || []).map((item: any) => {
@@ -1228,6 +1241,7 @@ export default function DocumentSearch() {
                       serial: "",
                       location: "text-xs",
                       supplier: "text-sm",
+                      purpose: "text-xs max-w-[180px]",
                       qty: "text-right text-sm tabular-nums whitespace-nowrap",
                       created: "text-sm tabular-nums whitespace-nowrap",
                       progress: "py-3",
@@ -1393,6 +1407,7 @@ export default function DocumentSearch() {
                             return <span className="text-muted-foreground/40">-</span>;
                           })()}</>),
                       supplier: (<>{doc.supplier_name || doc.delivery_person_name || <span className="text-muted-foreground/40">-</span>}</>),
+                      purpose: (<>{doc.purpose_name ? <span className="leading-tight">{doc.purpose_name}</span> : <span className="text-muted-foreground/40">-</span>}</>),
                       qty: (<>{(() => {
                         const n = ((doc.raw as any)?._item_lines || []).length;
                         if (n > 0 && (doc.source === "issue" || doc.source === "delivery_confirm")) return `${n} รายการ`;
