@@ -1506,9 +1506,10 @@ const DeliveryEntry = () => {
       const matchedEq = item.matched_equipment_id && !item.matched_is_media_player
         ? (equipment as any[]).find((e) => e.id === item.matched_equipment_id)
         : null;
-      const splitPerUnit = item.split_per_unit ?? (
-        !!item.matched_is_media_player || !!baseAssetNo || !!matchedEq?.is_asset
-      );
+      // Media Player ต้องแยกรายชิ้นเสมอ (ต้องกรอก S/N ต่อเครื่อง) — ห้ามปิดสวิตช์
+      const splitPerUnit = item.matched_is_media_player
+        ? true
+        : (item.split_per_unit ?? (!!baseAssetNo || !!matchedEq?.is_asset));
       const loopCount = splitPerUnit ? qty : 1;
       const rowQty = splitPerUnit ? 1 : qty;
 
