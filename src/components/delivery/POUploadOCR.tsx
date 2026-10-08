@@ -878,11 +878,12 @@ export function POUploadOCR({
                           <TableCell className="text-right">{item.quantity}</TableCell>
                           <TableCell>
                             {(() => {
-                              const auto = !!item.matched_is_media_player || !!item.asset_no || !!(equipment as any[]).find((e) => e.id === item.matched_equipment_id)?.is_asset;
-                              const on = item.split_per_unit ?? auto;
+                              const isMP = !!item.matched_is_media_player;
+                              const auto = isMP || !!item.asset_no || !!(equipment as any[]).find((e) => e.id === item.matched_equipment_id)?.is_asset;
+                              const on = isMP ? true : (item.split_per_unit ?? auto);
                               return (
-                                <label className="flex items-center gap-1 text-xs cursor-pointer" title="เปิด = 1 บรรทัดต่อชิ้น (ทรัพย์สิน/S/N) · ปิด = 1 บรรทัดรวมจำนวน">
-                                  <input type="checkbox" checked={on} disabled={(item.quantity || 1) <= 1}
+                                <label className="flex items-center gap-1 text-xs cursor-pointer" title={isMP ? "Media Player ต้องแยกรายชิ้นเสมอ (กรอก S/N ต่อเครื่อง)" : "เปิด = 1 บรรทัดต่อชิ้น (ทรัพย์สิน/S/N) · ปิด = 1 บรรทัดรวมจำนวน"}>
+                                  <input type="checkbox" checked={on} disabled={isMP || (item.quantity || 1) <= 1}
                                     onChange={(e) => handleItemFieldChange(idx, "split_per_unit", e.target.checked)} />
                                   {on ? `${Math.round(item.quantity || 1)} บรรทัด` : "1 บรรทัด"}
                                 </label>
