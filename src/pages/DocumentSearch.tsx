@@ -1407,6 +1407,7 @@ export default function DocumentSearch() {
                             return <span className="text-muted-foreground/40">-</span>;
                           })()}</>),
                       supplier: (<>{doc.supplier_name || doc.delivery_person_name || <span className="text-muted-foreground/40">-</span>}</>),
+                      purpose: (<>{doc.purpose_name ? <span className="leading-tight">{doc.purpose_name}</span> : <span className="text-muted-foreground/40">-</span>}</>),
                       qty: (<>{(() => {
                         const n = ((doc.raw as any)?._item_lines || []).length;
                         if (n > 0 && (doc.source === "issue" || doc.source === "delivery_confirm")) return `${n} รายการ`;
