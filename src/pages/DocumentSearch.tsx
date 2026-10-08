@@ -827,7 +827,9 @@ export default function DocumentSearch() {
           serial_number: sns.length > 0 ? sns.join("\n") : null,
           supplier_name: null, delivery_person_name: gip?.requester_name || null,
           quantity: item.actual_quantity || 0, unit: "-", created_at: item.created_at,
-          status: item.status, source: "delivery_confirm" as const, raw: { ...item, _item_lines: lines },
+          status: item.status, source: "delivery_confirm" as const,
+          purpose_name: gip?.purpose || (gip?.purpose_id ? purposeMap.get(gip.purpose_id) : null) || null,
+          raw: { ...item, _item_lines: lines },
         };
       });
 
@@ -864,7 +866,7 @@ export default function DocumentSearch() {
         serial_number: null,
         supplier_name: null, delivery_person_name: item.issue_purpose,
         quantity: item.issued_quantity || 0, unit: "ชิ้น", created_at: item.created_at,
-        status: item.status, source: "ad_issue" as const, raw: item,
+        status: item.status, source: "ad_issue" as const, purpose_name: item.issue_purpose || null, raw: item,
       }));
 
       const defectiveDocs: DocumentRecord[] = (defData || []).map((item: any) => {
