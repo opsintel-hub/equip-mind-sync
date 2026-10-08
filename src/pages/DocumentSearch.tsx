@@ -1241,6 +1241,7 @@ export default function DocumentSearch() {
                       serial: "",
                       location: "text-xs",
                       supplier: "text-sm",
+                      purpose: "text-xs max-w-[180px]",
                       qty: "text-right text-sm tabular-nums whitespace-nowrap",
                       created: "text-sm tabular-nums whitespace-nowrap",
                       progress: "py-3",
