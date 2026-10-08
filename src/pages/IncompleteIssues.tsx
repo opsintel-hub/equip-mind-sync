@@ -68,8 +68,17 @@ interface PendingItem {
   billboard_id: string | null;
   returned_good_qty?: number | null;
   returned_defective_qty?: number | null;
+  installed_qty?: number | null;
+  needs_return?: boolean | null;
   notes: string | null;
 }
+
+// Per-line quantity helpers: issued = installed + returned good + returned defective + outstanding
+const lineIssued = (l: any) => Number(l.issued_quantity ?? l.quantity ?? 0);
+const lineInstalled = (l: any) =>
+  l.installed_qty != null ? Number(l.installed_qty) : l.billboard_id ? lineIssued(l) : 0;
+const lineLeft = (l: any) =>
+  Math.max(0, lineIssued(l) - lineInstalled(l) - Number(l.returned_good_qty || 0) - Number(l.returned_defective_qty || 0));
 
 interface IssuePurpose {
   id: string;
@@ -91,6 +100,7 @@ const IncompleteIssues = () => {
   const [returnTarget, setReturnTarget] = useState<{ issue: IncompleteIssue; item: ReturnItemLine } | null>(null);
   const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
   const [billboardId, setBillboardId] = useState("");
+  const [installQty, setInstallQty] = useState("1");
   const [compatibleBbIds, setCompatibleBbIds] = useState<string[] | null>(null);
   const [compatLoading, setCompatLoading] = useState(false);
   const [returnData, setReturnData] = useState({
@@ -107,6 +117,7 @@ const IncompleteIssues = () => {
     setSelectedIssue(issue);
     setSelectedItem(item);
     setBillboardId("");
+    setInstallQty(String(item ? Math.max(1, lineLeft(item)) : 1));
     setCompatibleBbIds(null);
     setBillboardDialogOpen(true);
 
@@ -155,11 +166,11 @@ const IncompleteIssues = () => {
 
       // Load per-item billboard assignment to detect partially-assigned headers
       const ids = (data || []).map((d: any) => d.id);
-      let itemsByPending = new Map<string, { billboard_id: string | null; status: string | null; needs_return: boolean | null }[]>();
+      const itemsByPending = new Map<string, any[]>();
       if (ids.length > 0) {
         const { data: itemRows } = await supabase
           .from("goods_issue_pending_items")
-          .select("pending_id, billboard_id, status, needs_return")
+          .select("pending_id, billboard_id, status, needs_return, issued_quantity, quantity, installed_qty, returned_good_qty, returned_defective_qty")
           .in("pending_id", ids);
         (itemRows || []).forEach((r: any) => {
           if (!itemsByPending.has(r.pending_id)) itemsByPending.set(r.pending_id, []);
@@ -167,32 +178,18 @@ const IncompleteIssues = () => {
         });
       }
 
-      // Filter to items that need billboard assignment or return
+      // A document stays here while any issued line still has outstanding units
+      // (not installed and not returned). It can appear in both tabs at once.
       const incomplete = (data || []).filter((item: IncompleteIssue) => {
         const purpose = item.purpose_id ? purposeMap.get(item.purpose_id) : null;
-
-        // Need billboard assignment — either header has none, OR any issued line-item has none
-        if (purpose?.requires_billboard) {
-          const lineItems = itemsByPending.get(item.id) || [];
-          const anyItemMissing = lineItems.some(
-            (li) => li.status === "issued" && !li.billboard_id,
-          );
-          if (!item.billboard_id || anyItemMissing) return true;
+        const lineItems = itemsByPending.get(item.id) || [];
+        if (lineItems.length > 0) {
+          const open = lineItems.some((li) => li.status === "issued" && lineLeft(li) > 0);
+          if (!open) return false;
+          return !!(purpose?.requires_billboard || purpose?.requires_return);
         }
-
-        // Need return (claim vendor) — only if at least 1 line item is flagged needs_return=true
-        if (purpose?.requires_return) {
-          const lineItems = itemsByPending.get(item.id) || [];
-          const anyNeedsReturn = lineItems.some((li) => li.needs_return === true);
-          // Backward-compat: if line items have no needs_return column data yet (all null), fall back to header purpose
-          const hasReturnFlags = lineItems.some((li) => li.needs_return !== null);
-          if (!hasReturnFlags || anyNeedsReturn) {
-            const returnedQty = item.return_quantity || 0;
-            const issuedQty = item.issued_quantity || 0;
-            if (returnedQty < issuedQty) return true;
-          }
-        }
-
+        if (purpose?.requires_billboard && !item.billboard_id) return true;
+        if (purpose?.requires_return && (item.return_quantity || 0) < (item.issued_quantity || 0)) return true;
         return false;
       });
 
@@ -275,15 +272,21 @@ const IncompleteIssues = () => {
   const assignBillboardToItem = useMutation({
     mutationFn: async () => {
       if (!selectedItem || !billboardId || !user) return;
+      const isMPItem = !!(selectedItem.media_player_id || selectedItem.is_media_player);
+      const left = lineLeft(selectedItem);
+      const qty = isMPItem ? 1 : Math.max(0, parseInt(installQty || "0") || 0);
+      if (qty <= 0 || qty > Math.max(left, isMPItem ? 1 : 0)) throw new Error(`จำนวนติดตั้งต้องอยู่ระหว่าง 1 - ${left}`);
+      const newInstalled = lineInstalled(selectedItem) + qty;
 
       // Update item with billboard
       const { error: itemError } = await supabase
         .from("goods_issue_pending_items")
         .update({
           billboard_id: billboardId,
+          installed_qty: newInstalled,
           install_status: "installed",
           intended_billboard_id: null,
-          notes: (selectedItem.notes || "") + ` | ติดตั้งที่ป้าย`,
+          notes: (selectedItem.notes || "") + ` | ติดตั้งที่ป้าย ${qty}`,
         } as any)
         .eq("id", selectedItem.id);
 
@@ -341,7 +344,7 @@ const IncompleteIssues = () => {
           .insert({
             billboard_id: billboardId,
             equipment_id: selectedItem.equipment_id,
-            quantity: selectedItem.issued_quantity || selectedItem.quantity,
+            quantity: qty,
             installation_date: installationDate,
             notes: `จากเอกสาร ${selectedIssue?.document_no} - ${selectedItem.equipment_name}`,
             created_by: user.id,
@@ -353,18 +356,25 @@ const IncompleteIssues = () => {
       if (selectedIssue) {
         const { data: latestItems, error: latestItemsError } = await supabase
           .from("goods_issue_pending_items")
-          .select("id, status, billboard_id")
+          .select("id, status, billboard_id, issued_quantity, quantity, installed_qty, returned_good_qty, returned_defective_qty")
           .eq("pending_id", selectedIssue.id);
         if (latestItemsError) throw latestItemsError;
 
-        const allHaveBillboard = (latestItems || []).every(
-          (item: any) => item.status !== "issued" || !!item.billboard_id,
+        const allSettled = (latestItems || []).every(
+          (item: any) => item.status !== "issued" || lineLeft(item) === 0,
+        );
+        const anyReturned = (latestItems || []).some(
+          (item: any) => (item.returned_good_qty || 0) + (item.returned_defective_qty || 0) > 0,
         );
 
-        if (allHaveBillboard) {
+        if (allSettled) {
           const { error: completeError } = await supabase
             .from("goods_issue_pending")
-            .update({ is_complete: true, billboard_id: selectedIssue.billboard_id || billboardId })
+            .update({
+              is_complete: true,
+              billboard_id: selectedIssue.billboard_id || billboardId,
+              ...(anyReturned ? { status: "returned" } : {}),
+            } as any)
             .eq("id", selectedIssue.id);
           if (completeError) throw completeError;
         }
@@ -531,20 +541,25 @@ const IncompleteIssues = () => {
     return incompleteIssues.purposes.find(p => p.id === purposeId);
   };
 
-  const getIssueType = (issue: IncompleteIssue): "billboard" | "return" => {
+  const needsBillboard = (issue: IncompleteIssue) => {
     const purpose = getPurposeInfo(issue.purpose_id);
+    if (!purpose?.requires_billboard) return false;
     const items = itemsByIssue.get(issue.id) || [];
-    const anyItemMissingBillboard = items.some(
-      (it) => it.status === "issued" && !it.billboard_id,
-    );
-    if (purpose?.requires_billboard && (!issue.billboard_id || anyItemMissingBillboard)) return "billboard";
-    return "return";
+    if (items.length === 0) return !issue.billboard_id;
+    return items.some((it) => it.status === "issued" && lineLeft(it) > 0);
   };
 
+  const needsReturn = (issue: IncompleteIssue) => {
+    const purpose = getPurposeInfo(issue.purpose_id);
+    if (!purpose?.requires_return) return false;
+    const items = itemsByIssue.get(issue.id) || [];
+    if (items.length === 0) return (issue.return_quantity || 0) < (issue.issued_quantity || issue.quantity || 0);
+    return items.some((it) => it.status === "issued" && lineLeft(it) > 0);
+  };
 
   const getItemsNeedingBillboard = (issue: IncompleteIssue) => {
     const items = itemsByIssue.get(issue.id) || [];
-    return items.filter(item => !item.billboard_id && item.status === "issued");
+    return items.filter(item => item.status === "issued" && lineLeft(item) > 0);
   };
 
   const filteredIssues = incompleteIssues?.issues.filter(
@@ -560,8 +575,8 @@ const IncompleteIssues = () => {
     }
   ) || [];
 
-  const billboardIssues = filteredIssues.filter(i => getIssueType(i) === "billboard");
-  const returnIssues = filteredIssues.filter(i => getIssueType(i) === "return");
+  const billboardIssues = filteredIssues.filter(needsBillboard);
+  const returnIssues = filteredIssues.filter(needsReturn);
 
   const getItemStatusBadge = (item: PendingItem) => {
     const installStatus = (item as any).install_status as string | undefined;
@@ -571,8 +586,13 @@ const IncompleteIssues = () => {
     if (installStatus === "cancelled") {
       return <Badge variant="outline" className="text-xs bg-red-500/10 text-red-600">แจ้งปัญหาที่รับ · รอระบุป้ายใหม่</Badge>;
     }
-    if (item.billboard_id) {
-      return <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600">มีป้ายแล้ว</Badge>;
+    const inst = lineInstalled(item);
+    const left = lineLeft(item);
+    if (inst > 0 && left > 0) {
+      return <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-600">ติดตั้ง {inst} · ค้าง {left}</Badge>;
+    }
+    if (left === 0 && item.status === "issued") {
+      return <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600">ครบแล้ว</Badge>;
     }
     if (item.status === "issued") {
       return <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-600">รอระบุป้าย</Badge>;
@@ -734,22 +754,23 @@ const IncompleteIssues = () => {
                                     </TableHeader>
                                     <TableBody>
                                       {items.map((item) => (
-                                        <TableRow key={item.id} className={!item.billboard_id && item.status === "issued" ? "bg-orange-50/50" : ""}>
+                                        <TableRow key={item.id} className={lineLeft(item) > 0 && item.status === "issued" ? "bg-orange-50/50" : ""}>
                                           <TableCell className="font-mono text-sm">{item.equipment_code || "-"}</TableCell>
                                           <TableCell>{item.equipment_name || "-"}</TableCell>
                                           <TableCell className="text-muted-foreground">{item.serial_number || "-"}</TableCell>
-                                          <TableCell className="text-right">{item.issued_quantity || item.quantity}</TableCell>
+                                          <TableCell className="text-right">{lineIssued(item)}</TableCell>
                                           <TableCell>{getItemStatusBadge(item)}</TableCell>
                                           <TableCell className="text-center">
-                                            {item.status === "issued" && (
+                                            {item.status === "issued" && lineLeft(item) > 0 && (
                                               <Button
                                                 size="sm"
                                                 variant="outline"
                                                 onClick={(e) => { e.stopPropagation(); handleAssignBillboardToItem(issue, item); }}
                                                 className="gap-1"
                                               >
-                                                {item.billboard_id ? <Edit className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
-                                                {item.billboard_id ? "แก้ไข" : "ระบุป้าย"}
+                                                <MapPin className="w-3 h-3" />
+                                                ระบุป้าย
+
                                               </Button>
                                             )}
                                           </TableCell>
@@ -844,11 +865,11 @@ const IncompleteIssues = () => {
                                   </TableHeader>
                                   <TableBody>
                                     {items.map((item) => {
-                                      const iq = item.issued_quantity ?? item.quantity;
-                                      const inst = item.billboard_id ? iq : 0;
+                                      const iq = lineIssued(item);
+                                      const inst = lineInstalled(item);
                                       const g = item.returned_good_qty || 0;
                                       const d = item.returned_defective_qty || 0;
-                                      const left = Math.max(0, iq - inst - g - d);
+                                      const left = lineLeft(item);
                                       return (
                                         <TableRow key={item.id} className={left > 0 ? "bg-orange-50/40" : ""}>
                                           <TableCell className="font-mono text-sm">{item.equipment_code || "-"}</TableCell>
@@ -985,10 +1006,25 @@ const IncompleteIssues = () => {
                 </div>
               )}
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">จำนวน:</span>
-                <span className="font-medium">{selectedItem?.issued_quantity || selectedItem?.quantity || selectedIssue?.issued_quantity || selectedIssue?.quantity}</span>
+                <span className="text-muted-foreground">{selectedItem ? "ยอดค้าง (ยังไม่ติดตั้ง/ไม่คืน):" : "จำนวน:"}</span>
+                <span className="font-medium">{selectedItem ? lineLeft(selectedItem) : (selectedIssue?.issued_quantity || selectedIssue?.quantity)}</span>
               </div>
             </div>
+
+            {selectedItem && !(selectedItem.media_player_id || selectedItem.is_media_player) && (
+              <div className="space-y-2">
+                <Label>จำนวนที่ติดตั้งบนป้ายนี้</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={lineLeft(selectedItem)}
+                  value={installQty}
+                  onChange={(e) => setInstallQty(e.target.value)}
+                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                />
+                <p className="text-xs text-muted-foreground">ส่วนที่เหลือยังค้างอยู่ และกดรับคืนได้ที่แท็บ "รอรับคืน" (ถ้าวัตถุประสงค์กำหนดให้คืน)</p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>เลือกป้ายโฆษณา</Label>

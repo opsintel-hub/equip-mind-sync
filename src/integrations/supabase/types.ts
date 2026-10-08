@@ -3224,6 +3224,7 @@ export type Database = {
           equipment_name: string | null
           id: string
           install_status: string
+          installed_qty: number | null
           intended_billboard_id: string | null
           is_media_player: boolean | null
           issued_quantity: number | null
@@ -3252,6 +3253,7 @@ export type Database = {
           equipment_name?: string | null
           id?: string
           install_status?: string
+          installed_qty?: number | null
           intended_billboard_id?: string | null
           is_media_player?: boolean | null
           issued_quantity?: number | null
@@ -3280,6 +3282,7 @@ export type Database = {
           equipment_name?: string | null
           id?: string
           install_status?: string
+          installed_qty?: number | null
           intended_billboard_id?: string | null
           is_media_player?: boolean | null
           issued_quantity?: number | null
