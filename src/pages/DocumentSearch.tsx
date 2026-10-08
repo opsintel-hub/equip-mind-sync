@@ -561,6 +561,14 @@ export default function DocumentSearch() {
         .order("created_at", { ascending: false });
       if (issueError) console.error("issue fetch error", issueError);
 
+      // Resolve purpose_id -> purpose name (issue_purposes master)
+      const purposeIds = Array.from(new Set((issueData || []).map((i: any) => i.purpose_id).filter(Boolean)));
+      const purposeMap = new Map<string, string>();
+      if (purposeIds.length > 0) {
+        const { data: purposes } = await supabase.from("issue_purposes").select("id, name").in("id", purposeIds);
+        for (const p of (purposes || []) as any[]) purposeMap.set(p.id, p.name);
+      }
+
       // Fetch from delivery_confirmations
       const { data: dcData } = await supabase
         .from("delivery_confirmations")
@@ -802,6 +810,7 @@ export default function DocumentSearch() {
           supplier_name: null, delivery_person_name: item.requester_name,
           quantity: 0, unit: "-", created_at: item.created_at,
           status: item.status, source: "issue" as const,
+          purpose_name: item.purpose || (item.purpose_id ? purposeMap.get(item.purpose_id) : null) || null,
           raw: { ...item, confirmed_at: confirmedAt, _item_lines: lines },
         };
       });
