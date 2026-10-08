@@ -33,6 +33,7 @@ export interface ReturnItemLine {
   billboard_id: string | null;
   returned_good_qty?: number | null;
   returned_defective_qty?: number | null;
+  installed_qty?: number | null;
   notes: string | null;
 }
 
@@ -79,7 +80,7 @@ export function ReturnItemDialog({
   const isMP = !!(item?.media_player_id || item?.is_media_player);
   const issuedQty = item ? item.issued_quantity ?? item.quantity : 0;
   const alreadyReturned = (item?.returned_good_qty || 0) + (item?.returned_defective_qty || 0);
-  const installedQty = item?.billboard_id ? issuedQty : 0;
+  const installedQty = item ? (item.installed_qty != null ? Number(item.installed_qty) : item.billboard_id ? issuedQty : 0) : 0;
   const outstanding = Math.max(0, issuedQty - alreadyReturned - installedQty);
 
   useEffect(() => {
@@ -258,7 +259,7 @@ export function ReturnItemDialog({
       // 4) Roll up to the header
       const { data: lines } = await supabase
         .from("goods_issue_pending_items")
-        .select("issued_quantity, quantity, billboard_id, returned_good_qty, returned_defective_qty")
+        .select("issued_quantity, quantity, billboard_id, installed_qty, returned_good_qty, returned_defective_qty")
         .eq("pending_id", pendingId);
       const totalReturned = (lines || []).reduce(
         (s: number, l: any) => s + (l.returned_good_qty || 0) + (l.returned_defective_qty || 0),
@@ -266,7 +267,7 @@ export function ReturnItemDialog({
       );
       const allSettled = (lines || []).every((l: any) => {
         const iq = l.issued_quantity ?? l.quantity ?? 0;
-        const inst = l.billboard_id ? iq : 0;
+        const inst = l.installed_qty != null ? Number(l.installed_qty) : l.billboard_id ? iq : 0;
         return (l.returned_good_qty || 0) + (l.returned_defective_qty || 0) + inst >= iq;
       });
       await supabase
