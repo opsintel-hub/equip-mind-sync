@@ -29,7 +29,7 @@ export function DocItemsPanel({ source, id, raw }: { source: string; id: string;
         if (pendingId) {
           const [{ data: items }, { data: head }] = await Promise.all([
             sb.from("goods_issue_pending_items").select("*").eq("pending_id", pendingId).order("created_at"),
-            sb.from("goods_issue_pending").select("equipment_code, equipment_name, quantity, unit, issued_quantity, serial_number, billboard_id, notes, purpose, purpose_id").eq("id", pendingId).maybeSingle(),
+            sb.from("goods_issue_pending").select("equipment_code, equipment_name, quantity, unit, issued_quantity, billboard_id, notes, purpose, purpose_id").eq("id", pendingId).maybeSingle(),
           ]);
           if (head?.purpose_id || head?.purpose) {
             let p = { name: head.purpose || "-", bb: false, ret: false };
@@ -45,7 +45,7 @@ export function DocItemsPanel({ source, id, raw }: { source: string; id: string;
             returned: (i.returned_good_qty || 0) + (i.returned_defective_qty || 0), remaining: i.remaining_quantity, sn: i.serial_number, billboardId: i.billboard_id, notes: i.notes,
           }));
           if (out.length === 0 && head?.equipment_code) {
-            out = [{ code: head.equipment_code, name: head.equipment_name, qty: head.quantity, unit: head.unit, issued: head.issued_quantity, sn: head.serial_number, billboardId: head.billboard_id, notes: head.notes }];
+            out = [{ code: head.equipment_code, name: head.equipment_name, qty: head.quantity, unit: head.unit, issued: head.issued_quantity, billboardId: head.billboard_id, notes: head.notes }];
           }
         }
       }
