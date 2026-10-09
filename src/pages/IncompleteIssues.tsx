@@ -27,6 +27,7 @@ import { logStockMovement } from "@/lib/stockMovement";
 import { getCompatibleBillboardIdsForEquipment } from "@/lib/compatibility";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 import { ReturnItemDialog, type ReturnItemLine } from "@/components/issue/ReturnItemDialog";
+import { SpecialRequestDialog } from "@/components/special-request/SpecialRequestDialog";
 
 interface IncompleteIssue {
   id: string;
@@ -78,7 +79,7 @@ const lineIssued = (l: any) => Number(l.issued_quantity ?? l.quantity ?? 0);
 const lineInstalled = (l: any) =>
   l.installed_qty != null ? Number(l.installed_qty) : l.billboard_id ? lineIssued(l) : 0;
 const lineLeft = (l: any) =>
-  Math.max(0, lineIssued(l) - lineInstalled(l) - Number(l.returned_good_qty || 0) - Number(l.returned_defective_qty || 0));
+  Math.max(0, lineIssued(l) - lineInstalled(l) - Number(l.returned_good_qty || 0) - Number(l.returned_defective_qty || 0) - Number(l.written_off_qty || 0));
 
 interface IssuePurpose {
   id: string;
@@ -170,7 +171,7 @@ const IncompleteIssues = () => {
       if (ids.length > 0) {
         const { data: itemRows } = await supabase
           .from("goods_issue_pending_items")
-          .select("pending_id, billboard_id, status, needs_return, issued_quantity, quantity, installed_qty, returned_good_qty, returned_defective_qty")
+          .select("pending_id, billboard_id, status, needs_return, issued_quantity, quantity, installed_qty, returned_good_qty, returned_defective_qty, written_off_qty")
           .in("pending_id", ids);
         (itemRows || []).forEach((r: any) => {
           if (!itemsByPending.has(r.pending_id)) itemsByPending.set(r.pending_id, []);
@@ -357,7 +358,7 @@ const IncompleteIssues = () => {
       if (selectedIssue) {
         const { data: latestItems, error: latestItemsError } = await supabase
           .from("goods_issue_pending_items")
-          .select("id, status, billboard_id, issued_quantity, quantity, installed_qty, returned_good_qty, returned_defective_qty")
+          .select("id, status, billboard_id, issued_quantity, quantity, installed_qty, returned_good_qty, returned_defective_qty, written_off_qty")
           .eq("pending_id", selectedIssue.id);
         if (latestItemsError) throw latestItemsError;
 
@@ -898,6 +899,18 @@ const IncompleteIssues = () => {
                                                 <RefreshCw className="w-3 h-3" />
                                                 {left > 0 ? "รับคืน" : "รับคืนเพิ่ม"}
                                               </Button>
+                                            )}
+                                            {left > 0 && (
+                                              <SpecialRequestDialog
+                                                requestType="force_close_issue_item"
+                                                targetTable="goods_issue_pending_items"
+                                                targetId={issue.id}
+                                                targetItemId={item.id}
+                                                targetDocNumber={issue.document_no}
+                                                targetUrl="/incomplete-issues"
+                                                maxQty={left}
+                                                itemLabel={`${item.equipment_code || ""} ${item.equipment_name || ""}`.trim()}
+                                              />
                                             )}
                                           </TableCell>
                                         </TableRow>
