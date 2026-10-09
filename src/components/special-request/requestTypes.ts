@@ -27,7 +27,7 @@ export const SPECIAL_REQUEST_TYPES: SpecialRequestType[] = [
     key: "cancel_return_to_stock",
     label: "ขอยกเลิกและคืนของเข้าคลัง",
     description: "เบิกผิด/ไม่ได้ใช้ ต้องการคืนของกลับเข้าคลัง",
-    actionHint: "ไปหน้ารายการเบิกที่ยังไม่สมบูรณ์ → กด “รับคืน” ตามจำนวน แล้วกลับมากด “ทำเสร็จแล้ว”",
+    actionHint: "ไปหน้ารายการเบิกที่ยังไม่สมบูรณ์ → กด “รับคืน” ตามจำนวน แล้วกลับมากด “อนุมัติ”",
     actionUrl: "/incomplete-issues",
     needsDoc: true,
   },
