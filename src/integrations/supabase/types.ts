@@ -1589,6 +1589,7 @@ export type Database = {
           rejection_reason: string | null
           reporter_department: string | null
           reporter_name: string | null
+          return_photos: string[]
           source_document: string | null
           source_issue_item_id: string | null
           source_type: string
@@ -1653,6 +1654,7 @@ export type Database = {
           rejection_reason?: string | null
           reporter_department?: string | null
           reporter_name?: string | null
+          return_photos?: string[]
           source_document?: string | null
           source_issue_item_id?: string | null
           source_type?: string
@@ -1717,6 +1719,7 @@ export type Database = {
           rejection_reason?: string | null
           reporter_department?: string | null
           reporter_name?: string | null
+          return_photos?: string[]
           source_document?: string | null
           source_issue_item_id?: string | null
           source_type?: string
@@ -3731,6 +3734,7 @@ export type Database = {
           notes: string | null
           pending_id: string
           pending_item_id: string
+          photos: string[]
           quantity: number
           received_at: string | null
           received_by: string | null
@@ -3756,6 +3760,7 @@ export type Database = {
           notes?: string | null
           pending_id: string
           pending_item_id: string
+          photos?: string[]
           quantity: number
           received_at?: string | null
           received_by?: string | null
@@ -3781,6 +3786,7 @@ export type Database = {
           notes?: string | null
           pending_id?: string
           pending_item_id?: string
+          photos?: string[]
           quantity?: number
           received_at?: string | null
           received_by?: string | null

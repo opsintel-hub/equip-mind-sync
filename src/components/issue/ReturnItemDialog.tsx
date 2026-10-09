@@ -14,6 +14,7 @@ import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { useAuth } from "@/hooks/useAuth";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
+import { ReturnPhotoDropzone } from "./ReturnPhotoDropzone";
 
 export interface ReturnItemLine {
   id: string;
@@ -70,6 +71,8 @@ export function ReturnItemDialog({
   const [billboardId, setBillboardId] = useState("");
   const [autoBillboardLabel, setAutoBillboardLabel] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  const [goodPhotos, setGoodPhotos] = useState<string[]>([]);
+  const [defPhotos, setDefPhotos] = useState<string[]>([]);
 
   const isMP = !!(item?.media_player_id || item?.is_media_player);
   const issuedQty = item ? item.issued_quantity ?? item.quantity : 0;
@@ -85,6 +88,8 @@ export function ReturnItemDialog({
     setSymptomId("");
     setSymptomOther("");
     setNotes("");
+    setGoodPhotos([]);
+    setDefPhotos([]);
     setBillboardId(item.billboard_id || "");
     setAutoBillboardLabel(null);
 
@@ -119,10 +124,12 @@ export function ReturnItemDialog({
     if (good + defective > outstanding) return `ของดี + ของเสีย ต้องไม่เกินยอดค้าง (${outstanding})`;
     if ((defective > 0 || extraDefective > 0) && !symptomId && !symptomOther.trim())
       return "กรุณาระบุอาการเสีย";
+    if (good > 0 && goodPhotos.length < 1) return "กรุณาแนบรูปของดีอย่างน้อย 1 รูป";
+    if ((defective > 0 || extraDefective > 0) && defPhotos.length < 1) return "กรุณาแนบรูปของเสียอย่างน้อย 1 รูป";
     if (isMP && (defective > 0 || extraDefective > 0) && !billboardId)
       return "กรุณาระบุป้ายที่ถอดอุปกรณ์ออกมา";
     return null;
-  }, [item, good, defective, extraDefective, outstanding, symptomId, symptomOther, isMP, billboardId]);
+  }, [item, good, defective, extraDefective, outstanding, symptomId, symptomOther, isMP, billboardId, goodPhotos, defPhotos]);
 
   const buildReason = async () => {
     let symptomName = "";
@@ -154,6 +161,7 @@ export function ReturnItemDialog({
       reporter_name: requesterName || null,
       reporter_department: requesterDepartment || null,
       notes: notes.trim() || null,
+      return_photos: defPhotos,
       created_by: user?.id,
     } as any);
     if (insErr) throw insErr;
@@ -184,6 +192,7 @@ export function ReturnItemDialog({
           notes: notes.trim() || null,
           submitted_by: user?.id,
           submitted_by_name: requesterName || null,
+          photos: goodPhotos,
         } as any);
         if (gErr) throw gErr;
       }
@@ -299,6 +308,9 @@ export function ReturnItemDialog({
                 onWheel={(e) => (e.target as HTMLInputElement).blur()}
               />
             </div>
+            {good > 0 && (
+              <ReturnPhotoDropzone photos={goodPhotos} onChange={setGoodPhotos} folder="good" label="รูปของดี" />
+            )}
             <p className="text-xs text-muted-foreground">ของดีจะถูกส่งให้เจ้าหน้าที่คลังเลือกคลังและตำแหน่งจัดเก็บ ก่อนเข้าสต็อก</p>
           </div>
 
@@ -334,6 +346,7 @@ export function ReturnItemDialog({
             {(defective > 0 || extraDefective > 0) && (
               <>
                 <Separator />
+                <ReturnPhotoDropzone photos={defPhotos} onChange={setDefPhotos} folder="defective" label="รูปของเสีย" />
                 <div className="space-y-2">
                   <Label>อาการเสีย {isMP && <span className="text-destructive">*</span>}</Label>
                   <SymptomSelect value={symptomId} onChange={setSymptomId} />
