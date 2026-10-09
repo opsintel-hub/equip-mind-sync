@@ -215,6 +215,10 @@ const IncompleteIssues = () => {
     table: "goods_issue_pending_items",
     queryKeys: [["incomplete-issues", deptKey], ["incomplete-issues-items"]],
   });
+  useRealtimeInvalidate({
+    table: "special_requests",
+    queryKeys: [["incomplete-issues", deptKey], ["incomplete-issues-items"]],
+  });
 
 
   // Fetch defective returns pending warehouse entry
