@@ -186,12 +186,12 @@ const SpecialRequests = ({ mode = "admin" }: { mode?: "mine" | "admin" }) => {
                   <>
                     <Button variant="destructive" disabled={busy} onClick={() => review("rejected")} className="gap-1"><X className="w-4 h-4" />ไม่อนุมัติ</Button>
                     <Button disabled={busy} onClick={() => review(t.auto ? "approved" : "done")} className="gap-1">
-                      {t.auto ? (<><Check className="w-4 h-4" />อนุมัติและปิดยอดให้อัตโนมัติ</>) : (<><CheckCheck className="w-4 h-4" />ทำเสร็จแล้ว</>)}
+                      {t.auto ? (<><Check className="w-4 h-4" />อนุมัติและปิดยอดให้อัตโนมัติ</>) : (<><CheckCheck className="w-4 h-4" />อนุมัติ</>)}
                     </Button>
                   </>
                 )}
                 {isSuperAdmin && selected.status === "approved" && (
-                  <Button disabled={busy} onClick={() => review("done")} className="gap-1"><CheckCheck className="w-4 h-4" />ทำเสร็จแล้ว</Button>
+                  <Button disabled={busy} onClick={() => review("done")} className="gap-1"><CheckCheck className="w-4 h-4" />อนุมัติ</Button>
                 )}
               </DialogFooter>
             </>
