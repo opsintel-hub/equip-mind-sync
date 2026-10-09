@@ -175,9 +175,18 @@ const IncompleteIssues = () => {
         });
       }
 
+      // เอกสารที่ Super Admin อนุมัติคำร้องพิเศษแล้ว (ปิดยอด/ยกเลิกคืน) ไม่แสดงในหน้านี้อีก
+      const { data: approvedReqs } = await supabase
+        .from("special_requests")
+        .select("target_doc_number")
+        .in("status", ["approved", "done"])
+        .in("request_type", ["force_close_issue_item", "cancel_return_to_stock"]);
+      const closedDocs = new Set((approvedReqs || []).map((r: any) => r.target_doc_number).filter(Boolean));
+
       // A document stays here while any issued line still has outstanding units
       // (not installed and not returned). It can appear in both tabs at once.
       const incomplete = (data || []).filter((item: IncompleteIssue) => {
+        if (item.document_no && closedDocs.has(item.document_no)) return false;
         const purpose = item.purpose_id ? purposeMap.get(item.purpose_id) : null;
         const lineItems = itemsByPending.get(item.id) || [];
         if (lineItems.length > 0) {
@@ -204,6 +213,10 @@ const IncompleteIssues = () => {
   });
   useRealtimeInvalidate({
     table: "goods_issue_pending_items",
+    queryKeys: [["incomplete-issues", deptKey], ["incomplete-issues-items"]],
+  });
+  useRealtimeInvalidate({
+    table: "special_requests",
     queryKeys: [["incomplete-issues", deptKey], ["incomplete-issues-items"]],
   });
 
