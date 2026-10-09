@@ -32,7 +32,7 @@ export const DUTY_PACKS: DutyPack[] = [
     label: "เบิก-จ่ายสินค้า",
     description: "ขอเบิก, จ่ายของ, โอนย้าย, รับคืน",
     icon: "ShoppingCart",
-    fns: ["issue_request", "goods_issue", "transfer"],
+    fns: ["issue_request", "goods_issue", "transfer", "special_request_create"],
     roles: ["requester", "warehouse_staff"],
   },
   {

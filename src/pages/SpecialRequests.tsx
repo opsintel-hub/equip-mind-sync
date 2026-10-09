@@ -24,9 +24,11 @@ const statusVariant = (s: string) =>
 
 const fmt = (d?: string | null) => (d ? format(new Date(d), "d MMM yy HH:mm", { locale: th }) : "-");
 
-const SpecialRequests = () => {
+const SpecialRequests = ({ mode = "admin" }: { mode?: "mine" | "admin" }) => {
   const { user } = useAuth();
-  const { isSuperAdmin } = useIsSuperAdmin();
+  const { isSuperAdmin: isSA } = useIsSuperAdmin();
+  const isSuperAdmin = mode === "admin" && isSA;
+  const mine = !isSuperAdmin;
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [tab, setTab] = useState("pending");
@@ -36,7 +38,7 @@ const SpecialRequests = () => {
   const [busy, setBusy] = useState(false);
 
   const { data: rows = [], isLoading } = useQuery({
-    queryKey: ["special-requests", user?.id, isSuperAdmin],
+    queryKey: ["special-requests", user?.id, isSuperAdmin, mode],
     enabled: !!user,
     queryFn: async () => {
       let query = supabase.from("special_requests").select("*").order("created_at", { ascending: false }).limit(500);
@@ -92,25 +94,25 @@ const SpecialRequests = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold flex items-center gap-3"><Inbox className="h-8 w-8 text-primary" />ศูนย์คำร้องพิเศษ</h1>
+          <h1 className="text-3xl font-semibold flex items-center gap-3"><Inbox className="h-8 w-8 text-primary" />{mine ? "คำร้องพิเศษของฉัน" : "อนุมัติคำร้องพิเศษ"}</h1>
           <p className="text-muted-foreground">
-            {isSuperAdmin ? "คำร้องจากผู้ใช้ที่ต้องให้ Super Admin ดำเนินการ — กดที่แถวเพื่อดูว่าต้องทำอะไร" : "ส่งคำร้องเรื่องที่ต้องให้ Super Admin ช่วย และติดตามผลได้ที่นี่"}
+            {!mine ? "คำร้องจากผู้ใช้ที่ต้องให้ Super Admin ดำเนินการ — กดที่แถวเพื่อดูว่าต้องทำอะไร" : "ส่งคำร้องเรื่องที่ต้องให้ Super Admin ช่วย และติดตามผลได้ที่นี่"}
           </p>
         </div>
-        <SpecialRequestDialog trigger={<Button className="gap-2"><Plus className="w-4 h-4" />ส่งคำร้องใหม่</Button>} />
+        {mine && <SpecialRequestDialog trigger={<Button className="gap-2"><Plus className="w-4 h-4" />ส่งคำร้องใหม่</Button>} />}
       </div>
 
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 space-y-0">
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList>
-              <TabsTrigger value="pending">รอดำเนินการ ({counts.pending || 0})</TabsTrigger>
-              <TabsTrigger value="approved">อนุมัติรอทำ ({counts.approved || 0})</TabsTrigger>
+              <TabsTrigger value="pending">{mine ? "รอพิจารณา" : "รออนุมัติ"} ({counts.pending || 0})</TabsTrigger>
+              <TabsTrigger value="approved">{mine ? "อนุมัติแล้ว" : "อนุมัติแล้ว-รอดำเนินการ"} ({counts.approved || 0})</TabsTrigger>
               <TabsTrigger value="closed">ปิดแล้ว</TabsTrigger>
-              <TabsTrigger value="all">ทั้งหมด (Log)</TabsTrigger>
+              <TabsTrigger value="all">{mine ? "ทั้งหมด" : "ประวัติทั้งหมด (Log)"}</TabsTrigger>
             </TabsList>
           </Tabs>
-          <Input className="max-w-xs" placeholder="ค้นหา เลขคำร้อง / เลขเอกสาร / ผู้ร้อง" value={q} onChange={(e) => setQ(e.target.value)} />
+          <Input className="max-w-xs" placeholder={mine ? "ค้นหา เลขคำร้อง / เลขเอกสาร" : "ค้นหา เลขคำร้อง / เลขเอกสาร / ผู้ร้อง"} value={q} onChange={(e) => setQ(e.target.value)} />
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>
@@ -159,7 +161,7 @@ const SpecialRequests = () => {
                 {selected.target_doc_number && <p><span className="text-muted-foreground">เอกสาร:</span> <span className="font-mono">{selected.target_doc_number}</span>{selected.quantity ? ` · จำนวน ${selected.quantity}` : ""}</p>}
                 {selected.payload?.item && <p><span className="text-muted-foreground">รายการ:</span> {selected.payload.item}</p>}
                 <p><span className="text-muted-foreground">เหตุผล:</span> {selected.reason}</p>
-                <div className="rounded-md bg-muted p-3">
+                {!mine && <div className="rounded-md bg-muted p-3">
                   <p className="font-medium">สิ่งที่ Super Admin ต้องทำ</p>
                   <p>{t.actionHint}</p>
                   {(selected.target_url || t.actionUrl) && (
@@ -169,7 +171,7 @@ const SpecialRequests = () => {
                       ไปที่หน้าที่ต้องทำ <ExternalLink className="w-3 h-3" />
                     </Button>
                   )}
-                </div>
+                </div>}
                 <p><span className="text-muted-foreground">สถานะ:</span> {STATUS_LABEL[selected.status]}</p>
                 {selected.reviewed_at && <p><span className="text-muted-foreground">ผล:</span> {selected.reviewer_name} · {fmt(selected.reviewed_at)} {selected.review_notes ? `— ${selected.review_notes}` : ""}</p>}
                 {isSuperAdmin && ["pending", "approved"].includes(selected.status) && (
@@ -177,7 +179,7 @@ const SpecialRequests = () => {
                 )}
               </div>
               <DialogFooter className="gap-2 flex-wrap">
-                {!isSuperAdmin && selected.status === "pending" && selected.requested_by === user?.id && (
+                {mine && selected.status === "pending" && selected.requested_by === user?.id && (
                   <Button variant="outline" onClick={() => { cancelOwn(selected); setSelected(null); }}>ยกเลิกคำร้อง</Button>
                 )}
                 {isSuperAdmin && selected.status === "pending" && (
