@@ -88,6 +88,7 @@ const IncompleteIssues = () => {
   const { user } = useAuth();
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("billboard");
   const [selectedIssue, setSelectedIssue] = useState<IncompleteIssue | null>(null);
   const [selectedItem, setSelectedItem] = useState<PendingItem | null>(null);
   const [billboardDialogOpen, setBillboardDialogOpen] = useState(false);
@@ -636,8 +637,8 @@ const IncompleteIssues = () => {
             <CardDescription>อัปเดตข้อมูลเพื่อปิดการเบิกให้สมบูรณ์</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="billboard" className="w-full">
-            <div className="flex items-center gap-2 mb-4 data-[state=inactive]:hidden" data-search-existing>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <div className={activeTab === "awaiting-usage" ? "hidden" : "flex items-center gap-2 mb-4"}>
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
