@@ -857,12 +857,12 @@ const IncompleteIssues = () => {
                                 <div className="ml-auto flex items-center gap-2">
                                   <Badge variant="outline" className="bg-amber-100 text-amber-800">
                                     <RefreshCw className="w-3 h-3 mr-1" />
-                                    รอรับคืน
+                                    รอส่งคืน
                                   </Badge>
                                   {items.length === 0 && (
                                     <Button size="sm" variant="outline" className="gap-1"
                                       onClick={(e) => { e.stopPropagation(); handleRecordReturn(issue); }}>
-                                      <RefreshCw className="w-4 h-4" /> รับคืน
+                                      <RefreshCw className="w-4 h-4" /> ส่งคืน
                                     </Button>
                                   )}
                                 </div>
@@ -1062,7 +1062,7 @@ const IncompleteIssues = () => {
                   onChange={(e) => setInstallQty(e.target.value)}
                   onWheel={(e) => (e.target as HTMLInputElement).blur()}
                 />
-                <p className="text-xs text-muted-foreground">ส่วนที่เหลือยังค้างอยู่ และกดรับคืนได้ที่แท็บ "รอรับคืน" (ถ้าวัตถุประสงค์กำหนดให้คืน)</p>
+                <p className="text-xs text-muted-foreground">ส่วนที่เหลือยังค้างอยู่ และกดส่งคืนได้ที่แท็บ "รอส่งคืน" (ถ้าวัตถุประสงค์กำหนดให้คืน)</p>
               </div>
             )}
 
