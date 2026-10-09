@@ -302,7 +302,7 @@ const menuGroups: MenuGroup[] = [
       { title: "ตั้งค่าแจ้งเตือน", url: "/notification-settings", icon: Bell },
       { title: "ตรวจสอบยอด & สถานะ Stock", url: "/stock-reconciliation", icon: CheckCircle2, functionName: "stock_reconcile" },
       { title: "จัดการผู้ใช้", url: "/admin", icon: Shield, functionName: "admin", superAdminOnly: true },
-      { title: "ศูนย์คำร้องพิเศษ", url: "/special-requests", icon: Inbox },
+      { title: "อนุมัติคำร้องพิเศษ", url: "/special-requests", icon: Inbox, functionName: "special_request_manage", superAdminOnly: true },
       { title: "ประวัติการใช้งานระบบ", url: "/audit-trail", icon: History, functionName: "activity_audit_view" },
       { title: "คู่มือ Database", url: "/database-guide", icon: FileSearch, superAdminOnly: true },
     ]

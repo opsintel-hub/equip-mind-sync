@@ -98,6 +98,8 @@ export const ROUTE_PERMISSIONS: Record<string, RoutePermissionRule> = {
   "/stock-reconciliation": { fns: ["stock_reconcile"] },
   "/admin": { fns: ["admin"] },
   "/database-guide": { superAdminOnly: true },
+  "/special-requests": { superAdminOnly: true },
+  "/my-special-requests": { fns: ["special_request_create", "issue_request", "goods_issue"] },
   "/setup/import-equipment": { fns: ["setup_import"], superAdminOnly: true },
   "/setup/import-media-player": { fns: ["setup_import"], superAdminOnly: true },
   "/setup/import-tools": { fns: ["setup_import"], superAdminOnly: true },

@@ -36,6 +36,7 @@ export const SYSTEM_FUNCTIONS: SystemFunction[] = [
   { name: "issue_request", label: "ขอเบิกสินค้า", description: "ส่งคำขอเบิกสินค้า (สำหรับผู้เบิก)", group: "เบิก-จ่าย", menu: "ขอเบิกสินค้า, Dashboard ผู้เบิก" },
   { name: "manager_approval", label: "อนุมัติเบิกทรัพย์สิน", description: "อนุมัติคำขอเบิกสินค้าที่เป็นทรัพย์สิน (เฉพาะ Manager)", group: "เบิก-จ่าย", menu: "อนุมัติเบิกทรัพย์สิน" },
   { name: "goods_issue", label: "จ่ายสินค้า", description: "จ่ายสินค้าตามคำขอ (สำหรับเจ้าหน้าที่คลัง)", group: "เบิก-จ่าย", menu: "จ่ายสินค้า, แผนจัดเตรียม, คำขอรอสินค้า, รอระบุป้าย/รอคืน, ยืมข้ามบริษัท" },
+  { name: "special_request_create", label: "ส่งคำร้องพิเศษ", description: "ส่งคำร้องถึง Super Admin (ปิดรายการค้าง ฯลฯ) และติดตามผลของตนเอง", group: "เบิก-จ่าย", menu: "คำร้องพิเศษของฉัน" },
   { name: "delivery_confirm", label: "ยืนยันรับสินค้า", description: "ยืนยันการรับสินค้าที่จัดส่งพร้อมแจ้งปัญหา", group: "เบิก-จ่าย", menu: "ยืนยันรับสินค้า" },
 
   // ─── ส่งตรง ───
@@ -79,6 +80,7 @@ export const SYSTEM_FUNCTIONS: SystemFunction[] = [
   { name: "admin", label: "จัดการผู้ใช้และสิทธิ์ (สงวน Super Admin)", description: "จัดการผู้ใช้และสิทธิ์ — เฉพาะ Super Admin เท่านั้น", group: "ตั้งค่าระบบ", menu: "จัดการผู้ใช้" },
   { name: "setup_import", label: "นำเข้าข้อมูลเริ่มต้น (สงวน Super Admin)", description: "Import อุปกรณ์ / MP / เครื่องมือ ตั้งต้น — เฉพาะ Super Admin", group: "ตั้งค่าระบบ", menu: "นำเข้าข้อมูลเริ่มต้น" },
   { name: "system_testing", label: "ทดสอบระบบ & คู่มือ Database (สงวน Super Admin)", description: "หน้าทดสอบระบบและคู่มือฐานข้อมูล — เฉพาะ Super Admin", group: "ตั้งค่าระบบ", menu: "ทดสอบระบบ, คู่มือ Database" },
+  { name: "special_request_manage", label: "อนุมัติคำร้องพิเศษ (สงวน Super Admin)", description: "พิจารณา/อนุมัติคำร้องพิเศษทั้งหมดและดู Log — เฉพาะ Super Admin", group: "ตั้งค่าระบบ", menu: "อนุมัติคำร้องพิเศษ" },
   { name: "guide_edit", label: "แก้ไขคู่มือแนวทางสิทธิ์ (สงวน Super Admin)", description: "แก้ข้อความคู่มือ Roles/Functions — เฉพาะ Super Admin", group: "ตั้งค่าระบบ", menu: "แนวทางสิทธิ์" },
 
   // ─── ข้อมูลหลัก: ราย Tab ───

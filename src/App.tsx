@@ -195,7 +195,8 @@ const App = () => (
             <Route path="/disposal-approval" element={<Protected><DisposalApproval /></Protected>} />
             <Route path="/disposal-report" element={<Protected><DisposalReport /></Protected>} />
             <Route path="/audit-trail" element={<Protected><AuditTrail /></Protected>} />
-            <Route path="/special-requests" element={<Protected><SpecialRequests /></Protected>} />
+            <Route path="/special-requests" element={<Protected><SpecialRequests mode="admin" /></Protected>} />
+            <Route path="/my-special-requests" element={<Protected><SpecialRequests mode="mine" /></Protected>} />
             <Route path="/stock-card" element={<Protected><StockCard /></Protected>} />
             <Route path="/kpi-report" element={<Protected><KPIReport /></Protected>} />
             <Route path="/stock-reconciliation" element={<Protected><StockReconciliation /></Protected>} />

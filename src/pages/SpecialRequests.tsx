@@ -96,7 +96,7 @@ const SpecialRequests = ({ mode = "admin" }: { mode?: "mine" | "admin" }) => {
         <div>
           <h1 className="text-3xl font-semibold flex items-center gap-3"><Inbox className="h-8 w-8 text-primary" />{mine ? "คำร้องพิเศษของฉัน" : "อนุมัติคำร้องพิเศษ"}</h1>
           <p className="text-muted-foreground">
-            {isSuperAdmin ? "คำร้องจากผู้ใช้ที่ต้องให้ Super Admin ดำเนินการ — กดที่แถวเพื่อดูว่าต้องทำอะไร" : "ส่งคำร้องเรื่องที่ต้องให้ Super Admin ช่วย และติดตามผลได้ที่นี่"}
+            {!mine ? "คำร้องจากผู้ใช้ที่ต้องให้ Super Admin ดำเนินการ — กดที่แถวเพื่อดูว่าต้องทำอะไร" : "ส่งคำร้องเรื่องที่ต้องให้ Super Admin ช่วย และติดตามผลได้ที่นี่"}
           </p>
         </div>
         {mine && <SpecialRequestDialog trigger={<Button className="gap-2"><Plus className="w-4 h-4" />ส่งคำร้องใหม่</Button>} />}
