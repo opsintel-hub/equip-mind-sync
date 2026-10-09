@@ -29,6 +29,13 @@
       "when": 1791533845445,
       "tag": "0003_issue_good_returns",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791535926947,
+      "tag": "0004_return_photos",
+      "breakpoints": true
     }
   ]
 }

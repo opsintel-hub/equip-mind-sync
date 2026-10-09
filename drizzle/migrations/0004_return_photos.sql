@@ -1,0 +1,2 @@
+ALTER TABLE public.issue_good_returns ADD COLUMN IF NOT EXISTS photos text[] NOT NULL DEFAULT '{}';
+ALTER TABLE public.defective_returns ADD COLUMN IF NOT EXISTS return_photos text[] NOT NULL DEFAULT '{}';
