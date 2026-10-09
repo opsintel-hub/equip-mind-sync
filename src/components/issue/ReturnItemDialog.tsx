@@ -10,11 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { RefreshCw, PackageCheck, AlertTriangle, MapPin } from "lucide-react";
-import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
-import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
 import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
-import { logStockMovement } from "@/lib/stockMovement";
 import { useAuth } from "@/hooks/useAuth";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 
@@ -65,9 +62,6 @@ export function ReturnItemDialog({
   const [saving, setSaving] = useState(false);
 
   const [goodQty, setGoodQty] = useState("0");
-  const [department, setDepartment] = useState("");
-  const [warehouseId, setWarehouseId] = useState("");
-  const [locationId, setLocationId] = useState("");
 
   const [defectiveQty, setDefectiveQty] = useState("0");
   const [extraDefectiveQty, setExtraDefectiveQty] = useState("0");
@@ -91,9 +85,6 @@ export function ReturnItemDialog({
     setSymptomId("");
     setSymptomOther("");
     setNotes("");
-    setDepartment(requesterDepartment || "");
-    setWarehouseId("");
-    setLocationId("");
     setBillboardId(item.billboard_id || "");
     setAutoBillboardLabel(null);
 
@@ -126,13 +117,12 @@ export function ReturnItemDialog({
     if (!item) return "ไม่พบรายการ";
     if (good + defective + extraDefective === 0) return "กรุณาระบุจำนวนที่รับคืนอย่างน้อย 1 ชิ้น";
     if (good + defective > outstanding) return `ของดี + ของเสีย ต้องไม่เกินยอดค้าง (${outstanding})`;
-    if (good > 0 && !locationId) return "กรุณาเลือกตำแหน่งจัดเก็บสำหรับของดี";
     if ((defective > 0 || extraDefective > 0) && !symptomId && !symptomOther.trim())
       return "กรุณาระบุอาการเสีย";
     if (isMP && (defective > 0 || extraDefective > 0) && !billboardId)
       return "กรุณาระบุป้ายที่ถอดอุปกรณ์ออกมา";
     return null;
-  }, [item, good, defective, extraDefective, outstanding, locationId, symptomId, symptomOther, isMP, billboardId]);
+  }, [item, good, defective, extraDefective, outstanding, symptomId, symptomOther, isMP, billboardId]);
 
   const buildReason = async () => {
     let symptomName = "";
@@ -176,61 +166,26 @@ export function ReturnItemDialog({
     }
     setSaving(true);
     try {
-      // 1) Good stock back to inventory
+      // 1) Good items: submit to warehouse — stock lands only after warehouse confirms + picks location
       if (good > 0) {
-        if (item.media_player_id) {
-          const { data: mp } = await supabase
-            .from("media_players")
-            .select("code, name, quantity")
-            .eq("id", item.media_player_id)
-            .maybeSingle();
-          const before = mp?.quantity || 0;
-          await supabase
-            .from("media_players")
-            .update({ quantity: 1, status: "active", billboard_id: null, location_id: locationId })
-            .eq("id", item.media_player_id);
-          await logStockMovement({
-            equipment_id: item.media_player_id,
-            equipment_code: mp?.code || item.equipment_code || "",
-            equipment_name: mp?.name || item.equipment_name || "",
-            movement_type: "receive",
-            quantity: good,
-            stock_before: before,
-            stock_after: 1,
-            reference_type: "route_return",
-            reference_document: documentNo,
-            location_id: locationId,
-            notes: notes.trim() || "คืนของดีจากหน้างาน",
-            item_condition: "good",
-          });
-        } else if (item.equipment_id) {
-          const { data: eq } = await supabase
-            .from("equipment")
-            .select("quantity_in_stock")
-            .eq("id", item.equipment_id)
-            .maybeSingle();
-          const before = eq?.quantity_in_stock || 0;
-          const after = before + good;
-          const { error: upErr } = await supabase
-            .from("equipment")
-            .update({ quantity_in_stock: after })
-            .eq("id", item.equipment_id);
-          if (upErr) throw upErr;
-          await logStockMovement({
-            equipment_id: item.equipment_id,
-            equipment_code: item.equipment_code || "",
-            equipment_name: item.equipment_name || "",
-            movement_type: "receive",
-            quantity: good,
-            stock_before: before,
-            stock_after: after,
-            reference_type: "route_return",
-            reference_document: documentNo,
-            location_id: locationId,
-            notes: notes.trim() || "คืนของดีจากหน้างาน",
-            item_condition: "good",
-          });
-        }
+        const { error: gErr } = await supabase.from("issue_good_returns").insert({
+          pending_id: pendingId,
+          pending_item_id: item.id,
+          document_no: documentNo,
+          equipment_id: isMP ? null : item.equipment_id,
+          media_player_id: item.media_player_id || null,
+          is_media_player: isMP,
+          equipment_code: item.equipment_code,
+          equipment_name: item.equipment_name,
+          serial_number: item.serial_number,
+          quantity: good,
+          unit: item.unit,
+          department: requesterDepartment || null,
+          notes: notes.trim() || null,
+          submitted_by: user?.id,
+          submitted_by_name: requesterName || null,
+        } as any);
+        if (gErr) throw gErr;
       }
 
       // 2) Defective tickets — warehouse must confirm before stock lands in WH-DEFECT
@@ -250,7 +205,6 @@ export function ReturnItemDialog({
           returned_defective_qty: newDefective,
           returned_at: new Date().toISOString(),
           returned_by: user?.id || null,
-          return_location_id: locationId || null,
           notes: `${item.notes || ""} | รับคืน ดี ${good} / เสีย ${defective}${extraDefective ? ` (+นอกยอด ${extraDefective})` : ""}`,
         } as any)
         .eq("id", item.id);
@@ -281,7 +235,7 @@ export function ReturnItemDialog({
         .eq("id", pendingId);
 
       toast.success(
-        `บันทึกการรับคืนสำเร็จ — ของดี ${good} เข้าคลังแล้ว${defective + extraDefective > 0 ? `, ของเสีย ${defective + extraDefective} รอคลังกดรับเข้า` : ""}`,
+        `บันทึกการรับคืนสำเร็จ — ${good > 0 ? `ของดี ${good} ส่งให้คลังแล้ว` : ""}${defective + extraDefective > 0 ? `, ของเสีย ${defective + extraDefective} รอคลังกดรับเข้า` : ""}`,
       );
       onSaved();
       onOpenChange(false);
@@ -332,7 +286,7 @@ export function ReturnItemDialog({
           {/* GOOD */}
           <div className="rounded-lg border p-3 space-y-3">
             <div className="flex items-center gap-2 font-medium text-green-700">
-              <PackageCheck className="w-4 h-4" /> คืนของดี (เข้าสต็อกทันที)
+              <PackageCheck className="w-4 h-4" /> คืนของดี (รอคลังกดรับเข้า)
             </div>
             <div className="space-y-2">
               <Label>จำนวน</Label>
@@ -345,28 +299,7 @@ export function ReturnItemDialog({
                 onWheel={(e) => (e.target as HTMLInputElement).blur()}
               />
             </div>
-            {good > 0 && (
-              <>
-                <div className="space-y-2">
-                  <Label>ฝ่าย</Label>
-                  <SimpleDepartmentSelect
-                    value={department}
-                    onChange={(val) => {
-                      setDepartment(val);
-                      setWarehouseId("");
-                      setLocationId("");
-                    }}
-                  />
-                </div>
-                <WarehouseLocationSelect
-                  department={department}
-                  warehouseId={warehouseId}
-                  onWarehouseChange={setWarehouseId}
-                  locationId={locationId}
-                  onLocationChange={setLocationId}
-                />
-              </>
-            )}
+            <p className="text-xs text-muted-foreground">ของดีจะถูกส่งให้เจ้าหน้าที่คลังเลือกคลังและตำแหน่งจัดเก็บ ก่อนเข้าสต็อก</p>
           </div>
 
           {/* DEFECTIVE */}
