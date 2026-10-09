@@ -8,6 +8,13 @@
       "when": 1791424831897,
       "tag": "0000_add_installed_qty_to_issue_items",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791508386223,
+      "tag": "0001_special_requests_center",
+      "breakpoints": true
     }
   ]
 }

@@ -3244,6 +3244,7 @@ export type Database = {
           status: string | null
           sub_media_type: string | null
           unit: string
+          written_off_qty: number
         }
         Insert: {
           billboard_id?: string | null
@@ -3273,6 +3274,7 @@ export type Database = {
           status?: string | null
           sub_media_type?: string | null
           unit?: string
+          written_off_qty?: number
         }
         Update: {
           billboard_id?: string | null
@@ -3302,6 +3304,7 @@ export type Database = {
           status?: string | null
           sub_media_type?: string | null
           unit?: string
+          written_off_qty?: number
         }
         Relationships: [
           {
@@ -5275,6 +5278,87 @@ export type Database = {
           },
         ]
       }
+      special_requests: {
+        Row: {
+          attachments: string[]
+          created_at: string
+          department: string | null
+          executed_result: Json | null
+          id: string
+          payload: Json
+          priority: string
+          quantity: number | null
+          reason: string
+          request_number: string | null
+          request_type: string
+          requested_by: string
+          requester_name: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewer_name: string | null
+          status: string
+          target_doc_number: string | null
+          target_id: string | null
+          target_item_id: string | null
+          target_table: string | null
+          target_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          attachments?: string[]
+          created_at?: string
+          department?: string | null
+          executed_result?: Json | null
+          id?: string
+          payload?: Json
+          priority?: string
+          quantity?: number | null
+          reason: string
+          request_number?: string | null
+          request_type: string
+          requested_by?: string
+          requester_name?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_name?: string | null
+          status?: string
+          target_doc_number?: string | null
+          target_id?: string | null
+          target_item_id?: string | null
+          target_table?: string | null
+          target_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attachments?: string[]
+          created_at?: string
+          department?: string | null
+          executed_result?: Json | null
+          id?: string
+          payload?: Json
+          priority?: string
+          quantity?: number | null
+          reason?: string
+          request_number?: string | null
+          request_type?: string
+          requested_by?: string
+          requester_name?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_name?: string | null
+          status?: string
+          target_doc_number?: string | null
+          target_id?: string | null
+          target_item_id?: string | null
+          target_table?: string | null
+          target_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       stock_location_allocations: {
         Row: {
           created_at: string
@@ -7060,6 +7144,10 @@ export type Database = {
         Returns: boolean
       }
       purge_old_activity_audit: { Args: never; Returns: number }
+      review_special_request: {
+        Args: { _decision: string; _id: string; _notes: string }
+        Returns: Json
+      }
       save_equipment_compatibility: {
         Args: {
           _billboard_ids: string[]
