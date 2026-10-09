@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ArrowLeftRight, Plus, Search, Wrench, ShieldAlert, Send, RotateCcw, XCircle, AlertTriangle, CheckCircle2 } from "lucide-react";
@@ -444,16 +445,19 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
           <div className="space-y-3">
             <div>
               <Label>เครื่องมือ *</Label>
-              <Select value={form.tool_id} onValueChange={v => setForm(f => ({ ...f, tool_id: v, quantity: 1 }))}>
-                <SelectTrigger><SelectValue placeholder="เลือกเครื่องมือ" /></SelectTrigger>
-                <SelectContent>
-                  {tools.filter(t => t.current_quantity > 0).map(t => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.code} — {t.name} (คงเหลือ {t.current_quantity} {t.unit})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={tools.filter(t => t.current_quantity > 0).map(t => ({
+                  value: t.id,
+                  label: `${t.code} — ${t.name}`,
+                  description: `คงเหลือ ${t.current_quantity} ${t.unit}`,
+                  searchableText: `${t.code} ${t.name} ${t.department ?? ""}`,
+                }))}
+                value={form.tool_id}
+                onValueChange={v => setForm(f => ({ ...f, tool_id: v, quantity: 1 }))}
+                placeholder="เลือกเครื่องมือ"
+                searchPlaceholder="ค้นหาเครื่องมือ..."
+                emptyMessage="ไม่พบเครื่องมือ"
+              />
               {selectedTool && (
                 <div className="text-xs text-muted-foreground mt-1 space-x-2">
                   {selectedTool.requires_approval && <Badge variant="outline">ต้องอนุมัติก่อนจ่าย</Badge>}
