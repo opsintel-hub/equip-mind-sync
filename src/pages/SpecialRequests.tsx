@@ -68,9 +68,9 @@ const SpecialRequests = () => {
   const review = async (decision: "approved" | "rejected" | "done") => {
     if (!selected) return;
     setBusy(true);
-    const { data, error } = await supabase.rpc("review_special_request" as any, {
-      _id: selected.id, _decision: decision, _notes: notes || null,
-    });
+    const { data, error } = selected.status === "approved"
+      ? await supabase.rpc("mark_special_request_done" as any, { _id: selected.id, _notes: notes || null })
+      : await supabase.rpc("review_special_request" as any, { _id: selected.id, _decision: decision, _notes: notes || null });
     setBusy(false);
     if (error) return toast.error(error.message);
     const res = data as any;

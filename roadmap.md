@@ -7,3 +7,4 @@
 - [x] Verify the issue-request page loads without browser errors; authenticated cart verification requires an active preview session
 - [x] Partial install + return per issue line (installed_qty), document shows in both tabs
 - [x] Show issue purpose in Document Search
+- [x] Special Request Center (generic request types, Super Admin review, auto force-close, notifications, log)
