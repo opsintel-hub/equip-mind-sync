@@ -28,6 +28,8 @@ import { getCompatibleBillboardIdsForEquipment } from "@/lib/compatibility";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 import { ReturnItemDialog, type ReturnItemLine } from "@/components/issue/ReturnItemDialog";
 import { SpecialRequestDialog } from "@/components/special-request/SpecialRequestDialog";
+import { AwaitingUsageTab } from "@/components/issue/AwaitingUsageTab";
+import { lineIssued, lineInstalled, lineLeft } from "@/lib/issueQuantities";
 
 interface IncompleteIssue {
   id: string;
@@ -73,13 +75,6 @@ interface PendingItem {
   needs_return?: boolean | null;
   notes: string | null;
 }
-
-// Per-line quantity helpers: issued = installed + returned good + returned defective + outstanding
-const lineIssued = (l: any) => Number(l.issued_quantity ?? l.quantity ?? 0);
-const lineInstalled = (l: any) =>
-  l.installed_qty != null ? Number(l.installed_qty) : l.billboard_id ? lineIssued(l) : 0;
-const lineLeft = (l: any) =>
-  Math.max(0, lineIssued(l) - lineInstalled(l) - Number(l.returned_good_qty || 0) - Number(l.returned_defective_qty || 0) - Number(l.written_off_qty || 0));
 
 interface IssuePurpose {
   id: string;
@@ -605,7 +600,7 @@ const IncompleteIssues = () => {
   return (
     <>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <AlertTriangle className="w-6 h-6 text-warning" />
@@ -613,7 +608,7 @@ const IncompleteIssues = () => {
             </h1>
             <p className="text-muted-foreground">รายการเบิกที่รอระบุป้ายโฆษณา, รอรับคืน, หรือรอเข้าคลัง</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {billboardIssues.length > 0 && (
               <Badge variant="secondary" className="text-lg px-4 py-2 bg-blue-100 text-blue-800">
                 <MapPin className="w-4 h-4 mr-1" />
@@ -641,7 +636,8 @@ const IncompleteIssues = () => {
             <CardDescription>อัปเดตข้อมูลเพื่อปิดการเบิกให้สมบูรณ์</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2 mb-4">
+            <Tabs defaultValue="billboard" className="w-full">
+            <div className="flex items-center gap-2 mb-4 data-[state=inactive]:hidden" data-search-existing>
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -653,8 +649,8 @@ const IncompleteIssues = () => {
               </div>
             </div>
 
-            <Tabs defaultValue="billboard" className="w-full">
-              <TabsList className="mb-4 overflow-x-auto whitespace-nowrap">
+              <div className="mb-4 max-w-full overflow-x-auto">
+              <TabsList className="w-max whitespace-nowrap">
                 <TabsTrigger value="billboard" className="gap-2">
                   <MapPin className="w-4 h-4" />
                   รอระบุป้าย ({billboardIssues.length})
@@ -667,7 +663,14 @@ const IncompleteIssues = () => {
                   <Warehouse className="w-4 h-4" />
                   รอเข้าคลัง ({defectiveReturns.length})
                 </TabsTrigger>
+                <TabsTrigger value="awaiting-usage" className="gap-2">
+                  <Package className="w-4 h-4" />
+                  สินค้ารอใช้งาน
+                </TabsTrigger>
               </TabsList>
+              </div>
+
+              <TabsContent value="awaiting-usage"><AwaitingUsageTab /></TabsContent>
 
               <TabsContent value="billboard">
                 <div className="space-y-2">
