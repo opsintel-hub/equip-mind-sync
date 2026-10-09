@@ -3716,6 +3716,84 @@ export type Database = {
           },
         ]
       }
+      issue_good_returns: {
+        Row: {
+          created_at: string
+          department: string | null
+          document_no: string | null
+          equipment_code: string | null
+          equipment_id: string | null
+          equipment_name: string | null
+          id: string
+          is_media_player: boolean
+          location_id: string | null
+          media_player_id: string | null
+          notes: string | null
+          pending_id: string
+          pending_item_id: string
+          quantity: number
+          received_at: string | null
+          received_by: string | null
+          serial_number: string | null
+          status: string
+          submitted_by: string | null
+          submitted_by_name: string | null
+          unit: string | null
+          updated_at: string
+          warehouse_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          document_no?: string | null
+          equipment_code?: string | null
+          equipment_id?: string | null
+          equipment_name?: string | null
+          id?: string
+          is_media_player?: boolean
+          location_id?: string | null
+          media_player_id?: string | null
+          notes?: string | null
+          pending_id: string
+          pending_item_id: string
+          quantity: number
+          received_at?: string | null
+          received_by?: string | null
+          serial_number?: string | null
+          status?: string
+          submitted_by?: string | null
+          submitted_by_name?: string | null
+          unit?: string | null
+          updated_at?: string
+          warehouse_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          document_no?: string | null
+          equipment_code?: string | null
+          equipment_id?: string | null
+          equipment_name?: string | null
+          id?: string
+          is_media_player?: boolean
+          location_id?: string | null
+          media_player_id?: string | null
+          notes?: string | null
+          pending_id?: string
+          pending_item_id?: string
+          quantity?: number
+          received_at?: string | null
+          received_by?: string | null
+          serial_number?: string | null
+          status?: string
+          submitted_by?: string | null
+          submitted_by_name?: string | null
+          unit?: string | null
+          updated_at?: string
+          warehouse_id?: string | null
+        }
+        Relationships: []
+      }
       issue_purpose_categories: {
         Row: {
           category_id: string
