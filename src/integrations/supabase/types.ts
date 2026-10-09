@@ -7064,6 +7064,10 @@ export type Database = {
       import_equipment_row: { Args: { p: Json }; Returns: Json }
       import_media_player_row: { Args: { p: Json }; Returns: Json }
       import_tool_row: { Args: { p: Json }; Returns: Json }
+      mark_special_request_done: {
+        Args: { _id: string; _notes: string }
+        Returns: Json
+      }
       public_confirm_ad_issue_request: {
         Args: { _receiver_name: string; _token: string }
         Returns: boolean
