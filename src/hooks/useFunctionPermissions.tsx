@@ -129,6 +129,7 @@ export const SUPER_ADMIN_ONLY_FNS: string[] = [
   "setup_import",
   "system_testing",
   "guide_edit",
+  "special_request_manage",
 ];
 
 /** สิทธิ์ที่ Admin ได้อัตโนมัติทั้งหมด (ทุกเมนูงาน ยกเว้นที่สงวนไว้) */

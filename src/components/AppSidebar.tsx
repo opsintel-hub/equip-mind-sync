@@ -180,6 +180,12 @@ const menuGroups: MenuGroup[] = [
         icon: Clock,
         functionName: "goods_issue",
       },
+      {
+        title: "คำร้องพิเศษของฉัน",
+        url: "/my-special-requests",
+        icon: Inbox,
+        functionNames: ["special_request_create", "issue_request", "goods_issue"],
+      },
     ]
   },
   {
