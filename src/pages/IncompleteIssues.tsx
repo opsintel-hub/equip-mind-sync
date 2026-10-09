@@ -1004,7 +1004,18 @@ const IncompleteIssues = () => {
                                 </Badge>
                               ) : dr.source_type}
                             </TableCell>
-                            <TableCell className="max-w-[200px] truncate">{dr.reason || "-"}</TableCell>
+                            <TableCell className="max-w-[200px]">
+                              <div className="truncate">{dr.reason || "-"}</div>
+                              {Array.isArray(dr.return_photos) && dr.return_photos.length > 0 && (
+                                <div className="flex gap-1 mt-1">
+                                  {dr.return_photos.map((u: string) => (
+                                    <a key={u} href={u} target="_blank" rel="noreferrer">
+                                      <img src={u} alt="รูปของเสีย" className="w-10 h-10 rounded object-cover border" />
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
                               {format(new Date(dr.created_at), "d MMM yy HH:mm", { locale: th })}
                             </TableCell>
