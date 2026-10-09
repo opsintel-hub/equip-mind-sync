@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { Inbox, Plus, ExternalLink, Check, X, CheckCheck } from "lucide-react";
@@ -29,7 +28,6 @@ const SpecialRequests = ({ mode = "admin" }: { mode?: "mine" | "admin" }) => {
   const { isSuperAdmin: isSA } = useIsSuperAdmin();
   const isSuperAdmin = mode === "admin" && isSA;
   const mine = !isSuperAdmin;
-  const navigate = useNavigate();
   const qc = useQueryClient();
   const [tab, setTab] = useState("pending");
   const [q, setQ] = useState("");
@@ -165,9 +163,11 @@ const SpecialRequests = ({ mode = "admin" }: { mode?: "mine" | "admin" }) => {
                   <p className="font-medium">สิ่งที่ Super Admin ต้องทำ</p>
                   <p>{t.actionHint}</p>
                   {(selected.target_url || t.actionUrl) && (
-                    <Button variant="link" className="px-0 gap-1" onClick={() => navigate(
-                      (selected.target_url || t.actionUrl) + (selected.target_doc_number && (selected.target_url || t.actionUrl) === "/document-search" ? `?q=${encodeURIComponent(selected.target_doc_number)}` : "")
-                    )}>
+                    <Button variant="link" className="px-0 gap-1" onClick={() => {
+                      const base = selected.target_url || t.actionUrl;
+                      const url = base + (selected.target_doc_number && base === "/document-search" ? `?q=${encodeURIComponent(selected.target_doc_number)}` : "");
+                      window.open(url, "_blank", "noopener,noreferrer");
+                    }}>
                       ไปที่หน้าที่ต้องทำ <ExternalLink className="w-3 h-3" />
                     </Button>
                   )}
@@ -185,14 +185,9 @@ const SpecialRequests = ({ mode = "admin" }: { mode?: "mine" | "admin" }) => {
                 {isSuperAdmin && selected.status === "pending" && (
                   <>
                     <Button variant="destructive" disabled={busy} onClick={() => review("rejected")} className="gap-1"><X className="w-4 h-4" />ไม่อนุมัติ</Button>
-                    {t.auto ? (
-                      <Button disabled={busy} onClick={() => review("approved")} className="gap-1"><Check className="w-4 h-4" />อนุมัติและปิดยอดให้อัตโนมัติ</Button>
-                    ) : (
-                      <>
-                        <Button variant="outline" disabled={busy} onClick={() => review("approved")} className="gap-1"><Check className="w-4 h-4" />อนุมัติ (ทำภายหลัง)</Button>
-                        <Button disabled={busy} onClick={() => review("done")} className="gap-1"><CheckCheck className="w-4 h-4" />ทำเสร็จแล้ว</Button>
-                      </>
-                    )}
+                    <Button disabled={busy} onClick={() => review(t.auto ? "approved" : "done")} className="gap-1">
+                      {t.auto ? (<><Check className="w-4 h-4" />อนุมัติและปิดยอดให้อัตโนมัติ</>) : (<><CheckCheck className="w-4 h-4" />ทำเสร็จแล้ว</>)}
+                    </Button>
                   </>
                 )}
                 {isSuperAdmin && selected.status === "approved" && (
