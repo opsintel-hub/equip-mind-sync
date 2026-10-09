@@ -301,7 +301,6 @@ export function ReturnItemDialog({
               <Input
                 type="number"
                 min={0}
-                max={outstanding}
                 value={goodQty}
                 onChange={(e) => setGoodQty(e.target.value)}
                 onWheel={(e) => (e.target as HTMLInputElement).blur()}
@@ -324,7 +323,6 @@ export function ReturnItemDialog({
                 <Input
                   type="number"
                   min={0}
-                  max={outstanding}
                   value={defectiveQty}
                   onChange={(e) => setDefectiveQty(e.target.value)}
                   onWheel={(e) => (e.target as HTMLInputElement).blur()}
