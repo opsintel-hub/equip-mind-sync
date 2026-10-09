@@ -196,7 +196,7 @@ export function AwaitingUsageTab() {
             <TableHead>หน่วย</TableHead><TableHead className="text-right">จ่ายแล้ว</TableHead>
             <TableHead className="text-right">ติดตั้งแล้ว</TableHead><TableHead className="text-right">คืนของดี</TableHead>
             <TableHead className="text-right">คืนของเสีย</TableHead><TableHead className="text-right">ปิดยอดพิเศษ</TableHead>
-            <TableHead className="text-right">รอใช้งาน</TableHead>
+            <TableHead className="sticky right-0 bg-background text-right">รอใช้งาน</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {busy || error || !filtered.length ? <TableRow><TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
@@ -212,7 +212,7 @@ export function AwaitingUsageTab() {
               <TableCell className="text-right tabular-nums">{Number(line.returned_good_qty || 0)}</TableCell>
               <TableCell className="text-right tabular-nums">{Number(line.returned_defective_qty || 0)}</TableCell>
               <TableCell className="text-right tabular-nums">{Number(line.written_off_qty || 0)}</TableCell>
-              <TableCell className="text-right tabular-nums font-semibold text-warning">{lineLeft(line)}</TableCell>
+              <TableCell className="sticky right-0 bg-background text-right tabular-nums font-semibold text-warning">{lineLeft(line)}</TableCell>
             </TableRow>)}
           </TableBody>
         </Table>
