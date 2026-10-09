@@ -13,6 +13,7 @@ import FunctionRouteGuard from "./components/FunctionRouteGuard";
 // Eager: หน้าแรกที่เปิดบ่อย
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import SpecialRequests from "./pages/SpecialRequests";
 import ResetPassword from "./pages/ResetPassword";
 
 // Lazy: ทุกหน้าใน app เพื่อลดขนาด initial bundle
@@ -194,6 +195,7 @@ const App = () => (
             <Route path="/disposal-approval" element={<Protected><DisposalApproval /></Protected>} />
             <Route path="/disposal-report" element={<Protected><DisposalReport /></Protected>} />
             <Route path="/audit-trail" element={<Protected><AuditTrail /></Protected>} />
+            <Route path="/special-requests" element={<Protected><SpecialRequests /></Protected>} />
             <Route path="/stock-card" element={<Protected><StockCard /></Protected>} />
             <Route path="/kpi-report" element={<Protected><KPIReport /></Protected>} />
             <Route path="/stock-reconciliation" element={<Protected><StockReconciliation /></Protected>} />

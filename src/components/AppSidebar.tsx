@@ -55,7 +55,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { ChevronRight, CheckCircle2, Plus, RotateCcw } from "lucide-react";
+import { ChevronRight, CheckCircle2, Plus, RotateCcw, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -302,6 +302,7 @@ const menuGroups: MenuGroup[] = [
       { title: "ตั้งค่าแจ้งเตือน", url: "/notification-settings", icon: Bell },
       { title: "ตรวจสอบยอด & สถานะ Stock", url: "/stock-reconciliation", icon: CheckCircle2, functionName: "stock_reconcile" },
       { title: "จัดการผู้ใช้", url: "/admin", icon: Shield, functionName: "admin", superAdminOnly: true },
+      { title: "ศูนย์คำร้องพิเศษ", url: "/special-requests", icon: Inbox },
       { title: "ประวัติการใช้งานระบบ", url: "/audit-trail", icon: History, functionName: "activity_audit_view" },
       { title: "คู่มือ Database", url: "/database-guide", icon: FileSearch, superAdminOnly: true },
     ]
