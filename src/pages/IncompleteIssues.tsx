@@ -906,7 +906,7 @@ const IncompleteIssues = () => {
                                                 targetTable="goods_issue_pending_items"
                                                 targetId={issue.id}
                                                 targetItemId={item.id}
-                                                targetDocNumber={(issue as any).request_number}
+                                                targetDocNumber={issue.document_no}
                                                 targetUrl="/incomplete-issues"
                                                 maxQty={left}
                                                 itemLabel={`${item.equipment_code || ""} ${item.equipment_name || ""}`.trim()}
