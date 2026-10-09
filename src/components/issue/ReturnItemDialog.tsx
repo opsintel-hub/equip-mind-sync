@@ -121,7 +121,6 @@ export function ReturnItemDialog({
   const error = useMemo(() => {
     if (!item) return "ไม่พบรายการ";
     if (good + defective + extraDefective === 0) return "กรุณาระบุจำนวนที่ส่งคืนอย่างน้อย 1 ชิ้น";
-    if (good + defective > outstanding) return `ของดี + ของเสีย ต้องไม่เกินยอดค้าง (${outstanding})`;
     if ((defective > 0 || extraDefective > 0) && !symptomId && !symptomOther.trim())
       return "กรุณาระบุอาการเสีย";
     if (good > 0 && goodPhotos.length < 1) return "กรุณาแนบรูปของดีอย่างน้อย 1 รูป";
@@ -302,7 +301,6 @@ export function ReturnItemDialog({
               <Input
                 type="number"
                 min={0}
-                max={outstanding}
                 value={goodQty}
                 onChange={(e) => setGoodQty(e.target.value)}
                 onWheel={(e) => (e.target as HTMLInputElement).blur()}
@@ -325,7 +323,6 @@ export function ReturnItemDialog({
                 <Input
                   type="number"
                   min={0}
-                  max={outstanding}
                   value={defectiveQty}
                   onChange={(e) => setDefectiveQty(e.target.value)}
                   onWheel={(e) => (e.target as HTMLInputElement).blur()}
