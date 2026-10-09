@@ -623,7 +623,7 @@ const IncompleteIssues = () => {
               <AlertTriangle className="w-6 h-6 text-warning" />
               รายการเบิกที่ยังไม่สมบูรณ์
             </h1>
-            <p className="text-muted-foreground">รายการเบิกที่รอระบุป้ายโฆษณา, รอรับคืน, หรือรอเข้าคลัง</p>
+            <p className="text-muted-foreground">รายการเบิกที่รอระบุป้ายโฆษณา, รอส่งคืน, หรือรอเข้าคลัง</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {billboardIssues.length > 0 && (
@@ -635,7 +635,7 @@ const IncompleteIssues = () => {
             {returnIssues.length > 0 && (
               <Badge variant="secondary" className="text-lg px-4 py-2 bg-orange-100 text-orange-800">
                 <RefreshCw className="w-4 h-4 mr-1" />
-                รอรับคืน: {returnIssues.length}
+                รอส่งคืน: {returnIssues.length}
               </Badge>
             )}
             {defectiveReturns.length > 0 && (
@@ -674,7 +674,7 @@ const IncompleteIssues = () => {
                 </TabsTrigger>
                 <TabsTrigger value="return" className="gap-2">
                   <RefreshCw className="w-4 h-4" />
-                  รอรับคืน ({returnIssues.length})
+                  รอส่งคืน ({returnIssues.length})
                 </TabsTrigger>
                 <TabsTrigger value="warehouse" className="gap-2">
                   <Warehouse className="w-4 h-4" />
@@ -826,7 +826,7 @@ const IncompleteIssues = () => {
                   {isLoading ? (
                     <div className="text-center py-8">กำลังโหลด...</div>
                   ) : returnIssues.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">ไม่มีรายการที่รอรับคืน</div>
+                    <div className="text-center py-8 text-muted-foreground">ไม่มีรายการที่รอส่งคืน</div>
                   ) : (
                     returnIssues.map((issue) => {
                       const items = itemsByIssue.get(issue.id) || [];
@@ -857,12 +857,12 @@ const IncompleteIssues = () => {
                                 <div className="ml-auto flex items-center gap-2">
                                   <Badge variant="outline" className="bg-amber-100 text-amber-800">
                                     <RefreshCw className="w-3 h-3 mr-1" />
-                                    รอรับคืน
+                                    รอส่งคืน
                                   </Badge>
                                   {items.length === 0 && (
                                     <Button size="sm" variant="outline" className="gap-1"
                                       onClick={(e) => { e.stopPropagation(); handleRecordReturn(issue); }}>
-                                      <RefreshCw className="w-4 h-4" /> รับคืน
+                                      <RefreshCw className="w-4 h-4" /> ส่งคืน
                                     </Button>
                                   )}
                                 </div>
@@ -917,7 +917,7 @@ const IncompleteIssues = () => {
                                                 }}
                                               >
                                                 <RefreshCw className="w-3 h-3" />
-                                                {left > 0 ? "รับคืน" : "รับคืนเพิ่ม"}
+                                                {left > 0 ? "ส่งคืน" : "ส่งคืนเพิ่ม"}
                                               </Button>
                                             )}
                                             {left > 0 && (
@@ -939,7 +939,7 @@ const IncompleteIssues = () => {
                                     {items.length === 0 && (
                                       <TableRow>
                                         <TableCell colSpan={9} className="text-center text-muted-foreground py-4">
-                                          เอกสารเก่า (ไม่มีรายการย่อย) — ใช้ปุ่ม “รับคืน” ด้านบน
+                                          เอกสารเก่า (ไม่มีรายการย่อย) — ใช้ปุ่ม “ส่งคืน” ด้านบน
                                         </TableCell>
                                       </TableRow>
                                     )}
@@ -1062,7 +1062,7 @@ const IncompleteIssues = () => {
                   onChange={(e) => setInstallQty(e.target.value)}
                   onWheel={(e) => (e.target as HTMLInputElement).blur()}
                 />
-                <p className="text-xs text-muted-foreground">ส่วนที่เหลือยังค้างอยู่ และกดรับคืนได้ที่แท็บ "รอรับคืน" (ถ้าวัตถุประสงค์กำหนดให้คืน)</p>
+                <p className="text-xs text-muted-foreground">ส่วนที่เหลือยังค้างอยู่ และกดส่งคืนได้ที่แท็บ "รอส่งคืน" (ถ้าวัตถุประสงค์กำหนดให้คืน)</p>
               </div>
             )}
 

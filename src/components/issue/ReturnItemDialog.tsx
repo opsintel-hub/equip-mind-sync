@@ -115,7 +115,7 @@ export function ReturnItemDialog({
 
   const error = useMemo(() => {
     if (!item) return "ไม่พบรายการ";
-    if (good + defective + extraDefective === 0) return "กรุณาระบุจำนวนที่รับคืนอย่างน้อย 1 ชิ้น";
+    if (good + defective + extraDefective === 0) return "กรุณาระบุจำนวนที่ส่งคืนอย่างน้อย 1 ชิ้น";
     if (good + defective > outstanding) return `ของดี + ของเสีย ต้องไม่เกินยอดค้าง (${outstanding})`;
     if ((defective > 0 || extraDefective > 0) && !symptomId && !symptomOther.trim())
       return "กรุณาระบุอาการเสีย";
@@ -205,7 +205,7 @@ export function ReturnItemDialog({
           returned_defective_qty: newDefective,
           returned_at: new Date().toISOString(),
           returned_by: user?.id || null,
-          notes: `${item.notes || ""} | รับคืน ดี ${good} / เสีย ${defective}${extraDefective ? ` (+นอกยอด ${extraDefective})` : ""}`,
+          notes: `${item.notes || ""} | ส่งคืน ดี ${good} / เสีย ${defective}${extraDefective ? ` (+นอกยอด ${extraDefective})` : ""}`,
         } as any)
         .eq("id", item.id);
       if (lineErr) throw lineErr;
@@ -235,7 +235,7 @@ export function ReturnItemDialog({
         .eq("id", pendingId);
 
       toast.success(
-        `บันทึกการรับคืนสำเร็จ — ${good > 0 ? `ของดี ${good} ส่งให้คลังแล้ว` : ""}${defective + extraDefective > 0 ? `, ของเสีย ${defective + extraDefective} รอคลังกดรับเข้า` : ""}`,
+        `บันทึกการส่งคืนสำเร็จ — ${good > 0 ? `ของดี ${good} ส่งให้คลังแล้ว` : ""}${defective + extraDefective > 0 ? `, ของเสีย ${defective + extraDefective} รอคลังกดรับเข้า` : ""}`,
       );
       onSaved();
       onOpenChange(false);
@@ -252,7 +252,7 @@ export function ReturnItemDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RefreshCw className="w-5 h-5" />
-            รับคืนสินค้า (แยกของดี / ของเสีย)
+            ส่งคืนสินค้า (แยกของดี / ของเสีย)
           </DialogTitle>
           <DialogDescription>
             เอกสาร {documentNo} · {item?.equipment_code} {item?.equipment_name}
@@ -375,7 +375,7 @@ export function ReturnItemDialog({
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>ยกเลิก</Button>
           <Button onClick={handleSave} disabled={saving || !!error}>
-            {saving ? "กำลังบันทึก..." : "บันทึกการรับคืน"}
+            {saving ? "กำลังบันทึก..." : "บันทึกการส่งคืน"}
           </Button>
         </DialogFooter>
       </DialogContent>
