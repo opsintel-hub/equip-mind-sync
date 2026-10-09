@@ -151,7 +151,18 @@ export function PendingGoodReturns() {
               rows.map((r: any) => (
                 <TableRow key={r.id}>
                   <TableCell className="font-medium">{r.document_no}</TableCell>
-                  <TableCell>{r.equipment_code} {r.equipment_name}</TableCell>
+                  <TableCell>
+                    {r.equipment_code} {r.equipment_name}
+                    {Array.isArray((r as any).photos) && (r as any).photos.length > 0 && (
+                      <div className="flex gap-1 mt-1">
+                        {(r as any).photos.map((u: string) => (
+                          <a key={u} href={u} target="_blank" rel="noreferrer">
+                            <img src={u} alt="รูปของคืน" className="w-10 h-10 rounded object-cover border" />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="whitespace-pre-line font-mono text-xs">{r.serial_number || "-"}</TableCell>
                   <TableCell>{r.quantity} {r.unit}</TableCell>
                   <TableCell className="text-sm">{r.submitted_by_name || "-"}<div className="text-xs text-muted-foreground">{r.department || ""}</div></TableCell>
