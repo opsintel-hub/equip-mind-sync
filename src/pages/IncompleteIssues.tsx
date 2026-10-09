@@ -186,7 +186,8 @@ const IncompleteIssues = () => {
         if (lineItems.length > 0) {
           const open = lineItems.some((li) => li.status === "issued" && lineLeft(li) > 0);
           if (!open) return false;
-          return !!(purpose?.requires_billboard || purpose?.requires_return);
+          const openReturn = lineItems.some((li) => li.status === "issued" && li.needs_return !== false && lineLeft(li) > 0);
+          return !!(purpose?.requires_billboard || (purpose?.requires_return && openReturn));
         }
         if (purpose?.requires_billboard && !item.billboard_id) return true;
         if (purpose?.requires_return && (item.return_quantity || 0) < (item.issued_quantity || 0)) return true;
@@ -554,7 +555,7 @@ const IncompleteIssues = () => {
     if (!purpose?.requires_return) return false;
     const items = itemsByIssue.get(issue.id) || [];
     if (items.length === 0) return (issue.return_quantity || 0) < (issue.issued_quantity || issue.quantity || 0);
-    return items.some((it) => it.status === "issued" && lineLeft(it) > 0);
+    return items.some((it) => it.status === "issued" && it.needs_return !== false && lineLeft(it) > 0);
   };
 
   const getItemsNeedingBillboard = (issue: IncompleteIssue) => {
@@ -881,19 +882,23 @@ const IncompleteIssues = () => {
                                           <TableCell className="text-right text-destructive">{d}</TableCell>
                                           <TableCell className="text-right font-medium text-warning">{left}</TableCell>
                                           <TableCell className="text-center">
-                                            <Button
-                                              size="sm"
-                                              variant="outline"
-                                              className="gap-1"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setReturnTarget({ issue, item: item as unknown as ReturnItemLine });
-                                                setItemReturnOpen(true);
-                                              }}
-                                            >
-                                              <RefreshCw className="w-3 h-3" />
-                                              {left > 0 ? "รับคืน" : "รับคืนเพิ่ม"}
-                                            </Button>
+                                            {(item as any).needs_return === false ? (
+                                              <span className="text-xs text-muted-foreground">ไม่ต้องคืน</span>
+                                            ) : (
+                                              <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="gap-1"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setReturnTarget({ issue, item: item as unknown as ReturnItemLine });
+                                                  setItemReturnOpen(true);
+                                                }}
+                                              >
+                                                <RefreshCw className="w-3 h-3" />
+                                                {left > 0 ? "รับคืน" : "รับคืนเพิ่ม"}
+                                              </Button>
+                                            )}
                                           </TableCell>
                                         </TableRow>
                                       );
