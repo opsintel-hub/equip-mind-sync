@@ -127,6 +127,7 @@ const IssueRequest = () => {
     pickup_type: "scheduled",
     pickup_date: "",
     pickup_time: "",
+    transfer_to_warehouse_id: "",
   });
 
   // Auto-fill requester identity from signed-in user (anti-impersonation)
@@ -212,6 +213,20 @@ const IssueRequest = () => {
         .maybeSingle();
       if (error && error.code !== "PGRST116") throw error;
       return data;
+    },
+  });
+
+  // คลังปลายทางสำหรับวัตถุประสงค์ "โอนย้ายระหว่างคลัง"
+  const { data: transferWarehouses } = useQuery({
+    queryKey: ["issue-request-transfer-warehouses"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("warehouses")
+        .select("id, code, name, department")
+        .eq("is_active", true)
+        .order("code");
+      if (error) throw error;
+      return data || [];
     },
   });
 
@@ -337,7 +352,7 @@ const IssueRequest = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("issue_purposes")
-        .select("id, name, description, requires_billboard, requires_return, allow_all_categories")
+        .select("id, name, description, requires_billboard, requires_return, allow_all_categories, is_transfer")
         .eq("is_active", true)
         .order("name");
       if (error) throw error;
@@ -758,6 +773,10 @@ const IssueRequest = () => {
           requester_department: headerData.requester_department || null,
           notes: headerData.notes || null,
           pickup_type: headerData.pickup_type || 'scheduled',
+          transfer_to_warehouse_id: (selectedPurpose as any)?.is_transfer ? (headerData.transfer_to_warehouse_id || null) : null,
+          transfer_to_department: (selectedPurpose as any)?.is_transfer
+            ? ((transferWarehouses || []).find((w: any) => w.id === headerData.transfer_to_warehouse_id)?.department || null)
+            : null,
           total_items: itemsToSubmit.length,
           company_id: headerData.company_id || null,
           equipment_id: firstItemIsMediaPlayer ? null : (itemsToSubmit[0]?.equipment_id || null),
@@ -798,7 +817,7 @@ const IssueRequest = () => {
         status: "pending",
         notes: item.notes || null,
         sub_media_type: item.sub_media_type || null,
-        needs_return: item.needs_return ?? !!selectedPurpose?.requires_return,
+        needs_return: (selectedPurpose as any)?.is_transfer ? false : (item.needs_return ?? !!selectedPurpose?.requires_return),
         needs_return_overridden: !!item.needs_return_overridden,
       })) as any;
 
@@ -842,6 +861,7 @@ const IssueRequest = () => {
           pickup_type: "scheduled",
           pickup_date: "",
           pickup_time: "",
+          transfer_to_warehouse_id: "",
         });
       }
     },
@@ -879,6 +899,7 @@ const IssueRequest = () => {
       pickup_type: req.pickup_type || "scheduled",
       pickup_date: req.pickup_date || "",
       pickup_time: req.pickup_time || "",
+      transfer_to_warehouse_id: req.transfer_to_warehouse_id || "",
     });
 
     // Load items back into cart
@@ -931,6 +952,10 @@ const IssueRequest = () => {
     }
     if (!headerData.purpose_id) {
       toast.error("กรุณาเลือกวัตถุประสงค์");
+      return;
+    }
+    if ((selectedPurpose as any)?.is_transfer && !headerData.transfer_to_warehouse_id) {
+      toast.error("กรุณาเลือกคลังปลายทางที่จะรับของเข้า");
       return;
     }
     if (selectedCartIds.size === 0) {
@@ -1382,6 +1407,7 @@ const IssueRequest = () => {
                         ...headerData, 
                         purpose_id: value, 
                         purpose: purpose?.name || "",
+                        transfer_to_warehouse_id: (purpose as any)?.is_transfer ? headerData.transfer_to_warehouse_id : "",
                       });
                     }}
                   >
@@ -1403,12 +1429,35 @@ const IssueRequest = () => {
                                 <RotateCcw className="h-3 w-3 mr-1" />ต้องคืน
                               </Badge>
                             )}
+                            {(purpose as any).is_transfer && (
+                              <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-800">
+                                โอนย้ายคลัง
+                              </Badge>
+                            )}
                           </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
+                {(selectedPurpose as any)?.is_transfer && (
+                  <div className="space-y-2">
+                    <Label>คลังปลายทางที่จะรับของเข้า *</Label>
+                    <SearchableSelect
+                      value={headerData.transfer_to_warehouse_id}
+                      onValueChange={(v) => setHeaderData({ ...headerData, transfer_to_warehouse_id: v })}
+                      options={(transferWarehouses || []).map((w: any) => ({
+                        value: w.id,
+                        label: `${w.code} — ${w.name}`,
+                        description: w.department || undefined,
+                      }))}
+                      placeholder="เลือกคลังปลายทาง..."
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      เมื่อคลังต้นทางกดจ่าย ของจะถูกย้ายเข้าคลังนี้ (ไม่ถูกตัดทิ้ง)
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="pickup_type">รูปแบบการรับสินค้า</Label>
                   <Select
