@@ -3085,6 +3085,8 @@ export type Database = {
           returned_by: string | null
           status: string
           total_items: number | null
+          transfer_to_department: string | null
+          transfer_to_warehouse_id: string | null
           unit: string
           updated_at: string
         }
@@ -3131,6 +3133,8 @@ export type Database = {
           returned_by?: string | null
           status?: string
           total_items?: number | null
+          transfer_to_department?: string | null
+          transfer_to_warehouse_id?: string | null
           unit?: string
           updated_at?: string
         }
@@ -3177,6 +3181,8 @@ export type Database = {
           returned_by?: string | null
           status?: string
           total_items?: number | null
+          transfer_to_department?: string | null
+          transfer_to_warehouse_id?: string | null
           unit?: string
           updated_at?: string
         }
@@ -3216,6 +3222,13 @@ export type Database = {
             referencedRelation: "issue_purposes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "goods_issue_pending_transfer_to_warehouse_id_fkey"
+            columns: ["transfer_to_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
         ]
       }
       goods_issue_pending_items: {
@@ -3246,6 +3259,8 @@ export type Database = {
           serial_number: string | null
           status: string | null
           sub_media_type: string | null
+          transfer_to_location_id: string | null
+          transferred_qty: number
           unit: string
           written_off_qty: number
         }
@@ -3276,6 +3291,8 @@ export type Database = {
           serial_number?: string | null
           status?: string | null
           sub_media_type?: string | null
+          transfer_to_location_id?: string | null
+          transferred_qty?: number
           unit?: string
           written_off_qty?: number
         }
@@ -3306,6 +3323,8 @@ export type Database = {
           serial_number?: string | null
           status?: string | null
           sub_media_type?: string | null
+          transfer_to_location_id?: string | null
+          transferred_qty?: number
           unit?: string
           written_off_qty?: number
         }
@@ -3341,6 +3360,13 @@ export type Database = {
           {
             foreignKeyName: "goods_issue_pending_items_return_location_id_fkey"
             columns: ["return_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_issue_pending_items_transfer_to_location_id_fkey"
+            columns: ["transfer_to_location_id"]
             isOneToOne: false
             referencedRelation: "locations"
             referencedColumns: ["id"]
@@ -3844,6 +3870,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean | null
+          is_transfer: boolean
           name: string
           requires_billboard: boolean
           requires_return: boolean
@@ -3856,6 +3883,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          is_transfer?: boolean
           name: string
           requires_billboard?: boolean
           requires_return?: boolean
@@ -3868,6 +3896,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          is_transfer?: boolean
           name?: string
           requires_billboard?: boolean
           requires_return?: boolean
