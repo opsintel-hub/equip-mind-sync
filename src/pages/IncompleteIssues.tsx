@@ -168,7 +168,7 @@ const IncompleteIssues = () => {
       if (ids.length > 0) {
         const { data: itemRows } = await supabase
           .from("goods_issue_pending_items")
-          .select("pending_id, billboard_id, status, needs_return, issued_quantity, quantity, installed_qty, returned_good_qty, returned_defective_qty, written_off_qty")
+          .select("pending_id, billboard_id, status, needs_return, issued_quantity, quantity, installed_qty, returned_good_qty, returned_defective_qty, written_off_qty, transferred_qty")
           .in("pending_id", ids);
         (itemRows || []).forEach((r: any) => {
           if (!itemsByPending.has(r.pending_id)) itemsByPending.set(r.pending_id, []);
@@ -370,7 +370,7 @@ const IncompleteIssues = () => {
       if (selectedIssue) {
         const { data: latestItems, error: latestItemsError } = await supabase
           .from("goods_issue_pending_items")
-          .select("id, status, billboard_id, issued_quantity, quantity, installed_qty, returned_good_qty, returned_defective_qty, written_off_qty")
+          .select("id, status, billboard_id, issued_quantity, quantity, installed_qty, returned_good_qty, returned_defective_qty, written_off_qty, transferred_qty")
           .eq("pending_id", selectedIssue.id);
         if (latestItemsError) throw latestItemsError;
 

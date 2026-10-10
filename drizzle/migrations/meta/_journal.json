@@ -36,6 +36,13 @@
       "when": 1791535926947,
       "tag": "0004_return_photos",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791611787859,
+      "tag": "0005_inter_warehouse_transfer_purpose",
+      "breakpoints": true
     }
   ]
 }
