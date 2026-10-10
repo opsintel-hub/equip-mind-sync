@@ -1786,13 +1786,13 @@ const IssueGoods = () => {
                             placeholder="เลือก S/N..."
                           />
                         </div>
-                        <div className="space-y-1">
+                        {!transferWarehouse && <div className="space-y-1">
                           <Label className="text-xs">ป้ายโฆษณา (ระบุหรือเปลี่ยนได้)</Label>
                           <BillboardSelect
                             value={u.billboard_id}
                             onChange={(value) => updateUnitAssignment(idx, { billboard_id: value })}
                           />
-                        </div>
+                        </div>}
                       </div>
                     </div>
                   ))}
