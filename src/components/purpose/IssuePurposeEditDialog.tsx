@@ -16,6 +16,7 @@ interface IssuePurpose {
   description: string | null;
   requires_billboard: boolean;
   requires_return: boolean;
+  is_transfer?: boolean;
   allow_all_categories: boolean;
   is_active: boolean;
 }
@@ -44,6 +45,7 @@ export function IssuePurposeEditDialog({
     description: "",
     requires_billboard: false,
     requires_return: false,
+    is_transfer: false,
     allow_all_categories: false,
   });
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -70,6 +72,7 @@ export function IssuePurposeEditDialog({
         description: purpose.description || "",
         requires_billboard: purpose.requires_billboard,
         requires_return: purpose.requires_return,
+        is_transfer: !!purpose.is_transfer,
         allow_all_categories: purpose.allow_all_categories,
       });
 
@@ -123,6 +126,7 @@ export function IssuePurposeEditDialog({
           description: formData.description.trim() || null,
           requires_billboard: formData.requires_billboard,
           requires_return: formData.requires_return,
+          is_transfer: formData.is_transfer,
           allow_all_categories: formData.allow_all_categories,
           updated_at: new Date().toISOString(),
         })
@@ -216,6 +220,18 @@ export function IssuePurposeEditDialog({
               />
               <Label htmlFor="edit-requires_return" className="text-sm font-normal">
                 ต้องรับคืนกลับคลัง (เช่น เบิกเพื่อเคลม)
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="edit-is_transfer"
+                checked={(formData as any).is_transfer}
+                onCheckedChange={(checked) =>
+                  setFormData({ ...formData, is_transfer: checked === true, ...(checked === true ? { requires_billboard: false, requires_return: false } : {}) } as any)
+                }
+              />
+              <Label htmlFor="edit-is_transfer" className="text-sm font-normal">
+                เป็นการโอนย้าย/เติมสต็อกระหว่างคลัง (ของไม่ถูกตัดทิ้ง แต่ย้ายเข้าคลังปลายทาง)
               </Label>
             </div>
           </div>

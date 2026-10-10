@@ -28,6 +28,7 @@ interface IssuePurpose {
   description: string | null;
   requires_billboard: boolean;
   requires_return: boolean;
+  is_transfer?: boolean;
   allow_all_categories: boolean;
   is_active: boolean;
   created_at: string;
@@ -186,7 +187,12 @@ export function IssuePurposeList({ refresh }: IssuePurposeListProps) {
                         ต้องรับคืน
                       </Badge>
                     )}
-                    {!purpose.requires_billboard && !purpose.requires_return && (
+                    {purpose.is_transfer && (
+                      <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">
+                        โอนย้ายคลัง
+                      </Badge>
+                    )}
+                    {!purpose.requires_billboard && !purpose.requires_return && !purpose.is_transfer && (
                       <span className="text-muted-foreground">-</span>
                     )}
                   </div>

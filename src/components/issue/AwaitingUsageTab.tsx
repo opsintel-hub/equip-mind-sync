@@ -85,7 +85,7 @@ export function AwaitingUsageTab() {
         const ids = headers.slice(start, start + 100).map(header => header.id);
         for (let offset = 0; ; offset += 500) {
           const { data, error } = await supabase.from("goods_issue_pending_items")
-            .select("id, pending_id, equipment_code, equipment_name, serial_number, quantity, issued_quantity, installed_qty, billboard_id, returned_good_qty, returned_defective_qty, written_off_qty, unit, notes")
+            .select("id, pending_id, equipment_code, equipment_name, serial_number, quantity, issued_quantity, installed_qty, billboard_id, returned_good_qty, returned_defective_qty, written_off_qty, transferred_qty, unit, notes")
             .in("pending_id", ids).order("id").range(offset, offset + 499);
           if (error) throw error;
           for (const line of data || []) {

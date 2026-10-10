@@ -27,6 +27,7 @@ export function IssuePurposeForm({ onSuccess }: IssuePurposeFormProps) {
     description: "",
     requires_billboard: false,
     requires_return: false,
+    is_transfer: false,
     allow_all_categories: false,
   });
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -78,6 +79,7 @@ export function IssuePurposeForm({ onSuccess }: IssuePurposeFormProps) {
           description: formData.description.trim() || null,
           requires_billboard: formData.requires_billboard,
           requires_return: formData.requires_return,
+          is_transfer: (formData as any).is_transfer,
           allow_all_categories: formData.allow_all_categories,
           created_by: userData?.user?.id,
         })
@@ -106,6 +108,7 @@ export function IssuePurposeForm({ onSuccess }: IssuePurposeFormProps) {
         description: "",
         requires_billboard: false,
         requires_return: false,
+    is_transfer: false,
         allow_all_categories: false,
       });
       setSelectedCategories([]);
@@ -178,6 +181,18 @@ export function IssuePurposeForm({ onSuccess }: IssuePurposeFormProps) {
               />
               <Label htmlFor="requires_return" className="text-sm font-normal">
                 ต้องรับคืนกลับคลัง (เช่น เบิกเพื่อเคลม)
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="is_transfer"
+                checked={(formData as any).is_transfer}
+                onCheckedChange={(checked) =>
+                  setFormData({ ...formData, is_transfer: checked === true, ...(checked === true ? { requires_billboard: false, requires_return: false } : {}) } as any)
+                }
+              />
+              <Label htmlFor="is_transfer" className="text-sm font-normal">
+                เป็นการโอนย้าย/เติมสต็อกระหว่างคลัง (ของไม่ถูกตัดทิ้ง แต่ย้ายเข้าคลังปลายทาง)
               </Label>
             </div>
           </div>
