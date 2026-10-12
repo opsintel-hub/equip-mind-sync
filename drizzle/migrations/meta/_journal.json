@@ -57,6 +57,13 @@
       "when": 1791764412877,
       "tag": "0007_magic_ticket_integration_phase2",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791799334618,
+      "tag": "0008_allow_requesters_assign_billboard",
+      "breakpoints": true
     }
   ]
 }
