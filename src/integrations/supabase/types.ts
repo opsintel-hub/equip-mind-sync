@@ -4034,6 +4034,7 @@ export type Database = {
       }
       magic_ticket_api_keys: {
         Row: {
+          allowed_ips: string[]
           created_at: string
           created_by: string | null
           environment: string
@@ -4047,6 +4048,7 @@ export type Database = {
           revoked_by: string | null
         }
         Insert: {
+          allowed_ips?: string[]
           created_at?: string
           created_by?: string | null
           environment?: string
@@ -4060,6 +4062,7 @@ export type Database = {
           revoked_by?: string | null
         }
         Update: {
+          allowed_ips?: string[]
           created_at?: string
           created_by?: string | null
           environment?: string
@@ -4097,6 +4100,9 @@ export type Database = {
           quantity: number | null
           response: Json
           result_code: string
+          reverted_at: string | null
+          reverted_reason: string | null
+          reverted_serial_number: string | null
           serial_number: string | null
           status: string
           ticket_code: string | null
@@ -4123,6 +4129,9 @@ export type Database = {
           quantity?: number | null
           response?: Json
           result_code: string
+          reverted_at?: string | null
+          reverted_reason?: string | null
+          reverted_serial_number?: string | null
           serial_number?: string | null
           status: string
           ticket_code?: string | null
@@ -4149,9 +4158,48 @@ export type Database = {
           quantity?: number | null
           response?: Json
           result_code?: string
+          reverted_at?: string | null
+          reverted_reason?: string | null
+          reverted_serial_number?: string | null
           serial_number?: string | null
           status?: string
           ticket_code?: string | null
+        }
+        Relationships: []
+      }
+      magic_ticket_requests: {
+        Row: {
+          api_key_id: string | null
+          created_at: string
+          gi_document_no: string | null
+          id: string
+          payload: Json
+          pending_id: string | null
+          request_id: string
+          response: Json
+          ticket_code: string
+        }
+        Insert: {
+          api_key_id?: string | null
+          created_at?: string
+          gi_document_no?: string | null
+          id?: string
+          payload?: Json
+          pending_id?: string | null
+          request_id: string
+          response?: Json
+          ticket_code: string
+        }
+        Update: {
+          api_key_id?: string | null
+          created_at?: string
+          gi_document_no?: string | null
+          id?: string
+          payload?: Json
+          pending_id?: string | null
+          request_id?: string
+          response?: Json
+          ticket_code?: string
         }
         Relationships: []
       }
@@ -7333,12 +7381,17 @@ export type Database = {
       import_equipment_row: { Args: { p: Json }; Returns: Json }
       import_media_player_row: { Args: { p: Json }; Returns: Json }
       import_tool_row: { Args: { p: Json }; Returns: Json }
+      magic_ticket_bind_ticket: { Args: { p: Json }; Returns: Json }
       magic_ticket_create_api_key: {
         Args: { p_environment: string; p_name: string }
         Returns: Json
       }
       magic_ticket_document_json: {
         Args: { p_only_open: boolean; p_pending_id: string }
+        Returns: Json
+      }
+      magic_ticket_issue_request: {
+        Args: { p: Json; p_api_key_id: string }
         Returns: Json
       }
       magic_ticket_line_json: { Args: { p_item_id: string }; Returns: Json }
@@ -7354,8 +7407,16 @@ export type Database = {
         }
         Returns: Json
       }
+      magic_ticket_revert_event: {
+        Args: { p: Json; p_api_key_id: string }
+        Returns: Json
+      }
       magic_ticket_revoke_api_key: {
         Args: { p_id: string }
+        Returns: undefined
+      }
+      magic_ticket_set_allowed_ips: {
+        Args: { p_id: string; p_ips: string[] }
         Returns: undefined
       }
       magic_ticket_split_serials: { Args: { p: string }; Returns: string[] }
