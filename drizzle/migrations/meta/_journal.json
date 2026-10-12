@@ -64,6 +64,13 @@
       "when": 1791799334618,
       "tag": "0008_allow_requesters_assign_billboard",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791799613940,
+      "tag": "0009_requester_own_mp_billboard_install",
+      "breakpoints": true
     }
   ]
 }
