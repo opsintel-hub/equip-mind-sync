@@ -43,6 +43,13 @@
       "when": 1791611787859,
       "tag": "0005_inter_warehouse_transfer_purpose",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791763246197,
+      "tag": "0006_magic_ticket_integration_phase1",
+      "breakpoints": true
     }
   ]
 }

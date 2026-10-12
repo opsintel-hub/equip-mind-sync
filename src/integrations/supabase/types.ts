@@ -4032,6 +4032,162 @@ export type Database = {
           },
         ]
       }
+      magic_ticket_api_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          environment: string
+          id: string
+          is_active: boolean
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          revoked_at: string | null
+          revoked_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          environment?: string
+          id?: string
+          is_active?: boolean
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          environment?: string
+          id?: string
+          is_active?: boolean
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+        }
+        Relationships: []
+      }
+      magic_ticket_events: {
+        Row: {
+          api_key_id: string | null
+          billboard_id: string | null
+          billboard_old_code: string | null
+          created_at: string
+          department_code: string | null
+          employee_name: string | null
+          event_id: string | null
+          event_time: string | null
+          event_type: string | null
+          gi_document_no: string | null
+          http_status: number
+          id: string
+          item_code: string | null
+          linked_return_id: string | null
+          message: string | null
+          payload: Json
+          pending_id: string | null
+          pending_item_id: string | null
+          quantity: number | null
+          response: Json
+          result_code: string
+          serial_number: string | null
+          status: string
+          ticket_code: string | null
+        }
+        Insert: {
+          api_key_id?: string | null
+          billboard_id?: string | null
+          billboard_old_code?: string | null
+          created_at?: string
+          department_code?: string | null
+          employee_name?: string | null
+          event_id?: string | null
+          event_time?: string | null
+          event_type?: string | null
+          gi_document_no?: string | null
+          http_status: number
+          id?: string
+          item_code?: string | null
+          linked_return_id?: string | null
+          message?: string | null
+          payload?: Json
+          pending_id?: string | null
+          pending_item_id?: string | null
+          quantity?: number | null
+          response?: Json
+          result_code: string
+          serial_number?: string | null
+          status: string
+          ticket_code?: string | null
+        }
+        Update: {
+          api_key_id?: string | null
+          billboard_id?: string | null
+          billboard_old_code?: string | null
+          created_at?: string
+          department_code?: string | null
+          employee_name?: string | null
+          event_id?: string | null
+          event_time?: string | null
+          event_type?: string | null
+          gi_document_no?: string | null
+          http_status?: number
+          id?: string
+          item_code?: string | null
+          linked_return_id?: string | null
+          message?: string | null
+          payload?: Json
+          pending_id?: string | null
+          pending_item_id?: string | null
+          quantity?: number | null
+          response?: Json
+          result_code?: string
+          serial_number?: string | null
+          status?: string
+          ticket_code?: string | null
+        }
+        Relationships: []
+      }
+      magic_ticket_ticket_map: {
+        Row: {
+          department_code: string | null
+          event_count: number
+          first_event_at: string
+          gi_document_no: string
+          id: string
+          last_event_at: string
+          pending_id: string | null
+          ticket_code: string
+        }
+        Insert: {
+          department_code?: string | null
+          event_count?: number
+          first_event_at?: string
+          gi_document_no: string
+          id?: string
+          last_event_at?: string
+          pending_id?: string | null
+          ticket_code: string
+        }
+        Update: {
+          department_code?: string | null
+          event_count?: number
+          first_event_at?: string
+          gi_document_no?: string
+          id?: string
+          last_event_at?: string
+          pending_id?: string | null
+          ticket_code?: string
+        }
+        Relationships: []
+      }
       media_player_billboard_history: {
         Row: {
           billboard_id: string
@@ -7177,6 +7333,36 @@ export type Database = {
       import_equipment_row: { Args: { p: Json }; Returns: Json }
       import_media_player_row: { Args: { p: Json }; Returns: Json }
       import_tool_row: { Args: { p: Json }; Returns: Json }
+      magic_ticket_create_api_key: {
+        Args: { p_environment: string; p_name: string }
+        Returns: Json
+      }
+      magic_ticket_document_json: {
+        Args: { p_only_open: boolean; p_pending_id: string }
+        Returns: Json
+      }
+      magic_ticket_line_json: { Args: { p_item_id: string }; Returns: Json }
+      magic_ticket_pending_usage: {
+        Args: {
+          p_department?: string
+          p_doc_no?: string
+          p_include_consumed?: boolean
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_ticket_code?: string
+        }
+        Returns: Json
+      }
+      magic_ticket_revoke_api_key: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      magic_ticket_split_serials: { Args: { p: string }; Returns: string[] }
+      magic_ticket_work_log: {
+        Args: { p: Json; p_api_key_id?: string }
+        Returns: Json
+      }
       mark_special_request_done: {
         Args: { _id: string; _notes: string }
         Returns: Json
