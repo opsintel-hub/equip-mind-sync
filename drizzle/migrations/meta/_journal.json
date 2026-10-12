@@ -50,6 +50,13 @@
       "when": 1791763246197,
       "tag": "0006_magic_ticket_integration_phase1",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791764412877,
+      "tag": "0007_magic_ticket_integration_phase2",
+      "breakpoints": true
     }
   ]
 }
