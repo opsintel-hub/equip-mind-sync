@@ -1,0 +1,1 @@
+- [Magic Ticket Integration](mem://features/magic-ticket-integration) — System A = Magic Ticket; Phase 1 API (pending-usage/document/work-log), naming & mapping rules
