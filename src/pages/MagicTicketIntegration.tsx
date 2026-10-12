@@ -40,7 +40,7 @@ export default function MagicTicketIntegration() {
   const keys = useQuery({
     queryKey: ["magic-ticket-keys"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("magic_ticket_api_keys").select("id, name, environment, key_prefix, is_active, created_at, last_used_at, revoked_at").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("magic_ticket_api_keys").select("id, name, environment, key_prefix, is_active, created_at, last_used_at, revoked_at, allowed_ips").order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -53,6 +53,23 @@ export default function MagicTicketIntegration() {
       return data;
     },
   });
+
+  const requests = useQuery({
+    queryKey: ["magic-ticket-requests"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("magic_ticket_requests").select("*").order("created_at", { ascending: false }).limit(500);
+      if (error) throw error;
+      return data;
+    },
+  });
+  const editIps = async (id: string, current: string[] | null) => {
+    const v = prompt("IP ที่อนุญาต (คั่นด้วยจุลภาค) — เว้นว่าง = อนุญาตทุก IP", (current || []).join(", "));
+    if (v === null) return;
+    const { error } = await supabase.rpc("magic_ticket_set_allowed_ips", { p_id: id, p_ips: v.split(",").map((x) => x.trim()).filter(Boolean) });
+    if (error) return toast.error(error.message);
+    toast.success("บันทึก IP แล้ว");
+    qc.invalidateQueries({ queryKey: ["magic-ticket-keys"] });
+  };
 
   const filtered = useMemo(() => {
     const t = search.trim().toLowerCase();
@@ -83,7 +100,7 @@ export default function MagicTicketIntegration() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold flex items-center gap-3"><Link2 className="h-8 w-8 text-primary" />Magic Ticket Integration</h1>
-        <p className="text-muted-foreground mt-2">เฟส 1: Magic Ticket ดึงใบเบิกที่จ่ายแล้ว และส่งผลติดตั้ง/คืนกลับมา</p>
+        <p className="text-muted-foreground mt-2">ดึงใบเบิกที่จ่ายแล้ว, ส่งผลติดตั้ง/คืน, ยกเลิกเหตุการณ์, ผูก Ticket และสร้างคำขอเบิกจาก Magic Ticket</p>
       </div>
       <Card>
         <CardContent className="pt-6 flex flex-wrap items-center gap-2 text-sm">
@@ -96,6 +113,7 @@ export default function MagicTicketIntegration() {
       <Tabs defaultValue="log">
         <TabsList>
           <TabsTrigger value="log">Log เหตุการณ์</TabsTrigger>
+          <TabsTrigger value="requests">คำขอเบิกจาก Ticket</TabsTrigger>
           <TabsTrigger value="map">Ticket ↔ ใบเบิก</TabsTrigger>
           <TabsTrigger value="keys">API Keys</TabsTrigger>
         </TabsList>
@@ -129,10 +147,11 @@ export default function MagicTicketIntegration() {
                   {events.isLoading ? "กำลังโหลด..." : "ยังไม่มีเหตุการณ์"}</TableCell></TableRow> :
                   pg.paginatedData.map((e) => <TableRow key={e.id}>
                     <TableCell className="whitespace-nowrap text-xs">{dt(e.created_at)}</TableCell>
-                    <TableCell><Badge variant={e.status === "applied" ? "default" : "destructive"}>{e.status === "applied" ? "สำเร็จ" : `${e.http_status} ${e.result_code}`}</Badge></TableCell>
+                    <TableCell><Badge variant={e.status === "applied" ? "default" : "destructive"}>{e.status === "applied" ? "สำเร็จ" : `${e.http_status} ${e.result_code}`}</Badge>
+                      {e.reverted_at && <Badge variant="secondary" className="mt-1 block w-fit" title={e.reverted_reason || ""}>ยกเลิกแล้ว</Badge>}</TableCell>
                     <TableCell><div className="font-mono">{e.ticket_code || "-"}</div><div className="text-xs text-muted-foreground">{e.department_code || "-"}</div></TableCell>
                     <TableCell className="font-mono whitespace-nowrap">{e.gi_document_no || "-"}</TableCell>
-                    <TableCell><div className="font-mono">{e.item_code || "-"}</div><div className="text-xs font-mono whitespace-pre-line">{e.serial_number || ""}</div></TableCell>
+                    <TableCell><div className="font-mono">{e.item_code || "-"}</div><div className="text-xs font-mono whitespace-pre-line">{e.serial_number || e.reverted_serial_number || ""}</div></TableCell>
                     <TableCell>{EVENT_LABEL[e.event_type || ""] || e.event_type || "-"}</TableCell>
                     <TableCell className="text-right tabular-nums">{e.quantity ?? "-"}</TableCell>
                     <TableCell>{e.billboard_old_code || "-"}</TableCell>
@@ -144,6 +163,23 @@ export default function MagicTicketIntegration() {
           </div>
           <TablePagination currentPage={pg.currentPage} totalPages={pg.totalPages} pageSize={pg.pageSize} totalItems={pg.totalItems}
             onPageChange={pg.handlePageChange} onPageSizeChange={pg.handlePageSizeChange} />
+        </TabsContent>
+
+        <TabsContent value="requests" className="mt-4">
+          <div className="rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow><TableHead>เวลา</TableHead><TableHead>Request ID</TableHead><TableHead>Ticket</TableHead>
+                <TableHead>ใบเบิกที่สร้าง</TableHead><TableHead className="text-right">รายการ</TableHead><TableHead className="text-right">จำนวนรวม</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {!(requests.data || []).length ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">ยังไม่มีคำขอเบิกจาก Magic Ticket</TableCell></TableRow> :
+                  requests.data!.map((r) => { const b = r.response as { total_items?: number; total_quantity?: number }; return <TableRow key={r.id}>
+                    <TableCell className="text-xs whitespace-nowrap">{dt(r.created_at)}</TableCell><TableCell className="font-mono text-xs">{r.request_id}</TableCell>
+                    <TableCell className="font-mono">{r.ticket_code}</TableCell><TableCell className="font-mono">{r.gi_document_no || "-"}</TableCell>
+                    <TableCell className="text-right">{b?.total_items ?? "-"}</TableCell><TableCell className="text-right">{b?.total_quantity ?? "-"}</TableCell>
+                  </TableRow>; })}
+              </TableBody>
+            </Table>
+          </div>
         </TabsContent>
 
         <TabsContent value="map" className="mt-4">
@@ -181,14 +217,15 @@ export default function MagicTicketIntegration() {
           <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader><TableRow><TableHead>ชื่อ</TableHead><TableHead>สภาพแวดล้อม</TableHead><TableHead>ขึ้นต้นด้วย</TableHead>
-                <TableHead>สถานะ</TableHead><TableHead>สร้างเมื่อ</TableHead><TableHead>ใช้ล่าสุด</TableHead><TableHead /></TableRow></TableHeader>
+                <TableHead>สถานะ</TableHead><TableHead>IP ที่อนุญาต</TableHead><TableHead>สร้างเมื่อ</TableHead><TableHead>ใช้ล่าสุด</TableHead><TableHead /></TableRow></TableHeader>
               <TableBody>
                 {(keys.data || []).map((k) => <TableRow key={k.id}>
                   <TableCell>{k.name}</TableCell><TableCell><Badge variant="outline">{k.environment}</Badge></TableCell>
                   <TableCell className="font-mono">{k.key_prefix}…</TableCell>
                   <TableCell><Badge variant={k.is_active ? "default" : "secondary"}>{k.is_active ? "ใช้งาน" : "ยกเลิกแล้ว"}</Badge></TableCell>
+                  <TableCell className="text-xs font-mono">{k.allowed_ips?.length ? k.allowed_ips.join(", ") : "ทุก IP"}</TableCell>
                   <TableCell className="text-xs">{dt(k.created_at)}</TableCell><TableCell className="text-xs">{dt(k.last_used_at)}</TableCell>
-                  <TableCell>{k.is_active && <Button size="sm" variant="outline" onClick={() => revoke(k.id)}>ยกเลิก</Button>}</TableCell>
+                  <TableCell className="space-x-2 whitespace-nowrap">{k.is_active && <Button size="sm" variant="ghost" onClick={() => editIps(k.id, k.allowed_ips)}>ตั้ง IP</Button>}{k.is_active && <Button size="sm" variant="outline" onClick={() => revoke(k.id)}>ยกเลิก</Button>}</TableCell>
                 </TableRow>)}
               </TableBody>
             </Table>
