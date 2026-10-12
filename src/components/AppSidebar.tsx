@@ -309,6 +309,7 @@ const menuGroups: MenuGroup[] = [
       { title: "ตรวจสอบยอด & สถานะ Stock", url: "/stock-reconciliation", icon: CheckCircle2, functionName: "stock_reconcile" },
       { title: "จัดการผู้ใช้", url: "/admin", icon: Shield, functionName: "admin", superAdminOnly: true },
       { title: "อนุมัติคำร้องพิเศษ", url: "/special-requests", icon: Inbox, superAdminOnly: true },
+      { title: "Magic Ticket Integration", url: "/magic-ticket-integration", icon: Shield, superAdminOnly: true },
       { title: "ประวัติการใช้งานระบบ", url: "/audit-trail", icon: History, functionName: "activity_audit_view" },
       { title: "คู่มือ Database", url: "/database-guide", icon: FileSearch, superAdminOnly: true },
     ]

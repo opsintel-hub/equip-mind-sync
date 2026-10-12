@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.seed-billboard-pm-history]
 verify_jwt = false
+
+[functions.magic-ticket]
+verify_jwt = false

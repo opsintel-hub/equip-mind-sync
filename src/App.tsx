@@ -66,6 +66,7 @@ const DefectiveReturnEntry = lazyRetry(() => import("./pages/DefectiveReturnEntr
 const DisposalApproval = lazyRetry(() => import("./pages/DisposalApproval"));
 const DisposalReport = lazyRetry(() => import("./pages/DisposalReport"));
 const AuditTrail = lazyRetry(() => import("./pages/AuditTrail"));
+const MagicTicketIntegration = lazyRetry(() => import("./pages/MagicTicketIntegration"));
 const StockCard = lazyRetry(() => import("./pages/StockCard"));
 const DeliveryConfirmation = lazyRetry(() => import("./pages/DeliveryConfirmation"));
 const ManagerApproval = lazyRetry(() => import("./pages/ManagerApproval"));
@@ -194,6 +195,7 @@ const App = () => (
             <Route path="/defective-return" element={<Protected><DefectiveReturnEntry /></Protected>} />
             <Route path="/disposal-approval" element={<Protected><DisposalApproval /></Protected>} />
             <Route path="/disposal-report" element={<Protected><DisposalReport /></Protected>} />
+            <Route path="/magic-ticket-integration" element={<Protected><MagicTicketIntegration /></Protected>} />
             <Route path="/audit-trail" element={<Protected><AuditTrail /></Protected>} />
             <Route path="/special-requests" element={<Protected><SpecialRequests mode="admin" /></Protected>} />
             <Route path="/my-special-requests" element={<Protected><SpecialRequests mode="mine" /></Protected>} />
