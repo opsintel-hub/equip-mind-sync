@@ -32,6 +32,8 @@ export interface ReturnItemLine {
   returned_good_qty?: number | null;
   returned_defective_qty?: number | null;
   installed_qty?: number | null;
+  written_off_qty?: number | null;
+  transferred_qty?: number | null;
   notes: string | null;
 }
 
@@ -78,7 +80,8 @@ export function ReturnItemDialog({
   const issuedQty = item ? item.issued_quantity ?? item.quantity : 0;
   const alreadyReturned = (item?.returned_good_qty || 0) + (item?.returned_defective_qty || 0);
   const installedQty = item ? (item.installed_qty != null ? Number(item.installed_qty) : item.billboard_id ? issuedQty : 0) : 0;
-  const outstanding = Math.max(0, issuedQty - alreadyReturned - installedQty);
+  const outstanding = Math.max(0, issuedQty - alreadyReturned - installedQty
+    - Number(item?.written_off_qty || 0) - Number(item?.transferred_qty || 0));
 
   useEffect(() => {
     if (!open || !item) return;
@@ -114,8 +117,9 @@ export function ReturnItemDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, item?.id]);
 
-  const good = Math.max(0, parseInt(goodQty || "0") || 0);
-  const defective = Math.max(0, parseInt(defectiveQty || "0") || 0);
+  // Good + defective (from issued qty) can never exceed what is still outstanding
+  const good = Math.min(outstanding, Math.max(0, parseInt(goodQty || "0") || 0));
+  const defective = Math.min(outstanding - good, Math.max(0, parseInt(defectiveQty || "0") || 0));
   const extraDefective = Math.max(0, parseInt(extraDefectiveQty || "0") || 0);
 
   const error = useMemo(() => {
@@ -301,8 +305,9 @@ export function ReturnItemDialog({
               <Input
                 type="number"
                 min={0}
+                max={outstanding}
                 value={goodQty}
-                onChange={(e) => setGoodQty(e.target.value)}
+                onChange={(e) => setGoodQty(String(Math.min(outstanding, Math.max(0, parseInt(e.target.value || "0") || 0))))}
                 onWheel={(e) => (e.target as HTMLInputElement).blur()}
               />
             </div>
@@ -323,8 +328,9 @@ export function ReturnItemDialog({
                 <Input
                   type="number"
                   min={0}
+                  max={Math.max(0, outstanding - good)}
                   value={defectiveQty}
-                  onChange={(e) => setDefectiveQty(e.target.value)}
+                  onChange={(e) => setDefectiveQty(String(Math.min(Math.max(0, outstanding - good), Math.max(0, parseInt(e.target.value || "0") || 0))))}
                   onWheel={(e) => (e.target as HTMLInputElement).blur()}
                 />
               </div>
