@@ -165,6 +165,11 @@ const Dashboard = () => {
   if (!permLoading && !hasAnyAccess) {
     return <Navigate to="/user-manual" replace />;
   }
+  // Guard-only accounts (e.g. ป้อม รปภ.) go straight to the gate scanner
+  const granted = permissions.filter(p => p.can_access).map(p => p.function_name);
+  if (!permLoading && !isAdmin && !isSuperAdmin && granted.length > 0 && granted.every(f => f === "site_access_gate")) {
+    return <Navigate to="/site-access-gate" replace />;
+  }
 
   return (
     <div className="space-y-8">
