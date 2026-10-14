@@ -13,7 +13,6 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClipboardCheck } from "lucide-react";
 import SiteAccessCalendar from "@/components/site-access/SiteAccessCalendar";
-import GateStationManager from "@/components/site-access/GateStationManager";
 import { SITE_ACCESS_PURPOSE, SITE_ACCESS_STATUS, fmtDT } from "@/lib/siteAccess";
 
 export default function SiteAccessManage() {
@@ -74,7 +73,6 @@ export default function SiteAccessManage() {
         <p className="text-muted-foreground text-sm">คลังตรวจคำขอ ระบุจุดวางของ และอนุมัติก่อนวันเข้าพื้นที่</p>
       </div>
       <SiteAccessCalendar />
-      <GateStationManager />
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="flex-wrap h-auto">
