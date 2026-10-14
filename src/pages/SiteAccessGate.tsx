@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, CameraOff, CheckCircle2, Search, ShieldAlert, Truck, Users, MapPin, Phone } from "lucide-react";
+import { Camera, CameraOff, CheckCircle2, LogOut, ImagePlus, Search, ShieldAlert, Truck, Users, MapPin, Phone } from "lucide-react";
 import { SITE_ACCESS_PURPOSE, SITE_ACCESS_STATUS, fmtDT } from "@/lib/siteAccess";
 
 const SELECT = "*, warehouses(name, code), locations:assigned_location_id(code, name)";
@@ -18,6 +18,7 @@ export default function SiteAccessGate() {
   const [notFound, setNotFound] = useState(false);
   const [busy, setBusy] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [tab, setTab] = useState("scan");
   const [inside, setInside] = useState<any[]>([]);
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
@@ -72,6 +73,38 @@ export default function SiteAccessGate() {
     await lookup(ticket.ticket_no); loadInside();
   };
 
+  const [photos, setPhotos] = useState<{ id: string; photo_type: string; image_url: string }[]>([]);
+  const [uploading, setUploading] = useState<string | null>(null);
+  const loadPhotos = async (id: string) => {
+    const { data } = await supabase.from("warehouse_access_photos").select("id,photo_type,image_url").eq("ticket_id", id).order("created_at");
+    setPhotos(data || []);
+  };
+  useEffect(() => { if (ticket?.status === "checked_in") loadPhotos(ticket.id); else setPhotos([]); }, [ticket?.id, ticket?.status]);
+
+  const uploadPhoto = async (type: "placement" | "cleanliness", file?: File) => {
+    if (!ticket || !file) return;
+    if (!file.type.startsWith("image/")) return toast.error("กรุณาเลือกไฟล์รูปภาพ");
+    setUploading(type);
+    const path = `site-access/${ticket.id}/${type}-${Date.now()}.${(file.name.split(".").pop() || "jpg").toLowerCase()}`;
+    const up = await supabase.storage.from("delivery-confirmations").upload(path, file, { upsert: false });
+    if (up.error) { setUploading(null); return toast.error(up.error.message); }
+    const url = supabase.storage.from("delivery-confirmations").getPublicUrl(path).data.publicUrl;
+    const { error } = await supabase.from("warehouse_access_photos").insert({ ticket_id: ticket.id, photo_type: type, image_url: url });
+    setUploading(null);
+    if (error) return toast.error(error.message);
+    loadPhotos(ticket.id);
+  };
+
+  const stampOut = async () => {
+    if (!ticket) return;
+    setBusy(true);
+    const { error } = await supabase.rpc("access_ticket_gate_stamp" as any, { _ticket_id: ticket.id, _action: "checkout" });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`บันทึกเวลาออกแล้ว ${ticket.ticket_no}`);
+    await lookup(ticket.ticket_no); loadInside();
+  };
+
   const reset = () => { setTicket(null); setQuery(""); setNotFound(false); };
 
   const canEnter = ticket?.status === "approved" && !!ticket?.supervisor_id;
@@ -80,7 +113,7 @@ export default function SiteAccessGate() {
   return (
     <div className="mx-auto max-w-xl space-y-4 p-3 sm:p-6">
       <h1 className="text-2xl font-bold">จุดตรวจ รปภ.</h1>
-      <Tabs defaultValue="scan">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="grid w-full grid-cols-2 h-12">
           <TabsTrigger value="scan" className="text-base">สแกนตั๋ว</TabsTrigger>
           <TabsTrigger value="inside" className="text-base" onClick={loadInside}>อยู่ในพื้นที่ ({inside.length})</TabsTrigger>
@@ -144,7 +177,28 @@ export default function SiteAccessGate() {
                   <CheckCircle2 className="mr-2 h-8 w-8" />{busy ? "กำลังบันทึก..." : "บันทึกเวลาเข้า"}
                 </Button>
               ) : ticket.status === "checked_in" ? (
-                <div className="rounded-lg border bg-primary/10 p-4 text-center text-lg font-semibold">เข้าพื้นที่แล้วเมื่อ {fmtDT(ticket.checkin_at)}</div>
+                <div className="space-y-3">
+                  <div className="rounded-lg border bg-primary/10 p-3 text-center text-lg font-semibold">เข้าพื้นที่แล้วเมื่อ {fmtDT(ticket.checkin_at)}</div>
+                  <div className="text-base font-semibold">ถ่ายรูปตรวจพื้นที่ก่อนปล่อยรถ</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {([["placement", "จุดวางของ"], ["cleanliness", "ความสะอาด / ไม่มีขยะ"]] as const).map(([type, label]) => {
+                      const list = photos.filter((p) => p.photo_type === type);
+                      return (
+                        <label key={type} className={`flex min-h-32 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed p-2 text-center ${list.length ? "border-primary bg-primary/5" : "border-muted-foreground/40"}`}>
+                          {list.length ? <img src={list[list.length - 1].image_url} alt={label} className="h-24 w-full rounded object-cover" /> : <ImagePlus className="h-8 w-8" />}
+                          <span className="text-sm font-medium">{uploading === type ? "กำลังอัปโหลด..." : list.length ? `✓ ${label} (แตะเพื่อถ่ายใหม่)` : `ถ่ายรูป${label}`}</span>
+                          <input type="file" accept="image/*" capture="environment" className="hidden" disabled={!!uploading}
+                            onChange={(e) => { uploadPhoto(type, e.target.files?.[0]); e.target.value = ""; }} />
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <Button className="h-20 w-full text-xl" disabled={busy || !!uploading || !photos.some((p) => p.photo_type === "placement") || !photos.some((p) => p.photo_type === "cleanliness")} onClick={stampOut}>
+                    <LogOut className="mr-2 h-7 w-7" />{busy ? "กำลังบันทึก..." : "บันทึกเวลาออก / ปล่อยรถ"}
+                  </Button>
+                </div>
+              ) : ticket.status === "completed" ? (
+                <div className="rounded-lg border bg-muted p-4 text-center text-lg font-semibold">ออกจากพื้นที่แล้วเมื่อ {fmtDT(ticket.checkout_at)}</div>
               ) : (
                 <div className="flex items-center justify-center gap-2 rounded-lg border border-destructive bg-destructive/10 p-4 text-lg font-semibold text-destructive">
                   <ShieldAlert className="h-6 w-6" />ห้ามเข้าพื้นที่ — {!ticket.supervisor_id ? "ไม่มีผู้คุมงานบริษัท" : "ตั๋วยังไม่อนุมัติ"}
@@ -163,6 +217,7 @@ export default function SiteAccessGate() {
               <div>ผู้คุม: <b>{t.supervisor_name}</b> {t.supervisor_phone}</div>
               <div>{t.worker_count} คน · {t.contractor_name}</div>
               <div className="font-mono">{(t.vehicle_plates || []).join(", ")}</div>
+              <Button variant="outline" className="mt-2 h-11 w-full" onClick={() => { setTab("scan"); setQuery(t.ticket_no); lookup(t.ticket_no); }}>ตรวจพื้นที่ / บันทึกออก</Button>
             </CardContent></Card>
           ))}
         </TabsContent>

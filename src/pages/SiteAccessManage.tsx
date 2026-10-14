@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClipboardCheck } from "lucide-react";
+import SiteAccessCalendar from "@/components/site-access/SiteAccessCalendar";
 import { SITE_ACCESS_PURPOSE, SITE_ACCESS_STATUS, fmtDT } from "@/lib/siteAccess";
 
 export default function SiteAccessManage() {
@@ -71,6 +72,7 @@ export default function SiteAccessManage() {
         <h1 className="text-2xl font-bold flex items-center gap-2"><ClipboardCheck className="h-6 w-6" />จัดการตั๋วเข้าพื้นที่</h1>
         <p className="text-muted-foreground text-sm">คลังตรวจคำขอ ระบุจุดวางของ และอนุมัติก่อนวันเข้าพื้นที่</p>
       </div>
+      <SiteAccessCalendar />
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="flex-wrap h-auto">
