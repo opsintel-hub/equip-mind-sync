@@ -50,7 +50,7 @@ export default function SiteAccessRequest() {
   useEffect(() => {
     supabase.from("warehouses").select("id,name,code").eq("is_active", true).order("name").then(({ data }) => {
       setWarehouses(data || []);
-      const bst = (data || []).find((w) => w.name.includes("บางเสาธง"));
+      const bst = (data || []).find((w) => w.code === "PB-02") || (data || []).find((w) => w.name.includes("บางเสาธง"));
       if (bst) setForm((f) => (f.warehouse_id ? f : { ...f, warehouse_id: bst.id }));
     });
     load();
