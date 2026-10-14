@@ -19,7 +19,7 @@ const DAYS_FULL = ["อาทิตย์", "จันทร์", "อังค�
 /** green = อนุมัติ/เข้าแล้ว/ปิดแล้ว, yellow = รออนุมัติ, red = ไม่อนุมัติ */
 const tone = (s: string) =>
   s === "rejected" ? "border-destructive/50 bg-destructive/15 text-destructive"
-  : s === "pending_assignment" ? "border-warning/50 bg-warning/20 text-warning-foreground"
+  : s === "pending_assignment" ? "border-warning/50 bg-warning/20 text-foreground"
   : "border-success/50 bg-success/15 text-success";
 
 const hhmm = (s: string) => new Date(s).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
