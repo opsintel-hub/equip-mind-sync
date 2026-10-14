@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.magic-ticket]
 verify_jwt = false
+
+[functions.gate-station]
+verify_jwt = false
