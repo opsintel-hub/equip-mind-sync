@@ -12,7 +12,23 @@ import { SITE_ACCESS_PURPOSE, SITE_ACCESS_STATUS, fmtDT } from "@/lib/siteAccess
 
 const SELECT = "*, warehouses(name, code), locations:assigned_location_id(code, name)";
 
-export default function SiteAccessGate() {
+type StationCall = (action: string, body?: Record<string, unknown>) => Promise<any>;
+
+const compressToJpeg = (file: File): Promise<string> => new Promise((resolve, reject) => {
+  const img = new Image();
+  img.onload = () => {
+    const scale = Math.min(1, 1280 / Math.max(img.width, img.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+    c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(img.src);
+    resolve(c.toDataURL("image/jpeg", 0.75));
+  };
+  img.onerror = reject;
+  img.src = URL.createObjectURL(file);
+});
+
+export default function SiteAccessGate({ station, stationName, onLogout }: { station?: StationCall; stationName?: string; onLogout?: () => void } = {}) {
   const [query, setQuery] = useState("");
   const [ticket, setTicket] = useState<any | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -23,6 +39,7 @@ export default function SiteAccessGate() {
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
   const loadInside = async () => {
+    if (station) { const r = await station("inside"); setInside(r?.tickets || []); return; }
     const { data } = await supabase.from("warehouse_access_tickets" as any).select(SELECT)
       .eq("status", "checked_in").order("checkin_at", { ascending: false });
     setInside((data as any[]) || []);
@@ -33,6 +50,10 @@ export default function SiteAccessGate() {
     const q = raw.trim().toUpperCase();
     if (!q) return;
     setBusy(true); setNotFound(false);
+    if (station) {
+      const r = await station("lookup", { q: raw.trim() });
+      setTicket(r?.ticket || null); setNotFound(!r?.ticket); setBusy(false); return;
+    }
     let { data } = await supabase.from("warehouse_access_tickets" as any).select(SELECT).eq("ticket_no", q).maybeSingle();
     if (!data) {
       const r = await supabase.from("warehouse_access_tickets" as any).select(SELECT)
@@ -66,7 +87,9 @@ export default function SiteAccessGate() {
   const stampIn = async () => {
     if (!ticket) return;
     setBusy(true);
-    const { error } = await supabase.rpc("access_ticket_gate_stamp" as any, { _ticket_id: ticket.id, _action: "checkin" });
+    const { error } = station
+      ? await station("stamp", { ticket_id: ticket.id, kind: "checkin" }).then((r) => ({ error: r?.ok ? null : { message: r?.message || "ผิดพลาด" } }))
+      : await supabase.rpc("access_ticket_gate_stamp" as any, { _ticket_id: ticket.id, _action: "checkin" });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success(`บันทึกเวลาเข้าแล้ว ${ticket.ticket_no}`);
@@ -76,6 +99,7 @@ export default function SiteAccessGate() {
   const [photos, setPhotos] = useState<{ id: string; photo_type: string; image_url: string }[]>([]);
   const [uploading, setUploading] = useState<string | null>(null);
   const loadPhotos = async (id: string) => {
+    if (station) { const r = await station("photos", { ticket_id: id }); setPhotos(r?.photos || []); return; }
     const { data } = await supabase.from("warehouse_access_photos").select("id,photo_type,image_url").eq("ticket_id", id).order("created_at");
     setPhotos(data || []);
   };
@@ -85,6 +109,14 @@ export default function SiteAccessGate() {
     if (!ticket || !file) return;
     if (!file.type.startsWith("image/")) return toast.error("กรุณาเลือกไฟล์รูปภาพ");
     setUploading(type);
+    if (station) {
+      try {
+        const image_base64 = await compressToJpeg(file);
+        const r = await station("upload", { ticket_id: ticket.id, photo_type: type, image_base64 });
+        if (!r?.ok) toast.error(r?.message || "อัปโหลดไม่สำเร็จ");
+      } catch { toast.error("อ่านไฟล์รูปไม่ได้"); }
+      setUploading(null); loadPhotos(ticket.id); return;
+    }
     const path = `site-access/${ticket.id}/${type}-${Date.now()}.${(file.name.split(".").pop() || "jpg").toLowerCase()}`;
     const up = await supabase.storage.from("delivery-confirmations").upload(path, file, { upsert: false });
     if (up.error) { setUploading(null); return toast.error(up.error.message); }
@@ -98,7 +130,9 @@ export default function SiteAccessGate() {
   const stampOut = async () => {
     if (!ticket) return;
     setBusy(true);
-    const { error } = await supabase.rpc("access_ticket_gate_stamp" as any, { _ticket_id: ticket.id, _action: "checkout" });
+    const { error } = station
+      ? await station("stamp", { ticket_id: ticket.id, kind: "checkout" }).then((r) => ({ error: r?.ok ? null : { message: r?.message || "ผิดพลาด" } }))
+      : await supabase.rpc("access_ticket_gate_stamp" as any, { _ticket_id: ticket.id, _action: "checkout" });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success(`บันทึกเวลาออกแล้ว ${ticket.ticket_no}`);
@@ -112,7 +146,13 @@ export default function SiteAccessGate() {
 
   return (
     <div className="mx-auto max-w-xl space-y-4 p-3 sm:p-6">
-      <h1 className="text-2xl font-bold">จุดตรวจ รปภ.</h1>
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-bold">จุดตรวจ รปภ.</h1>
+          {stationName && <div className="text-sm text-muted-foreground">{stationName}</div>}
+        </div>
+        {onLogout && <Button variant="outline" onClick={onLogout}><LogOut className="mr-1 h-4 w-4" />ออกจากระบบ</Button>}
+      </div>
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="grid w-full grid-cols-2 h-12">
           <TabsTrigger value="scan" className="text-base">สแกนตั๋ว</TabsTrigger>

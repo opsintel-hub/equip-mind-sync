@@ -85,6 +85,20 @@
       "when": 1791938671512,
       "tag": "0011_site_access_calendar_and_gate_photos",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791939275045,
+      "tag": "0012_gate_station_pin",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791939290540,
+      "tag": "0013_gate_station_verify_fix",
+      "breakpoints": true
     }
   ]
 }

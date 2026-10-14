@@ -2971,6 +2971,88 @@ export type Database = {
         }
         Relationships: []
       }
+      gate_station_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          station_id: string
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          station_id: string
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          station_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gate_station_sessions_station_id_fkey"
+            columns: ["station_id"]
+            isOneToOne: false
+            referencedRelation: "gate_stations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gate_stations: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          failed_attempts: number
+          id: string
+          is_active: boolean
+          last_used_at: string | null
+          locked_until: string | null
+          name: string
+          pin_hash: string
+          warehouse_id: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string
+          failed_attempts?: number
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          locked_until?: string | null
+          name: string
+          pin_hash: string
+          warehouse_id?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          failed_attempts?: number
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          locked_until?: string | null
+          name?: string
+          pin_hash?: string
+          warehouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gate_stations_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goods_issue: {
         Row: {
           company_id: string | null
@@ -7034,6 +7116,7 @@ export type Database = {
           id: string
           image_url: string
           photo_type: string
+          station_id: string | null
           ticket_id: string
           uploaded_by: string
         }
@@ -7042,6 +7125,7 @@ export type Database = {
           id?: string
           image_url: string
           photo_type: string
+          station_id?: string | null
           ticket_id: string
           uploaded_by?: string
         }
@@ -7050,6 +7134,7 @@ export type Database = {
           id?: string
           image_url?: string
           photo_type?: string
+          station_id?: string | null
           ticket_id?: string
           uploaded_by?: string
         }
@@ -7071,8 +7156,10 @@ export type Database = {
           assigned_location_note: string | null
           checkin_at: string | null
           checkin_by: string | null
+          checkin_station_id: string | null
           checkout_at: string | null
           checkout_by: string | null
+          checkout_station_id: string | null
           contractor_name: string
           created_at: string
           created_by: string
@@ -7101,8 +7188,10 @@ export type Database = {
           assigned_location_note?: string | null
           checkin_at?: string | null
           checkin_by?: string | null
+          checkin_station_id?: string | null
           checkout_at?: string | null
           checkout_by?: string | null
+          checkout_station_id?: string | null
           contractor_name: string
           created_at?: string
           created_by?: string
@@ -7131,8 +7220,10 @@ export type Database = {
           assigned_location_note?: string | null
           checkin_at?: string | null
           checkin_by?: string | null
+          checkin_station_id?: string | null
           checkout_at?: string | null
           checkout_by?: string | null
+          checkout_station_id?: string | null
           contractor_name?: string
           created_at?: string
           created_by?: string
@@ -7305,6 +7396,20 @@ export type Database = {
           _requester_name: string
           _unit: string
         }
+        Returns: Json
+      }
+      gate_station_upsert: {
+        Args: {
+          _code: string
+          _id: string
+          _name: string
+          _pin: string
+          _warehouse_id: string
+        }
+        Returns: string
+      }
+      gate_station_verify: {
+        Args: { _code: string; _pin: string }
         Returns: Json
       }
       generate_assessment_log_number: { Args: never; Returns: string }
