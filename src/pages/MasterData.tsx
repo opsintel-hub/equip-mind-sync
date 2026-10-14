@@ -3,8 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
-import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat, Layers, FolderTree, Zap, Users, Monitor, Database, Settings2 } from "lucide-react";
+import { Package, MapPin, Truck, Warehouse, Building2, Target, Building, Wrench, PackageOpen, HardHat, Layers, FolderTree, Zap, Users, Monitor, Database, Settings2, ShieldCheck } from "lucide-react";
 import { OCRConfigManager } from "@/components/admin/OCRConfigManager";
+import GateStationManager from "@/components/site-access/GateStationManager";
 
 import { PMActionTypeList } from "@/components/pm/PMActionTypeList";
 import { PMActionTypeForm } from "@/components/pm/PMActionTypeForm";
@@ -184,6 +185,12 @@ const MasterData = () => {
               <TabsTrigger value="ocr_config" className="gap-1.5 text-xs px-3">
                 <Settings2 className="h-3.5 w-3.5" />
                 ตั้งค่า OCR
+              </TabsTrigger>
+            )}
+            {(isAdmin || isSuperAdmin) && (
+              <TabsTrigger value="gate_stations" className="gap-1.5 text-xs px-3">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                จุดตรวจ รปภ. (Station PIN)
               </TabsTrigger>
             )}
           </TabsList>
@@ -595,6 +602,11 @@ const MasterData = () => {
         {isSuperAdmin && (
         <TabsContent value="ocr_config" className="space-y-4">
           <OCRConfigManager />
+        </TabsContent>
+        )}
+        {(isAdmin || isSuperAdmin) && (
+        <TabsContent value="gate_stations" className="space-y-4">
+          <GateStationManager />
         </TabsContent>
         )}
 
