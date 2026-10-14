@@ -71,6 +71,13 @@
       "when": 1791799613940,
       "tag": "0009_requester_own_mp_billboard_install",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791937437072,
+      "tag": "0010_swap_managers_manage_billboard_equipment",
+      "breakpoints": true
     }
   ]
 }
