@@ -7262,6 +7262,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      access_ticket_calendar: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          checkin_at: string
+          checkout_at: string
+          contractor_name: string
+          department: string
+          id: string
+          planned_end_at: string
+          planned_start_at: string
+          purpose: string
+          status: string
+          supervisor_name: string
+          ticket_no: string
+          warehouse_code: string
+          warehouse_id: string
+          warehouse_name: string
+          worker_count: number
+        }[]
+      }
       access_ticket_gate_stamp: {
         Args: { _action: string; _ticket_id: string }
         Returns: Json
