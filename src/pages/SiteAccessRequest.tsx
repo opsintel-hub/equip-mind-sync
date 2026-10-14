@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Ticket } from "lucide-react";
+import SiteAccessCalendar from "@/components/site-access/SiteAccessCalendar";
 import { SITE_ACCESS_PURPOSE, SITE_ACCESS_STATUS, fmtDT } from "@/lib/siteAccess";
 import QRCode from "react-qr-code";
 
@@ -98,6 +99,8 @@ export default function SiteAccessRequest() {
         <h1 className="text-2xl font-bold flex items-center gap-2"><Ticket className="h-6 w-6" />จองเข้าพื้นที่คลัง</h1>
         <p className="text-muted-foreground text-sm">ผู้คุมงานของบริษัทเปิดตั๋วล่วงหน้า — ผู้รับเหมาเข้าพื้นที่ได้เฉพาะเมื่อมีผู้คุมอยู่ด้วย</p>
       </div>
+
+      <SiteAccessCalendar />
 
       <Card>
         <CardHeader><CardTitle className="text-lg">เปิดตั๋วใหม่</CardTitle></CardHeader>
