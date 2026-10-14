@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { QRCodeSVG } from "qrcode.react";
+import QRCode from "react-qr-code";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -107,7 +107,7 @@ export default function GateStationManager() {
             <div className="space-y-3 text-center">
               <div className="font-mono text-5xl font-bold tracking-widest">{shownPin.pin}</div>
               <p className="text-sm text-destructive">PIN จะแสดงครั้งนี้ครั้งเดียว — จดแจ้งหัวหน้า รปภ. ทันที (PIN เดิมและเครื่องที่ล็อกอินอยู่จะใช้ไม่ได้)</p>
-              <div className="mx-auto w-fit rounded bg-card p-3"><QRCodeSVG value={link(shownPin.code)} size={160} /></div>
+              <div className="mx-auto w-fit rounded bg-card p-3"><QRCode value={link(shownPin.code)} size={160} /></div>
               <div className="break-all text-xs">{link(shownPin.code)}</div>
             </div>
           )}

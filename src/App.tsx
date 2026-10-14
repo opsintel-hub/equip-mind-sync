@@ -32,6 +32,7 @@ const QRCodePage = lazyRetry(() => import("./pages/QRCode"));
 const SiteAccessRequest = lazyRetry(() => import("./pages/SiteAccessRequest"));
 const SiteAccessManage = lazyRetry(() => import("./pages/SiteAccessManage"));
 const SiteAccessGate = lazyRetry(() => import("./pages/SiteAccessGate"));
+const GateStation = lazyRetry(() => import("./pages/GateStation"));
 const TransferHistory = lazyRetry(() => import("./pages/TransferHistory"));
 const PMHistory = lazyRetry(() => import("./pages/PMHistory"));
 const ToolPMTasks = lazyRetry(() => import("./pages/ToolPMTasks"));
@@ -224,6 +225,7 @@ const App = () => (
             <Route path="/p/media-player/:id" element={<Public><MediaPlayerPublicView /></Public>} />
             <Route path="/ad-view/:token" element={<Public><AdPublicView /></Public>} />
             <Route path="/ad-contractor/:token" element={<Public><AdContractorView /></Public>} />
+            <Route path="/gate/:code" element={<Public><GateStation /></Public>} />
             <Route path="/ds-view/:id" element={<Public><DirectShippingPublicView /></Public>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
