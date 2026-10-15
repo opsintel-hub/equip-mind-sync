@@ -1,5 +1,4 @@
 import { lineLeft } from "@/lib/issueQuantities";
-import { lineLeft } from "@/lib/issueQuantities";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
