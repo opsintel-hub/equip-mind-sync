@@ -1,3 +1,4 @@
+import { lineLeft } from "@/lib/issueQuantities";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -647,6 +648,33 @@ const DefectiveReturnEntry = () => {
   }, [isMediaPlayer, selectedMediaPlayer, selectedEquipment]);
 
   const isFromBillboard = selectedBillboardEquipmentId !== "" && detectedBillboards.length > 0;
+  // Single return path: items still owed on an issue document must be returned through that document.
+  // Returns true when saving may continue.
+  const checkOutstandingIssue = async (serials: string[]): Promise<boolean> => {
+    if (fromAssessmentInfo || existingTicket) return true;
+    const { data, error } = await supabase
+      .from("goods_issue_pending_items")
+      .select("id, serial_number, quantity, issued_quantity, installed_qty, billboard_id, returned_good_qty, returned_defective_qty, written_off_qty, transferred_qty, goods_issue_pending!inner(document_no, status, requester_name)")
+      .eq(isMediaPlayer ? "media_player_id" : "equipment_id", selectedItemId)
+      .in("goods_issue_pending.status", ["issued", "partial_return", "partially_issued"]);
+    if (error) return true; // do not block on lookup failure
+    const open = (data || []).filter((l: any) => lineLeft(l) > 0);
+    if (!open.length) return true;
+    const snSet = serials.map(s => s.trim().toLowerCase()).filter(Boolean);
+    const snMatch = open.filter((l: any) =>
+      snSet.length && String(l.serial_number || "").toLowerCase().split(/[\n\/,]/).map((s: string) => s.trim()).some((s: string) => snSet.includes(s)));
+    const describe = (ls: any[]) => ls.slice(0, 3)
+      .map((l: any) => `${l.goods_issue_pending.document_no} (${l.goods_issue_pending.requester_name || "-"}, ค้าง ${lineLeft(l)})`).join(", ");
+    if (isMediaPlayer || snMatch.length) {
+      const ls = snMatch.length ? snMatch : open;
+      toast.error(`สินค้านี้ยังค้างอยู่ในใบเบิก ${describe(ls)} — กรุณาคืนผ่านเอกสารเบิกเดิม (รายการค้างดำเนินการ → รอส่งคืน → ส่งคืนสินค้า)`, { duration: 10000 });
+      return false;
+    }
+    return window.confirm(
+      `สินค้ารหัสนี้มียอดค้างในใบเบิก: ${describe(open)}\n\nถ้าของเสียชิ้นนี้มาจากใบเบิกดังกล่าว ต้องคืนผ่านใบเบิกเดิม\nกด OK เฉพาะกรณียืนยันว่าเป็นของเสียที่พบในคลัง/ถอดจากป้าย ไม่ได้มาจากใบเบิก`,
+    );
+  };
+
   // ที่มาที่ใช้จริงตอนบันทึก (ไม่มีการตัดสต็อกคลังหลักในทุกกรณี)
   const effectiveSourceType = fromAssessmentInfo
     ? "from_assessment"
@@ -779,6 +807,13 @@ const DefectiveReturnEntry = () => {
         await fetchPendingTickets();
         return;
       }
+    }
+
+    {
+      const sns = perUnitMode
+        ? defectiveUnits.map(u => u.serial_number)
+        : (isMediaPlayer ? [selectedMediaPlayer?.serial_number_1, selectedMediaPlayer?.serial_number_2] : [selectedEquipment?.serial_number]).filter(Boolean) as string[];
+      if (!(await checkOutstandingIssue(sns))) return;
     }
 
     const quarantineLocId = await getQuarantineLocationId();

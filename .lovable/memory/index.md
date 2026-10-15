@@ -1,1 +1,2 @@
 - [Magic Ticket Integration](mem://features/magic-ticket-integration) — System A = Magic Ticket; Phase 1 API (pending-usage/document/work-log), naming & mapping rules
+- [Single Return Path](mem://features/single-return-path) — ของที่ยังค้างในใบเบิกต้องคืนผ่านใบเบิกเดิม; เมนูนำของเสียเข้าระบบบล็อก MP/S/N ที่ค้าง และให้ยืนยันกรณีสินค้านับจำนวน
