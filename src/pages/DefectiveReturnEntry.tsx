@@ -1,3 +1,4 @@
+import { lineLeft } from "@/lib/issueQuantities";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -806,6 +807,13 @@ const DefectiveReturnEntry = () => {
         await fetchPendingTickets();
         return;
       }
+    }
+
+    {
+      const sns = perUnitMode
+        ? defectiveUnits.map(u => u.serial_number)
+        : (isMediaPlayer ? [selectedMediaPlayer?.serial_number_1, selectedMediaPlayer?.serial_number_2] : [selectedEquipment?.serial_number]).filter(Boolean) as string[];
+      if (!(await checkOutstandingIssue(sns))) return;
     }
 
     const quarantineLocId = await getQuarantineLocationId();
