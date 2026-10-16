@@ -236,7 +236,7 @@ export function ReturnItemDialog({
       );
       const allSettled = (lines || []).every((l: any) => {
         const iq = l.issued_quantity ?? l.quantity ?? 0;
-        const inst = l.installed_qty != null ? Number(l.installed_qty) : l.billboard_id ? iq : 0;
+        const inst = independentOfInstall ? 0 : l.installed_qty != null ? Number(l.installed_qty) : l.billboard_id ? iq : 0;
         return (l.returned_good_qty || 0) + (l.returned_defective_qty || 0) + inst >= iq;
       });
       await supabase
