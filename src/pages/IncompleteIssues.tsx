@@ -1072,21 +1072,54 @@ const IncompleteIssues = () => {
               </div>
             </div>
 
-            {selectedItem && !(selectedItem.media_player_id || selectedItem.is_media_player) && (
-              <div className="space-y-2">
-                <Label>จำนวนที่ติดตั้งบนป้ายนี้</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={lineLeft(selectedItem)}
-                  value={installQty}
-                  onChange={(e) => setInstallQty(e.target.value)}
-                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
-                />
+            {selectedItem && !(selectedItem.media_player_id || selectedItem.is_media_player) ? (
+              <div className="space-y-3">
+                <Label>ป้ายที่ติดตั้ง และจำนวนต่อป้าย</Label>
+                {allocs.map((a, idx) => (
+                  <div key={idx} className="flex gap-2 items-start">
+                    <div className="flex-1 min-w-0">
+                      <BillboardSelect
+                        value={a.billboardId}
+                        onChange={(v) => setAllocs((p) => p.map((x, i) => (i === idx ? { ...x, billboardId: v } : x)))}
+                        department={selectedIssue?.requester_department || undefined}
+                        allowedBillboardIds={compatibleBbIds}
+                        emptyLabel="อะไหล่นี้ยังไม่ระบุป้ายที่รองรับ กรุณาแจ้ง Admin"
+                        disabled={compatLoading}
+                      />
+                    </div>
+                    <Input
+                      type="number"
+                      min={1}
+                      className="w-20"
+                      value={a.qty}
+                      onChange={(e) => setAllocs((p) => p.map((x, i) => (i === idx ? { ...x, qty: e.target.value } : x)))}
+                      onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                    />
+                    {allocs.length > 1 && (
+                      <Button type="button" variant="ghost" size="icon" onClick={() => setAllocs((p) => p.filter((_, i) => i !== idx))}>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <div className="flex items-center justify-between">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={allocTotal >= lineLeft(selectedItem)}
+                    onClick={() => setAllocs((p) => [...p, { billboardId: "", qty: String(Math.max(1, lineLeft(selectedItem) - allocTotal)) }])}
+                  >
+                    + เพิ่มป้าย
+                  </Button>
+                  <span className={`text-sm ${allocTotal > lineLeft(selectedItem) ? "text-destructive" : "text-muted-foreground"}`}>
+                    รวม {allocTotal} / {lineLeft(selectedItem)}
+                  </span>
+                </div>
+                {allocError && <p className="text-sm text-destructive">{allocError}</p>}
                 <p className="text-xs text-muted-foreground">ส่วนที่เหลือยังค้างอยู่ และกดส่งคืนได้ที่แท็บ "รอส่งคืน" (ถ้าวัตถุประสงค์กำหนดให้คืน)</p>
               </div>
-            )}
-
+            ) : (
             <div className="space-y-2">
               <Label>เลือกป้ายโฆษณา</Label>
               <BillboardSelect
@@ -1102,12 +1135,13 @@ const IncompleteIssues = () => {
                 disabled={compatLoading}
               />
             </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBillboardDialogOpen(false)}>ยกเลิก</Button>
             <Button 
               onClick={() => selectedItem ? assignBillboardToItem.mutate() : assignBillboard.mutate()} 
-              disabled={!billboardId || assignBillboard.isPending || assignBillboardToItem.isPending}
+              disabled={(isMultiAlloc ? !!allocError : !billboardId) || assignBillboard.isPending || assignBillboardToItem.isPending}
             >
               {(assignBillboard.isPending || assignBillboardToItem.isPending) ? "กำลังบันทึก..." : "บันทึก"}
             </Button>
