@@ -46,6 +46,8 @@ interface Props {
   requesterDepartment?: string | null;
   item: ReturnItemLine | null;
   onSaved: () => void;
+  /** Purpose needs both billboard + return: installing does not reduce what must be returned */
+  independentOfInstall?: boolean;
 }
 
 const genDocNo = () =>
@@ -60,6 +62,7 @@ export function ReturnItemDialog({
   requesterDepartment,
   item,
   onSaved,
+  independentOfInstall = false,
 }: Props) {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
@@ -80,7 +83,7 @@ export function ReturnItemDialog({
   const issuedQty = item ? item.issued_quantity ?? item.quantity : 0;
   const alreadyReturned = (item?.returned_good_qty || 0) + (item?.returned_defective_qty || 0);
   const installedQty = item ? (item.installed_qty != null ? Number(item.installed_qty) : item.billboard_id ? issuedQty : 0) : 0;
-  const outstanding = Math.max(0, issuedQty - alreadyReturned - installedQty
+  const outstanding = Math.max(0, issuedQty - alreadyReturned - (independentOfInstall ? 0 : installedQty)
     - Number(item?.written_off_qty || 0) - Number(item?.transferred_qty || 0));
 
   useEffect(() => {
@@ -307,7 +310,11 @@ export function ReturnItemDialog({
                 min={0}
                 max={outstanding}
                 value={goodQty}
-                onChange={(e) => setGoodQty(String(Math.min(outstanding, Math.max(0, parseInt(e.target.value || "0") || 0))))}
+                onChange={(e) => {
+                  const g = Math.min(outstanding, Math.max(0, parseInt(e.target.value || "0") || 0));
+                  setGoodQty(String(g));
+                  setDefectiveQty(String(outstanding - g));
+                }}
                 onWheel={(e) => (e.target as HTMLInputElement).blur()}
               />
             </div>
@@ -328,9 +335,13 @@ export function ReturnItemDialog({
                 <Input
                   type="number"
                   min={0}
-                  max={Math.max(0, outstanding - good)}
+                  max={outstanding}
                   value={defectiveQty}
-                  onChange={(e) => setDefectiveQty(String(Math.min(Math.max(0, outstanding - good), Math.max(0, parseInt(e.target.value || "0") || 0))))}
+                  onChange={(e) => {
+                    const d = Math.min(outstanding, Math.max(0, parseInt(e.target.value || "0") || 0));
+                    setDefectiveQty(String(d));
+                    setGoodQty(String(outstanding - d));
+                  }}
                   onWheel={(e) => (e.target as HTMLInputElement).blur()}
                 />
               </div>

@@ -370,12 +370,14 @@ const IncompleteIssues = () => {
       if (selectedIssue) {
         const { data: latestItems, error: latestItemsError } = await supabase
           .from("goods_issue_pending_items")
-          .select("id, status, billboard_id, issued_quantity, quantity, installed_qty, returned_good_qty, returned_defective_qty, written_off_qty, transferred_qty")
+          .select("id, status, billboard_id, needs_return, issued_quantity, quantity, installed_qty, returned_good_qty, returned_defective_qty, written_off_qty, transferred_qty")
           .eq("pending_id", selectedIssue.id);
         if (latestItemsError) throw latestItemsError;
 
         const allSettled = (latestItems || []).every(
-          (item: any) => item.status !== "issued" || lineLeft(item) === 0,
+          (item: any) => item.status !== "issued" || (lineLeft(item) === 0 &&
+            (!(getPurposeInfo(selectedIssue.purpose_id)?.requires_billboard && getPurposeInfo(selectedIssue.purpose_id)?.requires_return)
+              || item.needs_return === false || returnLeftIndependent(item) === 0)),
         );
         const anyReturned = (latestItems || []).some(
           (item: any) => (item.returned_good_qty || 0) + (item.returned_defective_qty || 0) > 0,
@@ -1193,6 +1195,7 @@ const IncompleteIssues = () => {
       </Dialog>
 
       <ReturnItemDialog
+        independentOfInstall={(() => { const p = getPurposeInfo(returnTarget?.issue.purpose_id); return !!(p?.requires_billboard && p?.requires_return); })()}
         open={itemReturnOpen}
         onOpenChange={setItemReturnOpen}
         documentNo={returnTarget?.issue.document_no || ""}
