@@ -30,7 +30,7 @@ import { ReturnItemDialog, type ReturnItemLine } from "@/components/issue/Return
 import { SpecialRequestDialog } from "@/components/special-request/SpecialRequestDialog";
 import { PendingGoodReturns, usePendingGoodReturns } from "@/components/issue/PendingGoodReturns";
 import { AwaitingUsageTab } from "@/components/issue/AwaitingUsageTab";
-import { lineIssued, lineInstalled, lineLeft } from "@/lib/issueQuantities";
+import { lineIssued, lineInstalled, lineLeft, billboardLeft, returnLeftIndependent } from "@/lib/issueQuantities";
 
 interface IncompleteIssue {
   id: string;
@@ -191,10 +191,10 @@ const IncompleteIssues = () => {
         const purpose = item.purpose_id ? purposeMap.get(item.purpose_id) : null;
         const lineItems = itemsByPending.get(item.id) || [];
         if (lineItems.length > 0) {
-          const open = lineItems.some((li) => li.status === "issued" && lineLeft(li) > 0);
-          if (!open) return false;
-          const openReturn = lineItems.some((li) => li.status === "issued" && li.needs_return !== false && lineLeft(li) > 0);
-          return !!(purpose?.requires_billboard || (purpose?.requires_return && openReturn));
+          const both = !!(purpose?.requires_billboard && purpose?.requires_return);
+          const openBB = !!purpose?.requires_billboard && lineItems.some((li) => li.status === "issued" && (both ? billboardLeft(li) : lineLeft(li)) > 0);
+          const openReturn = !!purpose?.requires_return && lineItems.some((li) => li.status === "issued" && li.needs_return !== false && (both ? returnLeftIndependent(li) : lineLeft(li)) > 0);
+          return openBB || openReturn;
         }
         if (purpose?.requires_billboard && !item.billboard_id) return true;
         if (purpose?.requires_return && (item.return_quantity || 0) < (item.issued_quantity || 0)) return true;
@@ -370,12 +370,14 @@ const IncompleteIssues = () => {
       if (selectedIssue) {
         const { data: latestItems, error: latestItemsError } = await supabase
           .from("goods_issue_pending_items")
-          .select("id, status, billboard_id, issued_quantity, quantity, installed_qty, returned_good_qty, returned_defective_qty, written_off_qty, transferred_qty")
+          .select("id, status, billboard_id, needs_return, issued_quantity, quantity, installed_qty, returned_good_qty, returned_defective_qty, written_off_qty, transferred_qty")
           .eq("pending_id", selectedIssue.id);
         if (latestItemsError) throw latestItemsError;
 
         const allSettled = (latestItems || []).every(
-          (item: any) => item.status !== "issued" || lineLeft(item) === 0,
+          (item: any) => item.status !== "issued" || (lineLeft(item) === 0 &&
+            (!(getPurposeInfo(selectedIssue.purpose_id)?.requires_billboard && getPurposeInfo(selectedIssue.purpose_id)?.requires_return)
+              || item.needs_return === false || returnLeftIndependent(item) === 0)),
         );
         const anyReturned = (latestItems || []).some(
           (item: any) => (item.returned_good_qty || 0) + (item.returned_defective_qty || 0) > 0,
@@ -560,7 +562,8 @@ const IncompleteIssues = () => {
     if (!purpose?.requires_billboard) return false;
     const items = itemsByIssue.get(issue.id) || [];
     if (items.length === 0) return !issue.billboard_id;
-    return items.some((it) => it.status === "issued" && lineLeft(it) > 0);
+    const both = !!purpose.requires_return;
+    return items.some((it) => it.status === "issued" && (both ? billboardLeft(it) : lineLeft(it)) > 0);
   };
 
   const needsReturn = (issue: IncompleteIssue) => {
@@ -568,12 +571,19 @@ const IncompleteIssues = () => {
     if (!purpose?.requires_return) return false;
     const items = itemsByIssue.get(issue.id) || [];
     if (items.length === 0) return (issue.return_quantity || 0) < (issue.issued_quantity || issue.quantity || 0);
-    return items.some((it) => it.status === "issued" && it.needs_return !== false && lineLeft(it) > 0);
+    return items.some((it) => it.status === "issued" && it.needs_return !== false && returnLeftFor(issue, it) > 0);
+  };
+
+  const returnLeftFor = (issue: IncompleteIssue, it: any) => {
+    const purpose = getPurposeInfo(issue.purpose_id);
+    return purpose?.requires_billboard && purpose?.requires_return ? returnLeftIndependent(it) : lineLeft(it);
   };
 
   const getItemsNeedingBillboard = (issue: IncompleteIssue) => {
     const items = itemsByIssue.get(issue.id) || [];
-    return items.filter(item => item.status === "issued" && lineLeft(item) > 0);
+    const purpose = getPurposeInfo(issue.purpose_id);
+    const both = !!(purpose?.requires_billboard && purpose?.requires_return);
+    return items.filter(item => item.status === "issued" && (both ? billboardLeft(item) : lineLeft(item)) > 0);
   };
 
   const filteredIssues = incompleteIssues?.issues.filter(
@@ -891,7 +901,7 @@ const IncompleteIssues = () => {
                                       const inst = lineInstalled(item);
                                       const g = item.returned_good_qty || 0;
                                       const d = item.returned_defective_qty || 0;
-                                      const left = lineLeft(item);
+                                      const left = returnLeftFor(issue, item);
                                       return (
                                         <TableRow key={item.id} className={left > 0 ? "bg-orange-50/40" : ""}>
                                           <TableCell className="font-mono text-sm">{item.equipment_code || "-"}</TableCell>
@@ -1185,6 +1195,7 @@ const IncompleteIssues = () => {
       </Dialog>
 
       <ReturnItemDialog
+        independentOfInstall={(() => { const p = getPurposeInfo(returnTarget?.issue.purpose_id); return !!(p?.requires_billboard && p?.requires_return); })()}
         open={itemReturnOpen}
         onOpenChange={setItemReturnOpen}
         documentNo={returnTarget?.issue.document_no || ""}

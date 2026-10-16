@@ -18,3 +18,15 @@ export const lineLeft = (line: IssueQuantities) => Math.max(
     - Number(line.returned_defective_qty || 0) - Number(line.written_off_qty || 0)
     - Number(line.transferred_qty || 0),
 );
+const settledOther = (line: IssueQuantities) =>
+  Number(line.written_off_qty || 0) + Number(line.transferred_qty || 0);
+const returnedTotal = (line: IssueQuantities) =>
+  Number(line.returned_good_qty || 0) + Number(line.returned_defective_qty || 0);
+
+/** Units still awaiting a billboard assignment (cleared once installed). */
+export const billboardLeft = (line: IssueQuantities) =>
+  Math.max(0, lineIssued(line) - lineInstalled(line) - returnedTotal(line) - settledOther(line));
+
+/** Units still to be returned when a purpose needs BOTH billboard and return: installing does not clear it. */
+export const returnLeftIndependent = (line: IssueQuantities) =>
+  Math.max(0, lineIssued(line) - returnedTotal(line) - settledOther(line));
