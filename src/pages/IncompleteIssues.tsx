@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, AlertTriangle, MapPin, Package, RefreshCw, Clock, ChevronDown, ChevronRight, ShoppingCart, Edit, Warehouse } from "lucide-react";
+import { Search, AlertTriangle, MapPin, Package, RefreshCw, Clock, ChevronDown, ChevronRight, ShoppingCart, Edit, Warehouse, X } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { useDeptScope } from "@/hooks/useDeptScope";
@@ -99,6 +99,7 @@ const IncompleteIssues = () => {
   const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
   const [billboardId, setBillboardId] = useState("");
   const [installQty, setInstallQty] = useState("1");
+  const [allocs, setAllocs] = useState<{ billboardId: string; qty: string }[]>([{ billboardId: "", qty: "1" }]);
   const [compatibleBbIds, setCompatibleBbIds] = useState<string[] | null>(null);
   const [compatLoading, setCompatLoading] = useState(false);
   const [returnData, setReturnData] = useState({
@@ -109,6 +110,18 @@ const IncompleteIssues = () => {
     notes: "",
   });
 
+  const isMultiAlloc = !!selectedItem && !(selectedItem.media_player_id || selectedItem.is_media_player);
+  const allocTotal = allocs.reduce((s, a) => s + Math.max(0, parseInt(a.qty || "0") || 0), 0);
+  const allocError = (() => {
+    if (!isMultiAlloc || !selectedItem) return null;
+    const left = lineLeft(selectedItem);
+    if (allocs.some((a) => !a.billboardId)) return "กรุณาเลือกป้ายให้ครบทุกแถว";
+    if (allocs.some((a) => (parseInt(a.qty || "0") || 0) <= 0)) return "จำนวนแต่ละป้ายต้องมากกว่า 0";
+    if (new Set(allocs.map((a) => a.billboardId)).size !== allocs.length) return "เลือกป้ายซ้ำกัน กรุณารวมเป็นแถวเดียว";
+    if (allocTotal > left) return `จำนวนรวมเกินยอดค้าง (${left})`;
+    return null;
+  })();
+
   // Prefetch compatible billboard IDs whenever the assignment dialog opens for an equipment item.
   // MP items keep allowedBillboardIds = null (show all billboards of the requester's department).
   const openBillboardDialog = async (issue: IncompleteIssue, item: PendingItem | null) => {
@@ -116,6 +129,7 @@ const IncompleteIssues = () => {
     setSelectedItem(item);
     setBillboardId("");
     setInstallQty(String(item ? Math.max(1, lineLeft(item)) : 1));
+    setAllocs([{ billboardId: "", qty: String(item ? Math.max(1, lineLeft(item)) : 1) }]);
     setCompatibleBbIds(null);
     setBillboardDialogOpen(true);
 
@@ -285,22 +299,25 @@ const IncompleteIssues = () => {
   // Assign billboard to item mutation
   const assignBillboardToItem = useMutation({
     mutationFn: async () => {
-      if (!selectedItem || !billboardId || !user) return;
+      if (!selectedItem || !user) return;
       const isMPItem = !!(selectedItem.media_player_id || selectedItem.is_media_player);
-      const left = lineLeft(selectedItem);
-      const qty = isMPItem ? 1 : Math.max(0, parseInt(installQty || "0") || 0);
-      if (qty <= 0 || qty > Math.max(left, isMPItem ? 1 : 0)) throw new Error(`จำนวนติดตั้งต้องอยู่ระหว่าง 1 - ${left}`);
+      if (isMPItem && !billboardId) return;
+      if (!isMPItem && allocError) throw new Error(allocError);
+      const rows = isMPItem
+        ? [{ billboardId, qty: 1 }]
+        : allocs.map((a) => ({ billboardId: a.billboardId, qty: parseInt(a.qty || "0") || 0 }));
+      const qty = rows.reduce((s, r) => s + r.qty, 0);
+      const firstBb = rows[0].billboardId;
       const newInstalled = lineInstalled(selectedItem) + qty;
 
-      // Update item with billboard
       const { error: itemError } = await supabase
         .from("goods_issue_pending_items")
         .update({
-          billboard_id: billboardId,
+          billboard_id: firstBb,
           installed_qty: newInstalled,
           install_status: "installed",
           intended_billboard_id: null,
-          notes: (selectedItem.notes || "") + ` | ติดตั้งที่ป้าย ${qty}`,
+          notes: (selectedItem.notes || "") + ` | ติดตั้งที่ป้าย ${qty}${rows.length > 1 ? ` (${rows.length} ป้าย)` : ""}`,
         } as any)
         .eq("id", selectedItem.id);
 
@@ -308,7 +325,6 @@ const IncompleteIssues = () => {
 
       const installationDate = new Date().toISOString().split('T')[0];
 
-      // Create billboard_equipment record / update Media Player current location
       if (selectedItem.media_player_id) {
         const { data: currentMp, error: mpFetchError } = await supabase
           .from("media_players")
@@ -355,14 +371,14 @@ const IncompleteIssues = () => {
       } else if (selectedItem.equipment_id) {
         const { error: billboardError } = await supabase
           .from("billboard_equipment")
-          .insert({
-            billboard_id: billboardId,
-            equipment_id: selectedItem.equipment_id,
-            quantity: qty,
+          .insert(rows.map((r) => ({
+            billboard_id: r.billboardId,
+            equipment_id: selectedItem.equipment_id!,
+            quantity: r.qty,
             installation_date: installationDate,
             notes: `จากเอกสาร ${selectedIssue?.document_no} - ${selectedItem.equipment_name}`,
             created_by: user.id,
-          });
+          })));
         if (billboardError) throw billboardError;
       }
 
