@@ -75,6 +75,7 @@ export function ReturnItemDialog({
   const [symptomOther, setSymptomOther] = useState("");
   const [billboardId, setBillboardId] = useState("");
   const [autoBillboardLabel, setAutoBillboardLabel] = useState<string | null>(null);
+  const [docBillboards, setDocBillboards] = useState<{ id: string; label: string; qty: number }[]>([]);
   const [notes, setNotes] = useState("");
   const [goodPhotos, setGoodPhotos] = useState<string[]>([]);
   const [defPhotos, setDefPhotos] = useState<string[]>([]);
@@ -98,6 +99,26 @@ export function ReturnItemDialog({
     setDefPhotos([]);
     setBillboardId(item.billboard_id || "");
     setAutoBillboardLabel(null);
+    setDocBillboards([]);
+
+    // Billboards this document installed this item on (multi-billboard installs)
+    (async () => {
+      if (!item.equipment_id || !documentNo) return;
+      const { data: rows } = await supabase
+        .from("billboard_equipment")
+        .select("billboard_id, quantity, billboards(old_code, location_name, equipment_id)")
+        .eq("equipment_id", item.equipment_id)
+        .ilike("notes", `จากเอกสาร ${documentNo}%`);
+      const map = new Map<string, { id: string; label: string; qty: number }>();
+      (rows || []).forEach((r: any) => {
+        const cur = map.get(r.billboard_id);
+        const label = formatBillboardLabel(r.billboards?.old_code, r.billboards?.location_name, r.billboards?.equipment_id);
+        map.set(r.billboard_id, { id: r.billboard_id, label, qty: (cur?.qty || 0) + Number(r.quantity || 0) });
+      });
+      const list = Array.from(map.values());
+      setDocBillboards(list);
+      if (list.length === 1 && !item.billboard_id) setBillboardId(list[0].id);
+    })();
 
     // MP / Monitor: auto-resolve the billboard it is currently installed on
     (async () => {
@@ -379,6 +400,23 @@ export function ReturnItemDialog({
                     <p className="text-xs text-muted-foreground">
                       ดึงอัตโนมัติจากป้ายที่ติดตั้งอยู่: <span className="font-medium">{autoBillboardLabel}</span>
                     </p>
+                  )}
+                  {docBillboards.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="text-xs text-muted-foreground w-full">ป้ายที่ใบเบิกนี้ติดตั้งไว้ (กดเลือก):</span>
+                      {docBillboards.map((b) => (
+                        <Button
+                          key={b.id}
+                          type="button"
+                          size="sm"
+                          variant={billboardId === b.id ? "default" : "outline"}
+                          className="h-7 text-xs"
+                          onClick={() => setBillboardId(b.id)}
+                        >
+                          {b.label} ({b.qty})
+                        </Button>
+                      ))}
+                    </div>
                   )}
                   <BillboardSelect value={billboardId} onChange={setBillboardId} />
                   {isMP && (
