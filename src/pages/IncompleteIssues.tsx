@@ -1157,7 +1157,7 @@ const IncompleteIssues = () => {
             <Button variant="outline" onClick={() => setBillboardDialogOpen(false)}>ยกเลิก</Button>
             <Button 
               onClick={() => selectedItem ? assignBillboardToItem.mutate() : assignBillboard.mutate()} 
-              disabled={(isMultiAlloc ? !!allocError : !billboardId) || assignBillboard.isPending || assignBillboardToItem.isPending}
+              disabled={(selectedItem && !(selectedItem.media_player_id || selectedItem.is_media_player) ? !!allocError : !billboardId) || assignBillboard.isPending || assignBillboardToItem.isPending}
             >
               {(assignBillboard.isPending || assignBillboardToItem.isPending) ? "กำลังบันทึก..." : "บันทึก"}
             </Button>
