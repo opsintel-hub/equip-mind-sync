@@ -9,4 +9,4 @@
 - [x] Show issue purpose in Document Search
 - [x] Special Request Center (generic request types, Super Admin review, auto force-close, notifications, log)
 - [x] Add “สินค้ารอใช้งาน” tab with scoped outstanding quantities and filtered Excel export; no API
-- [ ] Remove outside-issue defective returns and restrict return billboards to the issue's own assignments; verify quantity rules and return screen
+- [x] Remove outside-issue defective returns and restrict return billboards to the issue's own assignments; quantity tests and authenticated return screen verified without saving live stock changes
