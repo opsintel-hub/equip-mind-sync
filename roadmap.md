@@ -10,3 +10,4 @@
 - [x] Special Request Center (generic request types, Super Admin review, auto force-close, notifications, log)
 - [x] Add “สินค้ารอใช้งาน” tab with scoped outstanding quantities and filtered Excel export; no API
 - [x] Remove outside-issue defective returns and restrict return billboards to the issue's own assignments; quantity tests and authenticated return screen verified without saving live stock changes
+- [ ] Multi-billboard defective issue returns with per-billboard limits and atomic separate uninstall histories
