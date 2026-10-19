@@ -133,11 +133,13 @@ export function ReturnItemDialog({
     if (loadingBillboards) return "กำลังโหลดป้ายของใบเบิก...";
     if (billboardLoadError) return "โหลดป้ายไม่สำเร็จ กรุณาปิดแล้วเปิดหน้าต่างใหม่";
     if (good + defective === 0) return "กรุณาระบุจำนวนที่ส่งคืนอย่างน้อย 1 ชิ้น";
+    const allocationError = validateDefectiveAllocations(docBillboards, allocations, defective);
+    if (allocationError) return allocationError;
     if ((defective > 0) && !symptomId && !symptomOther.trim())
       return "กรุณาระบุอาการเสีย";
     if (good > 0 && goodPhotos.length < 1) return "กรุณาแนบรูปของดีอย่างน้อย 1 รูป";
     if ((defective > 0) && defPhotos.length < 1) return "กรุณาแนบรูปของเสียอย่างน้อย 1 รูป";
-    return validateDefectiveAllocations(docBillboards, allocations, defective);
+    return null;
   }, [item, good, defective, symptomId, symptomOther, allocations, docBillboards, goodPhotos, defPhotos, loadingBillboards, billboardLoadError]);
 
   const handleSave = async () => {
