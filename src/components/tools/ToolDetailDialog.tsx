@@ -81,7 +81,7 @@ export function ToolDetailDialog({ tool, open, onOpenChange }: Props) {
             <Field label="คลัง/ตำแหน่งจัดเก็บ" value={tool.location?.name} />
             <Field label="ผู้จัดจำหน่าย" value={tool.supplier?.name} />
             <Field label="ผู้รับผิดชอบ" value={tool.responsible_person} />
-            <Field label="ระยะเวลา PM" value={`${tool.pm_interval_days} วัน`} />
+            <Field label="ระยะเวลา PM" value={tool.pm_interval_days ? `${tool.pm_interval_days} วัน` : "ไม่มี"} />
             <Field
               label="มีประกัน"
               value={tool.has_warranty ? <Badge variant="secondary">มีประกัน</Badge> : "ไม่มี"}

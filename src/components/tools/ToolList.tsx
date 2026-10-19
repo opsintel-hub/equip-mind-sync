@@ -145,6 +145,7 @@ export function ToolList({ refreshKey, readOnly = false, showSummary = false }: 
   };
 
   const getPMIntervalLabel = (days: number) => {
+    if (!days) return "ไม่มี";
     switch (days) {
       case 15: return "15 วัน";
       case 30: return "30 วัน";
