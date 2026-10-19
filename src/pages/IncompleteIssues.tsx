@@ -373,10 +373,10 @@ const IncompleteIssues = () => {
           .from("billboard_equipment")
           .insert(rows.map((r) => ({
             billboard_id: r.billboardId,
-            equipment_id: selectedItem.equipment_id!,
+            equipment_id: selectedItem.equipment_id,
             quantity: r.qty,
             installation_date: installationDate,
-            notes: `จากเอกสาร ${selectedIssue?.document_no} - ${selectedItem.equipment_name}`,
+            notes: `จากเอกสาร ${selectedIssue?.document_no} - ${selectedItem.equipment_name} [issue-item:${selectedItem.id}]`,
             created_by: user.id,
           })));
         if (billboardError) throw billboardError;
