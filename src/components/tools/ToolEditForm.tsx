@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { toolEditFormSchema, type ToolEditFormValues, describeToolFormErrors } from "@/lib/toolForm";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,31 +30,9 @@ import { ToolImageUpload, loadToolImages, persistToolImages, type ToolImageItem 
 import { ToolPMMatrix, loadToolPMMatrix, saveToolPMMatrix, type PMMatrixRow } from "./ToolPMMatrix";
 import { ToolDocumentUpload, loadToolDocuments, type ToolDocumentItem } from "./ToolDocumentUpload";
 
-const formSchema = z.object({
-  name: z.string().min(1, "กรุณากรอกชื่อเครื่องมือ"),
-  description: z.string().optional(),
-  tool_category_id: z.string().optional(),
-  tool_subcategory_id: z.string().optional(),
-  department: z.string().optional(),
-  company_id: z.string().optional(),
-  brand: z.string().optional(),
-  unit: z.string().min(1, "กรุณากรอกหน่วยนับ"),
-  serial_number: z.string().optional(),
-  unit_price: z.coerce.number().min(0).optional(),
-  location_id: z.string().optional(),
-  supplier_id: z.string().optional(),
-  expiry_date: z.string().optional(),
-  warranty_expiry_date: z.string().optional(),
-  has_warranty: z.boolean().default(true),
-  pm_interval_days: z.coerce.number().min(1).optional(),
-  notes: z.string().optional(),
-  is_asset: z.boolean().default(false),
-  asset_code: z.string().optional(),
-  responsible_person: z.string().optional(),
-  is_personal_tool: z.boolean().default(false),
-});
+const formSchema = toolEditFormSchema;
 
-type FormData = z.infer<typeof formSchema>;
+type FormData = ToolEditFormValues;
 
 interface ToolEditFormProps {
   tool: {
@@ -185,6 +163,15 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
   const hasWarranty = form.watch("has_warranty");
   const isAsset = form.watch("is_asset");
 
+  const onInvalid = (errors: any) => {
+    const messages = describeToolFormErrors(errors);
+    toast.error(
+      messages.length
+        ? `บันทึกไม่ได้ — ${messages.join(" · ")}`
+        : "บันทึกไม่ได้ — กรุณาตรวจข้อมูลในฟอร์ม"
+    );
+  };
+
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
@@ -206,7 +193,7 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
           expiry_date: data.expiry_date || null,
           warranty_expiry_date: data.has_warranty ? data.warranty_expiry_date || null : null,
           has_warranty: data.has_warranty,
-          pm_interval_days: data.pm_interval_days,
+          pm_interval_days: data.pm_interval_days ?? 0,
           notes: data.notes || null,
           is_asset: data.is_asset,
           asset_code: data.is_asset ? data.asset_code || null : null,
@@ -248,7 +235,7 @@ export function ToolEditForm({ tool, open, onOpenChange, onSuccess }: ToolEditFo
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <FormLabel>รหัสเครื่องมือ</FormLabel>
