@@ -8,13 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { format } from "date-fns";
-import { RefreshCw, PackageCheck, AlertTriangle, MapPin } from "lucide-react";
+import { RefreshCw, PackageCheck, AlertTriangle, MapPin, Plus, Trash2 } from "lucide-react";
 import { SymptomSelect } from "@/components/media-player/SymptomSelect";
-import { useAuth } from "@/hooks/useAuth";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { ReturnPhotoDropzone } from "./ReturnPhotoDropzone";
-import { balanceIssueReturn, defaultReturnBillboard, validReturnBillboard, type ReturnBillboard } from "@/lib/issueReturnForm";
+import { balanceIssueReturn, validateDefectiveAllocations, type DefectiveAllocation, type ReturnBillboard } from "@/lib/issueReturnForm";
 
 export interface ReturnItemLine {
   id: string;
@@ -50,9 +49,6 @@ interface Props {
   independentOfInstall?: boolean;
 }
 
-const genDocNo = () =>
-  `DR-${format(new Date(), "yyyyMMdd")}-${Math.floor(Math.random() * 9999 + 1).toString().padStart(4, "0")}`;
-
 export function ReturnItemDialog({
   open,
   onOpenChange,
@@ -64,7 +60,6 @@ export function ReturnItemDialog({
   onSaved,
   independentOfInstall = false,
 }: Props) {
-  const { user } = useAuth();
   const [saving, setSaving] = useState(false);
 
   const [goodQty, setGoodQty] = useState("0");
@@ -72,7 +67,9 @@ export function ReturnItemDialog({
   const [defectiveQty, setDefectiveQty] = useState("0");
   const [symptomId, setSymptomId] = useState("");
   const [symptomOther, setSymptomOther] = useState("");
-  const [billboardId, setBillboardId] = useState("");
+  const [allocations, setAllocations] = useState<DefectiveAllocation[]>([]);
+  const [loadingBillboards, setLoadingBillboards] = useState(false);
+  const [billboardLoadError, setBillboardLoadError] = useState(false);
   const [docBillboards, setDocBillboards] = useState<ReturnBillboard[]>([]);
   const [notes, setNotes] = useState("");
   const [goodPhotos, setGoodPhotos] = useState<string[]>([]);
@@ -94,49 +91,29 @@ export function ReturnItemDialog({
     setNotes("");
     setGoodPhotos([]);
     setDefPhotos([]);
-    setBillboardId("");
+    setAllocations([]);
+    setLoadingBillboards(true);
+    setBillboardLoadError(false);
     setDocBillboards([]);
 
     let cancelled = false;
     // Only assignments belonging to this issue item/document are return choices.
     (async () => {
-      const map = new Map<string, ReturnBillboard>();
-      if (item.equipment_id && !isMP && documentNo) {
-        const { data: rows, error: loadError } = await supabase
-          .from("billboard_equipment")
-          .select("billboard_id, quantity, billboards(old_code, location_name, equipment_id)")
-          .eq("equipment_id", item.equipment_id)
-          .ilike("notes", `จากเอกสาร ${documentNo} - %`);
-        if (cancelled) return;
-        if (loadError) toast.error("โหลดป้ายของใบเบิกไม่สำเร็จ");
-        (rows || []).forEach((r: any) => {
-          const current = map.get(r.billboard_id);
-          map.set(r.billboard_id, {
-            id: r.billboard_id,
-            label: formatBillboardLabel(r.billboards?.old_code, r.billboards?.location_name, r.billboards?.equipment_id),
-            qty: (current?.qty || 0) + Number(r.quantity || 0),
-          });
-        });
-      }
-      // The line's saved assignment is authoritative; do not use an MP's unrelated current location.
-      if (item.billboard_id && !map.has(item.billboard_id)) {
-        const { data: bb, error: loadError } = await supabase
-          .from("billboards")
-          .select("old_code, location_name, equipment_id")
-          .eq("id", item.billboard_id)
-          .maybeSingle();
-        if (cancelled) return;
-        if (loadError) toast.error("โหลดป้ายของใบเบิกไม่สำเร็จ");
-        if (bb) map.set(item.billboard_id, {
-          id: item.billboard_id,
-          label: formatBillboardLabel(bb.old_code, bb.location_name, bb.equipment_id),
-          qty: installedQty,
-        });
-      }
+      const { data, error: loadError } = await supabase.rpc("issue_return_billboards", { _item_id: item.id });
       if (cancelled) return;
-      const list = Array.from(map.values());
+      setLoadingBillboards(false);
+      if (loadError) {
+        setBillboardLoadError(true);
+        toast.error("โหลดป้ายของใบเบิกไม่สำเร็จ");
+        return;
+      }
+      const list: ReturnBillboard[] = (data || []).map((b) => ({
+        id: b.id,
+        label: formatBillboardLabel(b.old_code, b.location_name, b.equipment_code),
+        qty: Number(b.qty),
+      }));
       setDocBillboards(list);
-      setBillboardId(defaultReturnBillboard(list));
+      setAllocations(list.length === 1 ? [{ billboardId: list[0].id, quantity: "0" }] : []);
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -146,54 +123,24 @@ export function ReturnItemDialog({
   const good = Math.min(outstanding, Math.max(0, parseInt(goodQty || "0") || 0));
   const defective = Math.min(outstanding - good, Math.max(0, parseInt(defectiveQty || "0") || 0));
 
+  useEffect(() => {
+    if (docBillboards.length !== 1) return;
+    setAllocations([{ billboardId: docBillboards[0].id, quantity: String(defective) }]);
+  }, [defective, docBillboards]);
+
   const error = useMemo(() => {
     if (!item) return "ไม่พบรายการ";
+    if (loadingBillboards) return "กำลังโหลดป้ายของใบเบิก...";
+    if (billboardLoadError) return "โหลดป้ายไม่สำเร็จ กรุณาปิดแล้วเปิดหน้าต่างใหม่";
     if (good + defective === 0) return "กรุณาระบุจำนวนที่ส่งคืนอย่างน้อย 1 ชิ้น";
+    const allocationError = validateDefectiveAllocations(docBillboards, allocations, defective);
+    if (allocationError) return allocationError;
     if ((defective > 0) && !symptomId && !symptomOther.trim())
       return "กรุณาระบุอาการเสีย";
     if (good > 0 && goodPhotos.length < 1) return "กรุณาแนบรูปของดีอย่างน้อย 1 รูป";
     if ((defective > 0) && defPhotos.length < 1) return "กรุณาแนบรูปของเสียอย่างน้อย 1 รูป";
-    if (defective > 0 && docBillboards.length > 1 && !validReturnBillboard(docBillboards, billboardId))
-      return "กรุณาระบุป้ายที่ถอดอุปกรณ์ออกมา";
     return null;
-  }, [item, good, defective, symptomId, symptomOther, billboardId, docBillboards, goodPhotos, defPhotos]);
-
-  const buildReason = async () => {
-    let symptomName = "";
-    if (symptomId) {
-      const { data } = await supabase.from("mp_symptoms").select("name").eq("id", symptomId).maybeSingle();
-      symptomName = data?.name || "";
-    }
-    return [symptomName, symptomOther.trim()].filter(Boolean).join(" - ") || "ของเสียจากหน้างาน";
-  };
-
-  const createDefectiveTicket = async (qty: number, reasonText: string) => {
-    if (!item) throw new Error("ไม่พบรายการ");
-    const docNo = genDocNo();
-    const { error: insErr } = await supabase.from("defective_returns").insert({
-      document_no: docNo,
-      equipment_id: isMP ? null : item.equipment_id,
-      media_player_id: isMP ? item.media_player_id : null,
-      is_media_player: isMP,
-      quantity: qty,
-      billboard_id: validReturnBillboard(docBillboards, billboardId),
-      item_condition: "defective",
-      reason: `[คืนจากหน้างาน] ${reasonText}${item.serial_number ? ` | S/N: ${item.serial_number}` : ""}`,
-      status: "pending_warehouse_entry",
-      source_type: "from_issue",
-      symptom_id: symptomId || null,
-      symptom_other: symptomOther.trim() || null,
-      source_issue_item_id: item.id,
-      source_document: documentNo,
-      dispose_status: "pending_disposal_review",
-      reporter_name: requesterName || null,
-      reporter_department: requesterDepartment || null,
-      notes: notes.trim() || null,
-      return_photos: defPhotos,
-      created_by: user?.id,
-    } as any);
-    if (insErr) throw insErr;
-  };
+  }, [item, good, defective, symptomId, symptomOther, allocations, docBillboards, goodPhotos, defPhotos, loadingBillboards, billboardLoadError]);
 
   const handleSave = async () => {
     if (!item || error) {
@@ -202,73 +149,19 @@ export function ReturnItemDialog({
     }
     setSaving(true);
     try {
-      // 1) Good items: submit to warehouse — stock lands only after warehouse confirms + picks location
-      if (good > 0) {
-        const { error: gErr } = await supabase.from("issue_good_returns").insert({
-          pending_id: pendingId,
-          pending_item_id: item.id,
-          document_no: documentNo,
-          equipment_id: isMP ? null : item.equipment_id,
-          media_player_id: item.media_player_id || null,
-          is_media_player: isMP,
-          equipment_code: item.equipment_code,
-          equipment_name: item.equipment_name,
-          serial_number: item.serial_number,
-          quantity: good,
-          unit: item.unit,
-          department: requesterDepartment || null,
-          notes: notes.trim() || null,
-          submitted_by: user?.id,
-          submitted_by_name: requesterName || null,
-          photos: goodPhotos,
-        } as any);
-        if (gErr) throw gErr;
-      }
-
-      // 2) Defective tickets — warehouse must confirm before stock lands in WH-DEFECT
-      if (defective > 0) {
-        const reasonText = await buildReason();
-        if (defective > 0) await createDefectiveTicket(defective, reasonText);
-      }
-
-      // 3) Update the issue line
-      const newGood = (item.returned_good_qty || 0) + good;
-      const newDefective = (item.returned_defective_qty || 0) + defective;
-      const { error: lineErr } = await supabase
-        .from("goods_issue_pending_items")
-        .update({
-          returned_good_qty: newGood,
-          returned_defective_qty: newDefective,
-          returned_at: new Date().toISOString(),
-          returned_by: user?.id || null,
-          notes: `${item.notes || ""} | ส่งคืน ดี ${good} / เสีย ${defective}`,
-        } as any)
-        .eq("id", item.id);
-      if (lineErr) throw lineErr;
-
-      // 4) Roll up to the header
-      const { data: lines } = await supabase
-        .from("goods_issue_pending_items")
-        .select("issued_quantity, quantity, billboard_id, installed_qty, returned_good_qty, returned_defective_qty")
-        .eq("pending_id", pendingId);
-      const totalReturned = (lines || []).reduce(
-        (s: number, l: any) => s + (l.returned_good_qty || 0) + (l.returned_defective_qty || 0),
-        0,
-      );
-      const allSettled = (lines || []).every((l: any) => {
-        const iq = l.issued_quantity ?? l.quantity ?? 0;
-        const inst = independentOfInstall ? 0 : l.installed_qty != null ? Number(l.installed_qty) : l.billboard_id ? iq : 0;
-        return (l.returned_good_qty || 0) + (l.returned_defective_qty || 0) + inst >= iq;
+      const { error: saveError } = await supabase.rpc("submit_issue_return", {
+        _item_id: item.id,
+        _good: good,
+        _defective: defective,
+        _allocations: defective > 0 && docBillboards.length > 0
+          ? allocations.map((a) => ({ billboard_id: a.billboardId, quantity: Number(a.quantity) })) : [],
+        _symptom_id: symptomId || null,
+        _symptom_other: symptomOther.trim(),
+        _notes: notes.trim(),
+        _good_photos: goodPhotos,
+        _defective_photos: defPhotos,
       });
-      await supabase
-        .from("goods_issue_pending")
-        .update({
-          return_quantity: totalReturned,
-          returned_at: new Date().toISOString(),
-          returned_by: user?.id || null,
-          ...(allSettled ? { status: "returned", is_complete: true } : { status: "partial_return" }),
-        } as any)
-        .eq("id", pendingId);
+      if (saveError) throw saveError;
 
       toast.success(
         `บันทึกการส่งคืนสำเร็จ — ${good > 0 ? `ของดี ${good} ส่งให้คลังแล้ว` : ""}${defective > 0 ? `, ของเสีย ${defective} รอคลังกดรับเข้า` : ""}`,
@@ -316,7 +209,7 @@ export function ReturnItemDialog({
           </div>
 
           {item?.serial_number && (
-            <Badge variant="outline" className="font-mono text-xs">S/N: {item.serial_number}</Badge>
+            <Badge variant="outline" className="font-mono text-xs whitespace-pre-line">S/N: {item.serial_number}</Badge>
           )}
 
           {/* GOOD */}
@@ -387,24 +280,50 @@ export function ReturnItemDialog({
                     <Label className="flex items-center gap-1">
                       <MapPin className="w-3.5 h-3.5" /> ป้ายที่ระบุไว้ในใบเบิก
                     </Label>
-                    {docBillboards.length === 1 ? (
-                      <p className="text-sm">{docBillboards[0].label}</p>
-                    ) : (
-                      <div className="flex flex-wrap gap-1.5">
-                        {docBillboards.map((b) => (
-                          <Button
-                            key={b.id}
-                            type="button"
-                            size="sm"
-                            variant={billboardId === b.id ? "default" : "outline"}
-                            className="h-auto min-h-7 whitespace-normal text-left text-xs"
-                            onClick={() => setBillboardId(b.id)}
-                          >
-                            {b.label} ({b.qty})
-                          </Button>
-                        ))}
-                      </div>
-                    )}
+                    <div className="space-y-2">
+                      {allocations.map((allocation, index) => {
+                        const selected = docBillboards.find((b) => b.id === allocation.billboardId);
+                        return (
+                          <div key={index} className="grid grid-cols-[minmax(0,1fr)_5rem_2rem] items-start gap-2">
+                            <div className="min-w-0 space-y-1">
+                              <SearchableSelect
+                                value={allocation.billboardId}
+                                placeholder="เลือกป้ายจากใบเบิก"
+                                searchPlaceholder="ค้นหาป้าย..."
+                                options={docBillboards.map((b) => ({
+                                  value: b.id, label: b.label,
+                                  description: `ติดตั้งคงเหลือ ${b.qty} ${item?.unit || ""}`,
+                                  disabled: allocations.some((a, i) => i !== index && a.billboardId === b.id),
+                                }))}
+                                onValueChange={(value) => setAllocations((rows) => rows.map((a, i) => i === index ? { ...a, billboardId: value } : a))}
+                              />
+                              {selected && <p className="text-xs text-muted-foreground">ติดตั้งคงเหลือ {selected.qty} {item?.unit}</p>}
+                            </div>
+                            <Input
+                              type="number" min={1} max={selected?.qty || 0} step={1}
+                              aria-label={`จำนวนของเสียป้าย ${index + 1}`}
+                              value={allocation.quantity}
+                              onChange={(e) => setAllocations((rows) => rows.map((a, i) => i === index ? { ...a, quantity: e.target.value } : a))}
+                              onWheel={(e) => e.currentTarget.blur()}
+                            />
+                            <Button type="button" size="icon" variant="ghost" className="h-9 w-8"
+                              disabled={docBillboards.length === 1}
+                              title="ลบแถวป้าย" aria-label={`ลบแถวป้าย ${index + 1}`}
+                              onClick={() => setAllocations((rows) => rows.filter((_, i) => i !== index))}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                      {docBillboards.length > 1 && (
+                        <Button type="button" variant="outline" size="sm"
+                          disabled={allocations.length >= docBillboards.length}
+                          onClick={() => setAllocations((rows) => [...rows, { billboardId: "", quantity: "1" }])}>
+                          <Plus className="mr-1 h-4 w-4" /> เพิ่มป้าย
+                        </Button>
+                      )}
+                      <p className="text-sm">ยอดแยกป้าย {allocations.reduce((sum, a) => sum + (Number(a.quantity) || 0), 0)} / ของเสีย {defective} {item?.unit}</p>
+                    </div>
                   </div>
                 )}
               </>

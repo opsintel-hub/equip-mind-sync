@@ -7381,6 +7381,10 @@ export type Database = {
         Args: { _equipment_id: string; _new_qty: number; _reason: string }
         Returns: Json
       }
+      can_submit_issue_return: {
+        Args: { _pending_id: string }
+        Returns: boolean
+      }
       clear_test_operational_data: {
         Args: { _scopes: string[] }
         Returns: Json
@@ -7506,6 +7510,16 @@ export type Database = {
       import_equipment_row: { Args: { p: Json }; Returns: Json }
       import_media_player_row: { Args: { p: Json }; Returns: Json }
       import_tool_row: { Args: { p: Json }; Returns: Json }
+      issue_return_billboards: {
+        Args: { _item_id: string }
+        Returns: {
+          equipment_code: string
+          id: string
+          location_name: string
+          old_code: string
+          qty: number
+        }[]
+      }
       magic_ticket_bind_ticket: { Args: { p: Json }; Returns: Json }
       magic_ticket_create_api_key: {
         Args: { p_environment: string; p_name: string }
@@ -7653,6 +7667,20 @@ export type Database = {
           _target_user_id: string
         }
         Returns: undefined
+      }
+      submit_issue_return: {
+        Args: {
+          _allocations: Json
+          _defective: number
+          _defective_photos: string[]
+          _good: number
+          _good_photos: string[]
+          _item_id: string
+          _notes: string
+          _symptom_id: string
+          _symptom_other: string
+        }
+        Returns: Json
       }
       sync_code_prefix_counters: { Args: { _kind: string }; Returns: Json }
       user_has_section: {

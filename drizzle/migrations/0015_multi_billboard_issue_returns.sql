@@ -1,4 +1,3 @@
--- One transaction owns validation, return tickets, and uninstall history.
 CREATE OR REPLACE FUNCTION public.can_submit_issue_return(_pending_id uuid)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
  SELECT auth.uid() IS NOT NULL AND EXISTS (
@@ -9,7 +8,6 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS
 $$;
 REVOKE ALL ON FUNCTION public.can_submit_issue_return(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.can_submit_issue_return(uuid) TO authenticated;
-
 CREATE OR REPLACE FUNCTION public.issue_return_billboards(_item_id uuid)
 RETURNS TABLE(id uuid, old_code text, location_name text, equipment_code text, qty bigint)
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
@@ -35,7 +33,6 @@ BEGIN
 END; $$;
 REVOKE ALL ON FUNCTION public.issue_return_billboards(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.issue_return_billboards(uuid) TO authenticated;
-
 CREATE OR REPLACE FUNCTION public.submit_issue_return(_item_id uuid, _good integer, _defective integer,
  _allocations jsonb, _symptom_id uuid, _symptom_other text, _notes text, _good_photos text[], _defective_photos text[])
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -63,7 +60,6 @@ BEGIN
  IF jsonb_array_length(_allocations)>0 AND total<>_defective THEN RAISE EXCEPTION 'ยอดแยกป้ายต้องเท่ากับจำนวนของเสีย'; END IF;
  IF EXISTS (SELECT 1 FROM jsonb_array_elements(_allocations) x GROUP BY x->>'billboard_id' HAVING count(*)>1) THEN RAISE EXCEPTION 'เลือกป้ายซ้ำ'; END IF;
  IF _defective>0 AND jsonb_array_length(_allocations)=0 AND EXISTS (SELECT 1 FROM public.issue_return_billboards(l.id)) THEN RAISE EXCEPTION 'กรุณาระบุป้ายและจำนวนของเสีย'; END IF;
- -- Lock every matching installation before checking current capacity.
  PERFORM 1 FROM public.billboard_equipment WHERE equipment_id=l.equipment_id ORDER BY id FOR UPDATE;
  PERFORM 1 FROM public.media_player_billboard_history WHERE media_player_id=l.media_player_id ORDER BY id FOR UPDATE;
  FOR a IN SELECT * FROM jsonb_array_elements(_allocations) LOOP
@@ -80,7 +76,6 @@ BEGIN
  COALESCE(l.is_media_player,false) OR l.media_player_id IS NOT NULL,l.equipment_code,l.equipment_name,l.serial_number,
  _good,l.unit,p.requester_department,NULLIF(trim(_notes),''),auth.uid(),p.requester_name,_good_photos);
  END IF;
- -- Unassigned issue returns remain valid; no invented billboard or uninstall history.
  IF _defective>0 THEN
  FOR a IN SELECT * FROM jsonb_array_elements(CASE WHEN jsonb_array_length(_allocations)=0
  THEN jsonb_build_array(jsonb_build_object('billboard_id',null,'quantity',_defective)) ELSE _allocations END) LOOP
@@ -119,7 +114,6 @@ BEGIN
  END IF;
  END LOOP;
  END IF;
- -- installed_qty remains the historical assignment milestone, independent from physical remaining installations.
  UPDATE public.goods_issue_pending_items SET returned_good_qty=COALESCE(returned_good_qty,0)+_good,
  returned_defective_qty=COALESCE(returned_defective_qty,0)+_defective,returned_at=now(),returned_by=auth.uid(),
  notes=COALESCE(notes,'') || ' | ส่งคืน ดี ' || _good || ' / เสีย ' || _defective WHERE id=l.id;
