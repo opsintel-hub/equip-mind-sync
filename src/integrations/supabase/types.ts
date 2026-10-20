@@ -7262,6 +7262,127 @@ export type Database = {
           },
         ]
       }
+      warehouse_transfer_batches: {
+        Row: {
+          destination_location_id: string | null
+          destination_warehouse_id: string
+          dispatch_key: string
+          dispatched_at: string
+          dispatched_by: string
+          document_no: string
+          equipment_code: string | null
+          equipment_id: string | null
+          equipment_name: string | null
+          id: string
+          media_player_id: string | null
+          notes: string | null
+          pending_id: string
+          pending_item_id: string
+          quantity: number
+          received_at: string | null
+          received_by: string | null
+          serial_ids: string[]
+          serial_number: string | null
+          source_allocations: Json
+          status: string
+          unit: string | null
+          volume_cm3: number
+        }
+        Insert: {
+          destination_location_id?: string | null
+          destination_warehouse_id: string
+          dispatch_key: string
+          dispatched_at?: string
+          dispatched_by: string
+          document_no: string
+          equipment_code?: string | null
+          equipment_id?: string | null
+          equipment_name?: string | null
+          id?: string
+          media_player_id?: string | null
+          notes?: string | null
+          pending_id: string
+          pending_item_id: string
+          quantity: number
+          received_at?: string | null
+          received_by?: string | null
+          serial_ids?: string[]
+          serial_number?: string | null
+          source_allocations?: Json
+          status?: string
+          unit?: string | null
+          volume_cm3?: number
+        }
+        Update: {
+          destination_location_id?: string | null
+          destination_warehouse_id?: string
+          dispatch_key?: string
+          dispatched_at?: string
+          dispatched_by?: string
+          document_no?: string
+          equipment_code?: string | null
+          equipment_id?: string | null
+          equipment_name?: string | null
+          id?: string
+          media_player_id?: string | null
+          notes?: string | null
+          pending_id?: string
+          pending_item_id?: string
+          quantity?: number
+          received_at?: string | null
+          received_by?: string | null
+          serial_ids?: string[]
+          serial_number?: string | null
+          source_allocations?: Json
+          status?: string
+          unit?: string | null
+          volume_cm3?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warehouse_transfer_batches_destination_location_id_fkey"
+            columns: ["destination_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_transfer_batches_destination_warehouse_id_fkey"
+            columns: ["destination_warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_transfer_batches_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_transfer_batches_media_player_id_fkey"
+            columns: ["media_player_id"]
+            isOneToOne: false
+            referencedRelation: "media_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_transfer_batches_pending_id_fkey"
+            columns: ["pending_id"]
+            isOneToOne: false
+            referencedRelation: "goods_issue_pending"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_transfer_batches_pending_item_id_fkey"
+            columns: ["pending_item_id"]
+            isOneToOne: false
+            referencedRelation: "goods_issue_pending_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       warehouses: {
         Row: {
           code: string
@@ -7399,6 +7520,18 @@ export type Database = {
           _requested_qty: number
           _requester_name: string
           _unit: string
+        }
+        Returns: Json
+      }
+      dispatch_warehouse_transfer: {
+        Args: {
+          _allocations: Json
+          _dispatch_key: string
+          _item_id: string
+          _notes: string
+          _quantity: number
+          _serials: string[]
+          _units: Json
         }
         Returns: Json
       }
@@ -7647,6 +7780,10 @@ export type Database = {
         Returns: boolean
       }
       purge_old_activity_audit: { Args: never; Returns: number }
+      receive_warehouse_transfer: {
+        Args: { _batch_id: string; _location_id: string }
+        Returns: Json
+      }
       review_special_request: {
         Args: { _decision: string; _id: string; _notes: string }
         Returns: Json
@@ -7683,6 +7820,10 @@ export type Database = {
         Returns: Json
       }
       sync_code_prefix_counters: { Args: { _kind: string }; Returns: Json }
+      transfer_warehouse_allowed: {
+        Args: { _permission: string; _warehouse_id: string }
+        Returns: boolean
+      }
       user_has_section: {
         Args: { _section_id: string; _user_id: string }
         Returns: boolean
