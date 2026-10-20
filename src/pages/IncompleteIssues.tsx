@@ -29,6 +29,7 @@ import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 import { ReturnItemDialog, type ReturnItemLine } from "@/components/issue/ReturnItemDialog";
 import { SpecialRequestDialog } from "@/components/special-request/SpecialRequestDialog";
 import { PendingGoodReturns, usePendingGoodReturns } from "@/components/issue/PendingGoodReturns";
+import { PendingWarehouseTransfers, usePendingWarehouseTransfers } from "@/components/issue/PendingWarehouseTransfers";
 import { AwaitingUsageTab } from "@/components/issue/AwaitingUsageTab";
 import { lineIssued, lineInstalled, lineLeft, billboardLeft, returnLeftIndependent } from "@/lib/issueQuantities";
 
@@ -251,6 +252,7 @@ const IncompleteIssues = () => {
   });
 
   const { data: pendingGood = [] } = usePendingGoodReturns();
+  const { data: pendingTransfers = [] } = usePendingWarehouseTransfers();
 
   // Fetch items for all incomplete issues
   const issueIds = useMemo(() => (incompleteIssues?.issues || []).map(i => i.id), [incompleteIssues]);
@@ -704,7 +706,7 @@ const IncompleteIssues = () => {
                 </TabsTrigger>
                 <TabsTrigger value="warehouse" className="gap-2">
                   <Warehouse className="w-4 h-4" />
-                  รอเข้าคลัง ({defectiveReturns.length + pendingGood.length})
+                  รอเข้าคลัง ({defectiveReturns.length + pendingGood.length + pendingTransfers.length})
                 </TabsTrigger>
                 <TabsTrigger value="awaiting-usage" className="gap-2">
                   <Package className="w-4 h-4" />
@@ -983,6 +985,7 @@ const IncompleteIssues = () => {
 
 
               <TabsContent value="warehouse" className="space-y-4">
+                <PendingWarehouseTransfers />
                 <PendingGoodReturns />
                 <div className="font-medium">ของเสียรอคลังรับเข้า ({defectiveReturns.length})</div>
                 <div className="rounded-md border overflow-x-auto">
