@@ -11,6 +11,6 @@
 - [x] Add “สินค้ารอใช้งาน” tab with scoped outstanding quantities and filtered Excel export; no API
 - [x] Remove outside-issue defective returns and restrict return billboards to the issue's own assignments; quantity tests and authenticated return screen verified without saving live stock changes
 - [x] Multi-billboard defective issue returns with per-billboard limits and atomic separate uninstall histories; 14 unit tests and authenticated UI verified; live successful save not exercised to avoid stock changes
-- [ ] Default good-return receipt to the item's existing storage location within allowed departments
-- [ ] Two-stage warehouse transfer: dispatch without destination slot, destination receipt chooses storage; preserve historical transfers and permissions
-- [ ] Verify receipt defaults and transfer stock boundaries
+- [x] Default good-return receipt to the item's existing storage location within allowed departments; authenticated dialog preselection verified
+- [x] Two-stage warehouse transfer: atomic dispatch without destination slot and destination receipt choosing storage; historical transfers unchanged
+- [x] Verify receipt defaults and transfer stock boundaries: 21 tests passed; authenticated 10-unit test dispatch/receipt and duplicate retries passed; test records removed; Media Player/SN live transfer not exercised
