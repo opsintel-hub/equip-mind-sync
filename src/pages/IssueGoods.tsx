@@ -23,7 +23,7 @@ import { useDeptScope } from "@/hooks/useDeptScope";
 import { useSectionScope } from "@/hooks/useSectionScope";
 import BillboardDisplay from "@/components/billboard/BillboardDisplay";
 import { LocationPickEditor } from "@/components/location/LocationPickEditor";
-import { LocationAllocation, allocationTotal, deductLocationAllocations, saveLocationAllocations } from "@/lib/locationAllocations";
+import { LocationAllocation, allocationTotal, deductLocationAllocations } from "@/lib/locationAllocations";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { LinkedDocsPanel } from "@/components/document-search/LinkedDocsPanel";
 import { SubMediaTypeSelect } from "@/components/media-player/SubMediaTypeSelect";
@@ -126,8 +126,7 @@ const IssueGoods = () => {
     sub_media_type: string | null;
   }>>([]);
   const [pickAllocations, setPickAllocations] = useState<LocationAllocation[]>([]);
-  // โอนย้ายระหว่างคลัง: ช่องจัดเก็บปลายทาง
-  const [transferDestLocationId, setTransferDestLocationId] = useState("");
+  const [transferDispatchKey, setTransferDispatchKey] = useState(() => crypto.randomUUID());
   const [rejectReason, setRejectReason] = useState("");
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [selectedEquipmentImages, setSelectedEquipmentImages] = useState<string[]>([]);
@@ -322,20 +321,11 @@ const IssueGoods = () => {
     queryKey: ["issue-goods-transfer-wh", transferWarehouseId],
     enabled: !!transferWarehouseId,
     queryFn: async () => {
-      const { data } = await supabase.from("warehouses").select("id, code, name").eq("id", transferWarehouseId!).maybeSingle();
+      if (!transferWarehouseId) return null;
+      const { data } = await supabase.from("warehouses").select("id, code, name").eq("id", transferWarehouseId).maybeSingle();
       return data;
     },
   });
-  const { data: transferLocations } = useQuery({
-    queryKey: ["issue-goods-transfer-locs", transferWarehouseId],
-    enabled: !!transferWarehouseId,
-    queryFn: async () => {
-      const { data } = await supabase.from("locations").select("id, code, name")
-        .eq("warehouse_id", transferWarehouseId!).eq("is_active", true).order("code");
-      return data || [];
-    },
-  });
-
   // Issue item mutation
   const issueItem = useMutation({
     mutationFn: async () => {
@@ -421,10 +411,19 @@ const IssueGoods = () => {
       
       const parentRequest = pendingRequests?.find(r => r.id === selectedItem.pending_id);
       const transferWarehouseId: string | null = (parentRequest as any)?.transfer_to_warehouse_id || null;
-      const transferDept: string | null = (parentRequest as any)?.transfer_to_department || null;
       const isTransfer = !!transferWarehouseId;
-      if (isTransfer && !transferDestLocationId) {
-        throw new Error("กรุณาเลือกช่องจัดเก็บปลายทางในคลังที่รับโอน");
+      if (isTransfer) {
+        const { error } = await supabase.rpc("dispatch_warehouse_transfer", {
+          _item_id: selectedItem.id,
+          _quantity: issuedQty,
+          _allocations: pickAllocations.map(a => ({ locationId: a.locationId, quantity: a.quantity })),
+          _units: activeMpAssignments.map(a => ({ media_player_id: a.media_player_id, serial_number: a.serial_number })),
+          _serials: activeAssignments.map(a => a.serial_number.trim()).filter(Boolean),
+          _notes: issueData.notes,
+          _dispatch_key: transferDispatchKey,
+        });
+        if (error) throw error;
+        return { remainingQty, newStatus, isTransfer: true };
       }
       // Defer install-to-billboard to the "ยืนยันรับสินค้า" step for delivery/scheduled pickups.
       // wait_onsite (รับที่คลัง) still installs immediately since the requester is on site.
@@ -524,68 +523,7 @@ const IssueGoods = () => {
 
       // Handle Media Player or Equipment stock update
 
-      if (isTransfer && issuedQty > 0) {
-        // ===== โอนย้ายระหว่างคลัง: ไม่ตัดยอดทิ้ง ย้ายตำแหน่งไปคลังปลายทาง =====
-        const docNo = parentRequest?.document_no || "";
-        if (isMediaPlayer) {
-          for (const a of activeMpAssignments) {
-            const { data: mp, error: mpErr } = await supabase
-              .from("media_players")
-              .select("quantity, code, name, location_id")
-              .eq("id", a.media_player_id)
-              .single();
-            if (mpErr) throw mpErr;
-            const q = mp?.quantity || 0;
-            if (q <= 0) throw new Error(`S/N ${a.serial_number} ไม่อยู่ในคลังแล้ว`);
-            const upd: any = { location_id: transferDestLocationId };
-            if (transferDept) upd.department = transferDept;
-            const { error: uErr } = await supabase.from("media_players").update(upd).eq("id", a.media_player_id);
-            if (uErr) throw uErr;
-            await logStockMovement({
-              equipment_id: a.media_player_id, equipment_code: mp?.code || "", equipment_name: mp?.name || "",
-              movement_type: "transfer_out", quantity: 1, stock_before: q, stock_after: q,
-              reference_type: "warehouse_transfer", reference_document: docNo,
-              location_id: mp?.location_id || undefined,
-              notes: `โอนย้ายระหว่างคลัง S/N: ${a.serial_number}`,
-            });
-            await logStockMovement({
-              equipment_id: a.media_player_id, equipment_code: mp?.code || "", equipment_name: mp?.name || "",
-              movement_type: "transfer_in", quantity: 1, stock_before: q, stock_after: q,
-              reference_type: "warehouse_transfer", reference_document: docNo,
-              location_id: transferDestLocationId,
-              notes: `รับโอนเข้าคลังปลายทาง S/N: ${a.serial_number}`,
-            });
-          }
-          const mpIds = activeMpAssignments.map((a) => a.media_player_id);
-          await supabase.from("goods_issue_pending_items").update({
-            transferred_qty: 1, transfer_to_location_id: transferDestLocationId,
-            billboard_id: null, intended_billboard_id: null, install_status: "not_required", needs_return: false,
-          } as any).eq("pending_id", selectedItem.pending_id).in("media_player_id", mpIds);
-        } else if (selectedItem.equipment_id) {
-          const { data: eq, error: eqErr } = await supabase
-            .from("equipment").select("quantity_in_stock, location_id").eq("id", selectedItem.equipment_id).single();
-          if (eqErr) throw eqErr;
-          const q = eq?.quantity_in_stock || 0;
-          if (q < issuedQty) throw new Error(`สต็อกไม่พอ (คงเหลือ ${q})`);
-          const serials = activeAssignments.map((a) => (a.serial_number || "").trim()).filter(Boolean);
-          if (serials.length > 0) {
-            await supabase.from("equipment_serial_numbers").update({ location_id: transferDestLocationId } as any)
-              .eq("equipment_id", selectedItem.equipment_id).eq("status", "in_stock").in("serial_number", serials);
-          }
-          const base = { equipment_id: selectedItem.equipment_id, equipment_code: selectedItem.equipment_code || "",
-            equipment_name: selectedItem.equipment_name || "", quantity: issuedQty, stock_before: q, stock_after: q,
-            reference_type: "warehouse_transfer", reference_document: docNo };
-          await logStockMovement({ ...base, movement_type: "transfer_out", location_id: eq?.location_id || undefined,
-            notes: `โอนย้ายระหว่างคลัง ${issuedQty} ${selectedItem.unit || ""}`.trim() });
-          await logStockMovement({ ...base, movement_type: "transfer_in", location_id: transferDestLocationId,
-            notes: `รับโอนเข้าคลังปลายทาง ${issuedQty} ${selectedItem.unit || ""}`.trim() });
-          await supabase.from("goods_issue_pending_items").update({
-            transferred_qty: Number((selectedItem as any).transferred_qty || 0) + issuedQty,
-            transfer_to_location_id: transferDestLocationId,
-            billboard_id: null, intended_billboard_id: null, install_status: "not_required", needs_return: false,
-          } as any).eq("id", selectedItem.id);
-        }
-      } else if (isMediaPlayer && issuedQty > 0) {
+      if (isMediaPlayer && issuedQty > 0) {
         // Loop each MP unit assignment
         for (const a of activeMpAssignments) {
           const { data: currentMp, error: fetchMpError } = await supabase
@@ -873,25 +811,13 @@ const IssueGoods = () => {
         });
       }
 
-      // โอนย้าย: บันทึกของเข้าช่องปลายทาง
-      if (isTransfer && issuedQty > 0) {
-        await saveLocationAllocations({
-          allocations: [{ locationId: transferDestLocationId, quantity: issuedQty }],
-          warehouseId: transferWarehouseId,
-          equipmentId: isMediaPlayer ? null : selectedItem.equipment_id,
-          mediaPlayerId: isMediaPlayer && activeMpAssignments.length === 1 ? activeMpAssignments[0].media_player_id : (isMediaPlayer ? selectedItem.media_player_id : null),
-          referenceType: "warehouse_transfer_in",
-          referenceId: selectedItem.id,
-          referenceDocument: parentRequest?.document_no || null,
-          createdBy: user.id,
-        });
-      }
-
       return { remainingQty, newStatus };
     },
     onSuccess: (result) => {
       let successMessage = "";
-      if (result?.newStatus === "waiting_stock") {
+      if (result?.isTransfer) {
+        successMessage = "ส่งโอนสำเร็จ รอคลังปลายทางรับเข้า";
+      } else if (result?.newStatus === "waiting_stock") {
         successMessage = `จ่ายสินค้าบางส่วนสำเร็จ รอของเข้าอีก ${result.remainingQty} ชิ้น`;
       } else if (issueData.billboard_id || selectedItem?.billboard_id) {
         successMessage = "จ่ายสินค้าและบันทึกการติดตั้งที่ป้ายสำเร็จ";
@@ -907,7 +833,7 @@ const IssueGoods = () => {
       setItemIssueDialogOpen(false);
       setSelectedItem(null);
       setIssueData({ issued_quantity: "", notes: "", billboard_id: "", serial_number: "", serial_number_source: "" });
-      setTransferDestLocationId("");
+      queryClient.invalidateQueries({ queryKey: ["warehouse-transfer-pending"] });
       setUnitAssignments([]);
     },
     onError: (error) => {
@@ -1003,6 +929,7 @@ const IssueGoods = () => {
   });
 
   const handleIssueItem = (item: PendingItem) => {
+    setTransferDispatchKey(crypto.randomUUID());
     setSelectedItem(item);
     const qtyToIssue = item.remaining_quantity && item.remaining_quantity > 0 
       ? item.remaining_quantity 
@@ -1744,17 +1671,9 @@ const IssueGoods = () => {
 
 
             {transferWarehouse && (
-              <div className="space-y-2 rounded-lg border border-emerald-300 bg-emerald-50 p-3 dark:bg-emerald-950/30">
-                <Label>โอนย้ายเข้าคลัง: {transferWarehouse.code} — {transferWarehouse.name}</Label>
-                <SearchableSelect
-                  value={transferDestLocationId}
-                  onValueChange={setTransferDestLocationId}
-                  options={(transferLocations || []).map((l: any) => ({ value: l.id, label: `${l.code} — ${l.name}` }))}
-                  placeholder="เลือกช่องจัดเก็บปลายทาง *"
-                />
-                <p className="text-xs text-muted-foreground">
-                  ใบนี้เป็นการโอนย้ายระหว่างคลัง ระบบจะตัดของออกจากช่องต้นทางและเพิ่มเข้าช่องปลายทาง โดยไม่ตัดยอดทิ้ง
-                </p>
+              <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3">
+                <Label>คลังปลายทาง: {transferWarehouse.code} — {transferWarehouse.name}</Label>
+                <Badge variant="secondary">รอคลังปลายทางเลือกตำแหน่งเมื่อรับเข้า</Badge>
               </div>
             )}
 
