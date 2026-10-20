@@ -47,4 +47,14 @@ describe("tool form validation", () => {
     expect(pmIntervalFromMatrix([])).toBe(0);
     expect(pmIntervalFromMatrix([90, 30])).toBe(30);
   });
+  test("form field errors are explained in Thai", () => {
+    const messages = describeToolFormErrors({
+      name: { type: "required", message: "กรุณากรอกชื่อเครื่องมือ" },
+      unit: { type: "invalid", message: "กรุณากรอกหน่วยนับ" },
+    });
+    expect(messages).toEqual([
+      "ชื่อเครื่องมือ: กรุณากรอกชื่อเครื่องมือ",
+      "หน่วยนับ: กรุณากรอกหน่วยนับ",
+    ]);
+  });
 });

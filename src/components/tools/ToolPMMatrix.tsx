@@ -4,6 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { pmIntervalFromMatrix } from "@/lib/toolForm";
 
 export interface PMMatrixRow {
   pm_type_id: string;
@@ -144,10 +145,7 @@ export async function saveToolPMMatrix(toolId: string, rows: PMMatrixRow[]) {
     );
 
     // Sync legacy tools.pm_interval_days = smallest interval so lists/tasks reflect matrix
-    const minInterval = Math.max(
-      1,
-      Math.min(...rows.map((r) => r.interval_days || 30))
-    );
+    const minInterval = pmIntervalFromMatrix(rows.map((r) => r.interval_days || 30));
     await supabase
       .from("tools")
       .update({ pm_interval_days: minInterval })
@@ -181,5 +179,8 @@ export async function saveToolPMMatrix(toolId: string, rows: PMMatrixRow[]) {
         .update({ due_date: dueStr })
         .eq("id", earliest.id);
     }
+  } else {
+    // No PM rows means the tool needs no maintenance: mirror that as 0.
+    await supabase.from("tools").update({ pm_interval_days: 0 }).eq("id", toolId);
   }
 }
