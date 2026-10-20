@@ -81,6 +81,15 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
   const hasWarranty = form.watch("has_warranty");
   const isAsset = form.watch("is_asset");
 
+  const onInvalid = (errors: any) => {
+    const messages = describeToolFormErrors(errors);
+    toast.error(
+      messages.length
+        ? `บันทึกไม่ได้ — ${messages.join(" · ")}`
+        : "บันทึกไม่ได้ — กรุณาตรวจข้อมูลในฟอร์ม"
+    );
+  };
+
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
