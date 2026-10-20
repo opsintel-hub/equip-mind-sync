@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { toolCreateFormSchema, type ToolCreateFormValues, describeToolFormErrors } from "@/lib/toolForm";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,34 +31,9 @@ import { ToolImageUpload, persistToolImages, type ToolImageItem } from "./ToolIm
 import { ToolPMMatrix, saveToolPMMatrix, type PMMatrixRow } from "./ToolPMMatrix";
 import { ToolDocumentUpload, persistPendingToolDocuments, type ToolDocumentItem } from "./ToolDocumentUpload";
 
-const formSchema = z.object({
-  prefix: z.string().min(1, "กรุณาเลือก Prefix รหัสเครื่องมือ"),
-  name: z.string().min(1, "กรุณากรอกชื่อเครื่องมือ"),
-  description: z.string().optional(),
-  tool_category_id: z.string().optional(),
-  tool_subcategory_id: z.string().optional(),
-  department: z.string().optional(),
-  company_id: z.string().optional(),
-  brand: z.string().optional(),
-  unit: z.string().min(1, "กรุณากรอกหน่วยนับ"),
-  initial_quantity: z.coerce.number().min(1, "จำนวนต้องมากกว่า 0"),
-  serial_number: z.string().optional(),
-  unit_price: z.coerce.number().min(0).optional(),
-  warehouse_entry_date: z.string().min(1, "กรุณาเลือกวันที่นำเข้าคลัง"),
-  location_id: z.string().optional(),
-  supplier_id: z.string().optional(),
-  expiry_date: z.string().optional(),
-  warranty_expiry_date: z.string().optional(),
-  has_warranty: z.boolean().default(true),
-  pm_interval_days: z.coerce.number().min(1).optional(),
-  notes: z.string().optional(),
-  is_asset: z.boolean().default(false),
-  asset_code: z.string().optional(),
-  responsible_person: z.string().optional(),
-  is_personal_tool: z.boolean().default(false),
-});
+const formSchema = toolCreateFormSchema;
 
-type FormData = z.infer<typeof formSchema>;
+type FormData = ToolCreateFormValues;
 
 interface ToolFormProps {
   onSuccess?: () => void;
@@ -221,7 +196,7 @@ export function ToolForm({ onSuccess }: ToolFormProps) {
 
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6">
             {/* Section: ข้อมูลพื้นฐาน */}
 
             <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
