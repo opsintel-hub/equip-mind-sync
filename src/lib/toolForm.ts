@@ -75,16 +75,32 @@ const toolFieldLabels: Record<string, string> = {
 };
 
 /**
- * Turns react-hook-form/zod errors into readable Thai messages so a failed
- * validation can never look like a silent "save does nothing".
+ * Turns validation failures into readable Thai messages so a rejected save can
+ * never look like a silent "nothing happens". Accepts both shapes that reach us:
+ * react-hook-form field errors ({ field: { message } }) and a zod issue list.
  */
-export const describeToolFormErrors = (errors: Record<string, any> | undefined): string[] => {
+export const describeToolFormErrors = (errors: any): string[] => {
+  if (!errors) return [];
+
+  if (Array.isArray(errors)) {
+    return errors.map((issue: any) => {
+      const field = Array.isArray(issue?.path) ? String(issue.path[0] ?? "") : "";
+      const label = toolFieldLabels[field] ?? field;
+      const message = issue?.message ?? "กรุณาตรวจข้อมูล";
+      return label ? `${label}: ${message}` : message;
+    });
+  }
+
   const messages: string[] = [];
-  for (const [field, value] of Object.entries(errors || {})) {
+  for (const [field, value] of Object.entries<any>(errors)) {
+    if (value && typeof value === "object" && !("message" in value) && !("type" in value)) {
+      messages.push(...describeToolFormErrors(value));
+      continue;
+    }
     const label = toolFieldLabels[field] ?? field;
     const message =
-      (value as any)?.message ??
-      ((value as any)?.type === "custom" ? "ข้อมูลไม่ถูกต้อง" : "กรุณาตรวจข้อมูล");
+      value?.message ??
+      (value?.type === "custom" ? "ข้อมูลไม่ถูกต้อง" : "กรุณาตรวจข้อมูล");
     messages.push(`${label}: ${message}`);
   }
   return messages;
