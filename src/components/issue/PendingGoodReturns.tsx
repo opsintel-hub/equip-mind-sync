@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { PackageCheck } from "lucide-react";
+import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
+import { receiptStorageDefault } from "@/lib/receiptStorage";
 
 export function usePendingGoodReturns() {
   return useQuery({
@@ -34,6 +36,9 @@ export function usePendingGoodReturns() {
 export function PendingGoodReturns() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const { allowedDepartments } = useAllowedDepartments();
+  const defaultRequest = useRef(0);
+  const [loadingDefault, setLoadingDefault] = useState(false);
   const { data: rows = [] } = usePendingGoodReturns();
   useRealtimeInvalidate({ table: "issue_good_returns", queryKeys: [["issue-good-returns-pending"]] });
 
@@ -41,7 +46,8 @@ export function PendingGoodReturns() {
     queryKey: ["can-receive-good-returns", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data } = await supabase.from("user_roles").select("role").eq("user_id", user!.id);
+      if (!user) return false;
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
       return (data || []).some((r: any) => ["warehouse_staff", "admin", "super_admin"].includes(r.role));
     },
   });
@@ -52,11 +58,33 @@ export function PendingGoodReturns() {
   const [locationId, setLocationId] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const openFor = (r: any) => {
+  const openFor = async (r: any) => {
+    const request = ++defaultRequest.current;
     setTarget(r);
-    setDepartment(r.department || "");
+    setDepartment(allowedDepartments.some(d => d.name === r.department) ? r.department : "");
     setWarehouseId("");
     setLocationId("");
+    setLoadingDefault(true);
+    try {
+      const table = r.media_player_id ? "media_players" : "equipment";
+      const id = r.media_player_id || r.equipment_id;
+      if (!id) return;
+      const { data: item, error } = await supabase.from(table).select("location_id, department").eq("id", id).maybeSingle();
+      if (error) throw error;
+      const { data: location, error: locationError } = item?.location_id
+        ? await supabase.from("locations").select("id, warehouse_id, is_active, warehouses:warehouse_id(department, departments, is_active)").eq("id", item.location_id).maybeSingle()
+        : { data: null, error: null };
+      if (locationError) throw locationError;
+      if (request !== defaultRequest.current) return;
+      const next = receiptStorageDefault(item?.department, location, allowedDepartments.map(d => d.name));
+      setDepartment(next.department);
+      setWarehouseId(next.warehouseId);
+      setLocationId(next.locationId);
+    } catch {
+      if (request === defaultRequest.current) toast.error("โหลดตำแหน่งเดิมไม่สำเร็จ กรุณาเลือกตำแหน่งจัดเก็บ");
+    } finally {
+      if (request === defaultRequest.current) setLoadingDefault(false);
+    }
   };
 
   const confirm = async () => {
@@ -181,7 +209,7 @@ export function PendingGoodReturns() {
         </Table>
       </div>
 
-      <Dialog open={!!target} onOpenChange={(v) => !v && setTarget(null)}>
+      <Dialog open={!!target} onOpenChange={(v) => { if (!v) { ++defaultRequest.current; setTarget(null); } }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>รับของดีเข้าคลัง</DialogTitle>
@@ -192,20 +220,21 @@ export function PendingGoodReturns() {
           <div className="space-y-3">
             <div className="space-y-2">
               <Label>ฝ่าย</Label>
-              <SimpleDepartmentSelect value={department} onChange={(v) => { setDepartment(v); setWarehouseId(""); setLocationId(""); }} />
+              <SimpleDepartmentSelect disabled={loadingDefault || saving} value={department} onChange={(v) => { setDepartment(v); setWarehouseId(""); setLocationId(""); }} />
             </div>
             <WarehouseLocationSelect
               department={department}
               warehouseId={warehouseId}
-              onWarehouseChange={setWarehouseId}
+              onWarehouseChange={(v) => { setWarehouseId(v); setLocationId(""); }}
               locationId={locationId}
               onLocationChange={setLocationId}
+              disabled={loadingDefault || saving}
             />
             {!locationId && <p className="text-sm text-destructive">กรุณาเลือกตำแหน่งจัดเก็บ</p>}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTarget(null)}>ยกเลิก</Button>
-            <Button onClick={confirm} disabled={saving || !locationId}>{saving ? "กำลังบันทึก..." : "ยืนยันรับเข้าคลัง"}</Button>
+            <Button variant="outline" disabled={saving} onClick={() => { ++defaultRequest.current; setTarget(null); }}>ยกเลิก</Button>
+            <Button onClick={confirm} disabled={saving || loadingDefault || !locationId}>{loadingDefault ? "กำลังโหลดตำแหน่งเดิม..." : saving ? "กำลังบันทึก..." : "ยืนยันรับเข้าคลัง"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
