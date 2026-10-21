@@ -39,3 +39,13 @@ export const balanceIssueReturn = (outstanding: number, value: string) => {
   const selected = Math.min(total, Math.max(0, parseInt(value || "0", 10) || 0));
   return { selected, remaining: total - selected };
 };
+
+/**
+ * Units installed as replacement for a lost/stolen original have no old part to return.
+ * Capped by outstanding and by what is still installed and not yet closed this way.
+ */
+export const lostReplacementCap = (outstanding: number, installed: number, alreadyLost: number) =>
+  Math.max(0, Math.min(outstanding, installed - alreadyLost));
+
+/** Quantity still to be split between good and defective after the lost-replacement close-out. */
+export const returnableAfterLost = (outstanding: number, lost: number) => Math.max(0, outstanding - Math.max(0, lost));

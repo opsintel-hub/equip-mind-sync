@@ -50,3 +50,19 @@ describe("multi billboard defective returns", () => {
     expect(validateDefectiveAllocations([], [], 19)).toBeNull();
   });
 });
+import { lostReplacementCap, returnableAfterLost } from "./issueReturnForm";
+
+test("issued 100, installed 100 as replacement for stolen cable: 100 closes with no defective", () => {
+  expect(lostReplacementCap(100, 100, 0)).toBe(100);
+  expect(returnableAfterLost(100, 100)).toBe(0);
+});
+
+test("issued 100, used 40 as replacement, unused 60 returned good", () => {
+  expect(returnableAfterLost(100, 40)).toBe(60);
+});
+
+test("lost replacement cannot exceed installed qty still open", () => {
+  expect(lostReplacementCap(100, 40, 0)).toBe(40);
+  expect(lostReplacementCap(100, 40, 40)).toBe(0);
+  expect(lostReplacementCap(30, 100, 0)).toBe(30);
+});
