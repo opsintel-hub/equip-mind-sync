@@ -8,12 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { RefreshCw, PackageCheck, AlertTriangle, MapPin, Plus, Trash2 } from "lucide-react";
+import { RefreshCw, PackageCheck, AlertTriangle, MapPin, Plus, Trash2, Wrench } from "lucide-react";
 import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { ReturnPhotoDropzone } from "./ReturnPhotoDropzone";
-import { balanceIssueReturn, validateDefectiveAllocations, type DefectiveAllocation, type ReturnBillboard } from "@/lib/issueReturnForm";
+import { balanceIssueReturn, lostReplacementCap, returnableAfterLost, validateDefectiveAllocations, type DefectiveAllocation, type ReturnBillboard } from "@/lib/issueReturnForm";
 
 export interface ReturnItemLine {
   id: string;
@@ -32,6 +32,7 @@ export interface ReturnItemLine {
   returned_defective_qty?: number | null;
   installed_qty?: number | null;
   written_off_qty?: number | null;
+  lost_replacement_qty?: number | null;
   transferred_qty?: number | null;
   notes: string | null;
 }
@@ -74,6 +75,9 @@ export function ReturnItemDialog({
   const [notes, setNotes] = useState("");
   const [goodPhotos, setGoodPhotos] = useState<string[]>([]);
   const [defPhotos, setDefPhotos] = useState<string[]>([]);
+  const [lostQty, setLostQty] = useState("0");
+  const [lostReason, setLostReason] = useState("");
+  const [lostPhotos, setLostPhotos] = useState<string[]>([]);
 
   const isMP = !!(item?.media_player_id || item?.is_media_player);
   const issuedQty = item ? item.issued_quantity ?? item.quantity : 0;
@@ -81,6 +85,9 @@ export function ReturnItemDialog({
   const installedQty = item ? (item.installed_qty != null ? Number(item.installed_qty) : item.billboard_id ? issuedQty : 0) : 0;
   const outstanding = Math.max(0, issuedQty - alreadyReturned - (independentOfInstall ? 0 : installedQty)
     - Number(item?.written_off_qty || 0) - Number(item?.transferred_qty || 0));
+  const lostCap = isMP ? 0 : lostReplacementCap(outstanding, installedQty, Number(item?.lost_replacement_qty || 0));
+  const lost = Math.min(lostCap, Math.max(0, parseInt(lostQty || "0") || 0));
+  const returnable = returnableAfterLost(outstanding, lost);
 
   useEffect(() => {
     if (!open || !item) return;
@@ -91,6 +98,9 @@ export function ReturnItemDialog({
     setNotes("");
     setGoodPhotos([]);
     setDefPhotos([]);
+    setLostQty("0");
+    setLostReason("");
+    setLostPhotos([]);
     setAllocations([]);
     setLoadingBillboards(true);
     setBillboardLoadError(false);
@@ -120,8 +130,8 @@ export function ReturnItemDialog({
   }, [open, item?.id]);
 
   // Good + defective (from issued qty) can never exceed what is still outstanding
-  const good = Math.min(outstanding, Math.max(0, parseInt(goodQty || "0") || 0));
-  const defective = Math.min(outstanding - good, Math.max(0, parseInt(defectiveQty || "0") || 0));
+  const good = Math.min(returnable, Math.max(0, parseInt(goodQty || "0") || 0));
+  const defective = Math.min(returnable - good, Math.max(0, parseInt(defectiveQty || "0") || 0));
 
   useEffect(() => {
     if (docBillboards.length !== 1) return;
@@ -132,7 +142,9 @@ export function ReturnItemDialog({
     if (!item) return "ไม่พบรายการ";
     if (loadingBillboards) return "กำลังโหลดป้ายของใบเบิก...";
     if (billboardLoadError) return "โหลดป้ายไม่สำเร็จ กรุณาปิดแล้วเปิดหน้าต่างใหม่";
-    if (good + defective === 0) return "กรุณาระบุจำนวนที่ส่งคืนอย่างน้อย 1 ชิ้น";
+    if (good + defective + lost === 0) return "กรุณาระบุจำนวนที่ส่งคืนหรือติดตั้งทดแทนอย่างน้อย 1";
+    if (lost > 0 && !lostReason.trim()) return "กรุณาระบุเหตุที่ของเดิมสูญหาย/ถูกขโมย";
+    if (lost > 0 && lostPhotos.length < 1) return "กรุณาแนบรูปหน้างานที่ติดตั้งทดแทนอย่างน้อย 1 รูป";
     const allocationError = validateDefectiveAllocations(docBillboards, allocations, defective);
     if (allocationError) return allocationError;
     if ((defective > 0) && !symptomId && !symptomOther.trim())
@@ -140,7 +152,7 @@ export function ReturnItemDialog({
     if (good > 0 && goodPhotos.length < 1) return "กรุณาแนบรูปของดีอย่างน้อย 1 รูป";
     if ((defective > 0) && defPhotos.length < 1) return "กรุณาแนบรูปของเสียอย่างน้อย 1 รูป";
     return null;
-  }, [item, good, defective, symptomId, symptomOther, allocations, docBillboards, goodPhotos, defPhotos, loadingBillboards, billboardLoadError]);
+  }, [item, good, defective, symptomId, symptomOther, allocations, docBillboards, goodPhotos, defPhotos, loadingBillboards, billboardLoadError, lost, lostReason, lostPhotos]);
 
   const handleSave = async () => {
     if (!item || error) {
@@ -149,6 +161,18 @@ export function ReturnItemDialog({
     }
     setSaving(true);
     try {
+      if (lost > 0) {
+        const { error: lostError } = await supabase.rpc("record_lost_replacement", {
+          _item_id: item.id, _quantity: lost, _reason: lostReason.trim(), _photos: lostPhotos,
+        });
+        if (lostError) throw lostError;
+      }
+      if (good + defective === 0) {
+        toast.success(`บันทึกติดตั้งทดแทน ${lost} ${item.unit} แล้ว (ไม่มีของเดิมส่งคืน)`);
+        onSaved();
+        onOpenChange(false);
+        return;
+      }
       const { error: saveError } = await supabase.rpc("submit_issue_return", {
         _item_id: item.id,
         _good: good,
@@ -164,7 +188,7 @@ export function ReturnItemDialog({
       if (saveError) throw saveError;
 
       toast.success(
-        `บันทึกการส่งคืนสำเร็จ — ${good > 0 ? `ของดี ${good} ส่งให้คลังแล้ว` : ""}${defective > 0 ? `, ของเสีย ${defective} รอคลังกดรับเข้า` : ""}`,
+        `บันทึกการส่งคืนสำเร็จ — ${lost > 0 ? `ติดตั้งทดแทน ${lost}, ` : ""}${good > 0 ? `ของดี ${good} ส่งให้คลังแล้ว` : ""}${defective > 0 ? `, ของเสีย ${defective} รอคลังกดรับเข้า` : ""}`,
       );
       onSaved();
       onOpenChange(false);
@@ -212,6 +236,37 @@ export function ReturnItemDialog({
             <Badge variant="outline" className="font-mono text-xs whitespace-pre-line">S/N: {item.serial_number}</Badge>
           )}
 
+          {lostCap > 0 && (
+            <div className="rounded-lg border p-3 space-y-3">
+              <div className="flex items-center gap-2 font-medium text-primary">
+                <Wrench className="w-4 h-4" /> ติดตั้งทดแทน — ของเดิมสูญหาย/ถูกขโมย (ไม่มีของคืน)
+              </div>
+              <div className="space-y-2">
+                <Label>จำนวนที่ใช้ติดตั้งทดแทน (สูงสุด {lostCap} {item?.unit})</Label>
+                <Input
+                  type="number" min={0} max={lostCap} value={lostQty}
+                  onChange={(e) => {
+                    const v = Math.min(lostCap, Math.max(0, parseInt(e.target.value || "0", 10) || 0));
+                    setLostQty(String(v));
+                    const rest = returnableAfterLost(outstanding, v);
+                    const g = Math.min(rest, Math.max(0, parseInt(goodQty || "0") || 0));
+                    setGoodQty(String(g));
+                    setDefectiveQty(String(rest - g));
+                  }}
+                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                />
+              </div>
+              {lost > 0 && (
+                <>
+                  <Textarea placeholder="เช่น สายเดิมถูกขโมย ติดตั้งสายใหม่แทน" value={lostReason}
+                    onChange={(e) => setLostReason(e.target.value)} rows={2} />
+                  <ReturnPhotoDropzone photos={lostPhotos} onChange={setLostPhotos} folder="good" label="รูปหน้างานหลังติดตั้ง" />
+                </>
+              )}
+              <p className="text-xs text-muted-foreground">ใช้เฉพาะยอดที่ติดตั้งกับป้ายจริงแต่ไม่มีของเดิมส่งคืน ระบบปิดยอดนี้โดยไม่เพิ่มสต็อกและไม่สร้างของเสีย พร้อมบันทึกผู้ทำและเวลา</p>
+            </div>
+          )}
+
           {/* GOOD */}
           <div className="rounded-lg border p-3 space-y-3">
             <div className="flex items-center gap-2 font-medium text-green-700">
@@ -222,10 +277,10 @@ export function ReturnItemDialog({
               <Input
                 type="number"
                 min={0}
-                max={outstanding}
+                max={returnable}
                 value={goodQty}
                 onChange={(e) => {
-                  const balance = balanceIssueReturn(outstanding, e.target.value);
+                  const balance = balanceIssueReturn(returnable, e.target.value);
                   setGoodQty(String(balance.selected));
                   setDefectiveQty(String(balance.remaining));
                 }}
@@ -249,10 +304,10 @@ export function ReturnItemDialog({
                 <Input
                   type="number"
                   min={0}
-                  max={outstanding}
+                  max={returnable}
                   value={defectiveQty}
                   onChange={(e) => {
-                    const balance = balanceIssueReturn(outstanding, e.target.value);
+                    const balance = balanceIssueReturn(returnable, e.target.value);
                     setDefectiveQty(String(balance.selected));
                     setGoodQty(String(balance.remaining));
                   }}
