@@ -9,3 +9,4 @@
 - Guard checkpoint has a no-email Station PIN mode: `/gate/:code` calls the `gate-station` edge function (service role) with a short-lived station token; PINs are bcrypt-hashed and verified only via service_role RPC, so guards never get app accounts.
 - Issue return form selection and quantity balancing use shared pure helpers so document-scoped billboard choices and quantity boundaries can be tested without stock writes.
 - Issue returns use an authenticated atomic RPC for capacity validation, per-billboard defective tickets and uninstall histories; installation notes tag the issue-item ID to disambiguate repeated equipment lines while legacy document notes remain supported.
+- Sensitive contact and permission tables restrict SELECT to approved users (public.is_approved_user = has any user_roles row), owners, or admins; avoids breaking joins while blocking unapproved sign-ups.
