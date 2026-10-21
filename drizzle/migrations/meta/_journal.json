@@ -134,6 +134,13 @@
       "when": 1792542503722,
       "tag": "0018_allow_authenticated_loan_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792542882565,
+      "tag": "0019_harden_sensitive_read_policies",
+      "breakpoints": true
     }
   ]
 }

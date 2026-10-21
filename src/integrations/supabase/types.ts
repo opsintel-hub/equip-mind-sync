@@ -7643,6 +7643,7 @@ export type Database = {
       import_equipment_row: { Args: { p: Json }; Returns: Json }
       import_media_player_row: { Args: { p: Json }; Returns: Json }
       import_tool_row: { Args: { p: Json }; Returns: Json }
+      is_approved_user: { Args: { _user_id: string }; Returns: boolean }
       issue_return_billboards: {
         Args: { _item_id: string }
         Returns: {
