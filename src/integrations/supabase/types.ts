@@ -3326,6 +3326,8 @@ export type Database = {
           intended_billboard_id: string | null
           is_media_player: boolean | null
           issued_quantity: number | null
+          lost_replacement_log: Json
+          lost_replacement_qty: number
           media_player_id: string | null
           needs_return: boolean | null
           needs_return_overridden: boolean
@@ -3358,6 +3360,8 @@ export type Database = {
           intended_billboard_id?: string | null
           is_media_player?: boolean | null
           issued_quantity?: number | null
+          lost_replacement_log?: Json
+          lost_replacement_qty?: number
           media_player_id?: string | null
           needs_return?: boolean | null
           needs_return_overridden?: boolean
@@ -3390,6 +3394,8 @@ export type Database = {
           intended_billboard_id?: string | null
           is_media_player?: boolean | null
           issued_quantity?: number | null
+          lost_replacement_log?: Json
+          lost_replacement_qty?: number
           media_player_id?: string | null
           needs_return?: boolean | null
           needs_return_overridden?: boolean
@@ -7783,6 +7789,15 @@ export type Database = {
       purge_old_activity_audit: { Args: never; Returns: number }
       receive_warehouse_transfer: {
         Args: { _batch_id: string; _location_id: string }
+        Returns: Json
+      }
+      record_lost_replacement: {
+        Args: {
+          _item_id: string
+          _photos: string[]
+          _quantity: number
+          _reason: string
+        }
         Returns: Json
       }
       review_special_request: {
