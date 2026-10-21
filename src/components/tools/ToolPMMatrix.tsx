@@ -188,8 +188,11 @@ export async function saveToolPMMatrix(toolId: string, rows: PMMatrixRow[]) {
         .update({ due_date: dueStr })
         .eq("id", earliest.id);
     }
-  } else {
-    // No PM rows means the tool needs no maintenance: mirror that as 0.
+  } else if (hadMatrixRows) {
+    // The user unchecked every PM type: the tool needs no maintenance, mirror 0.
     await supabase.from("tools").update({ pm_interval_days: 0 }).eq("id", toolId);
   }
+  // Otherwise the tool never had a matrix (e.g. imported with a plain
+  // pm_interval_days): leave tools.pm_interval_days untouched so editing
+  // unrelated fields doesn't silently erase the PM schedule.
 }
