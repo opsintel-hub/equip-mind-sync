@@ -134,6 +134,15 @@ export async function loadToolPMMatrix(toolId: string): Promise<PMMatrixRow[]> {
 }
 
 export async function saveToolPMMatrix(toolId: string, rows: PMMatrixRow[]) {
+  // Check whether the tool already had matrix rows BEFORE deleting, so we can
+  // tell "user unchecked every PM type" apart from "tool never used the matrix"
+  // (e.g. imported tools that only carry a plain pm_interval_days).
+  const { data: existingRows } = await supabase
+    .from("tool_pm_types")
+    .select("pm_type_id")
+    .eq("tool_id", toolId);
+  const hadMatrixRows = (existingRows?.length ?? 0) > 0;
+
   await supabase.from("tool_pm_types").delete().eq("tool_id", toolId);
   if (rows.length > 0) {
     await supabase.from("tool_pm_types").insert(
@@ -179,8 +188,11 @@ export async function saveToolPMMatrix(toolId: string, rows: PMMatrixRow[]) {
         .update({ due_date: dueStr })
         .eq("id", earliest.id);
     }
-  } else {
-    // No PM rows means the tool needs no maintenance: mirror that as 0.
+  } else if (hadMatrixRows) {
+    // The user unchecked every PM type: the tool needs no maintenance, mirror 0.
     await supabase.from("tools").update({ pm_interval_days: 0 }).eq("id", toolId);
   }
+  // Otherwise the tool never had a matrix (e.g. imported with a plain
+  // pm_interval_days): leave tools.pm_interval_days untouched so editing
+  // unrelated fields doesn't silently erase the PM schedule.
 }

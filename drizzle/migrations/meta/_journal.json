@@ -127,6 +127,13 @@
       "when": 1792468847902,
       "tag": "0017_harden_transfer_stock_validation",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792542503722,
+      "tag": "0018_allow_authenticated_loan_requests",
+      "breakpoints": true
     }
   ]
 }
