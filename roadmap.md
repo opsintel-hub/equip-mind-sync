@@ -14,3 +14,4 @@
 - [x] Default good-return receipt to the item's existing storage location within allowed departments; authenticated dialog preselection verified
 - [x] Two-stage warehouse transfer: atomic dispatch without destination slot and destination receipt choosing storage; historical transfers unchanged
 - [x] Verify receipt defaults and transfer stock boundaries: 21 tests passed; authenticated 10-unit test dispatch/receipt and duplicate retries passed; test records removed; Media Player/SN live transfer not exercised
+- [ ] Prevent lost-replacement close-out from writing off unused stock; verify UI and server rejection without changing live stock

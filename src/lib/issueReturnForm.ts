@@ -42,10 +42,11 @@ export const balanceIssueReturn = (outstanding: number, value: string) => {
 
 /**
  * Units installed as replacement for a lost/stolen original have no old part to return.
- * Capped by outstanding and by what is still installed and not yet closed this way.
+ * Only purposes requiring return independently of installation can close installed units.
+ * Otherwise installation already closes them and outstanding represents unused stock.
  */
-export const lostReplacementCap = (outstanding: number, installed: number, alreadyLost: number) =>
-  Math.max(0, Math.min(outstanding, installed - alreadyLost));
+export const lostReplacementCap = (outstanding: number, installed: number, alreadyLost: number, independentOfInstall: boolean) =>
+  independentOfInstall ? Math.max(0, Math.min(outstanding, installed - alreadyLost)) : 0;
 
 /** Quantity still to be split between good and defective after the lost-replacement close-out. */
 export const returnableAfterLost = (outstanding: number, lost: number) => Math.max(0, outstanding - Math.max(0, lost));
