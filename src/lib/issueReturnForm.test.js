@@ -53,7 +53,7 @@ describe("multi billboard defective returns", () => {
 import { lostReplacementCap, returnableAfterLost } from "./issueReturnForm";
 
 test("issued 100, installed 100 as replacement for stolen cable: 100 closes with no defective", () => {
-  expect(lostReplacementCap(100, 100, 0)).toBe(100);
+  expect(lostReplacementCap(100, 100, 0, true)).toBe(100);
   expect(returnableAfterLost(100, 100)).toBe(0);
 });
 
@@ -62,7 +62,19 @@ test("issued 100, used 40 as replacement, unused 60 returned good", () => {
 });
 
 test("lost replacement cannot exceed installed qty still open", () => {
-  expect(lostReplacementCap(100, 40, 0)).toBe(40);
-  expect(lostReplacementCap(100, 40, 40)).toBe(0);
-  expect(lostReplacementCap(30, 100, 0)).toBe(30);
+  expect(lostReplacementCap(100, 40, 0, true)).toBe(40);
+  expect(lostReplacementCap(100, 40, 40, true)).toBe(0);
+  expect(lostReplacementCap(30, 100, 0, true)).toBe(30);
+});
+
+test("100 issued, 40 installed already closed: all 60 unused units remain returnable good", () => {
+  const outstanding = 100 - 40;
+  const lost = lostReplacementCap(outstanding, 40, 0, false);
+  expect(lost).toBe(0);
+  expect(returnableAfterLost(outstanding, lost)).toBe(60);
+  expect(balanceIssueReturn(returnableAfterLost(outstanding, lost), "60")).toEqual({ selected: 60, remaining: 0 });
+});
+
+test("fully installed non-independent issues cannot close installation a second time", () => {
+  expect(lostReplacementCap(0, 100, 0, false)).toBe(0);
 });
