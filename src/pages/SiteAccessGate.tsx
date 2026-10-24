@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Camera, CameraOff, CheckCircle2, LogOut, ImagePlus, Search, ShieldAlert, Truck, Users, MapPin, Phone } from "lucide-react";
-import { SITE_ACCESS_PURPOSE, SITE_ACCESS_STATUS, fmtDT } from "@/lib/siteAccess";
+import { SITE_ACCESS_STATUS, fmtDT, purposeLabel } from "@/lib/siteAccess";
+import LeadTimeBadge from "@/components/site-access/LeadTimeBadge";
 
 const SELECT = "*, warehouses(name, code), locations:assigned_location_id(code, name)";
 
