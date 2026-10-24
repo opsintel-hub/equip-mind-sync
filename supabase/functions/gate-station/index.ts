@@ -16,7 +16,7 @@ async function sha256(text: string) {
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-const SELECT = "id, ticket_no, status, supervisor_id, supervisor_name, supervisor_phone, worker_count, contractor_name, vehicle_plates, purpose, items_description, assigned_location_note, planned_start_at, planned_end_at, checkin_at, checkout_at, warehouses(name, code), locations:assigned_location_id(code, name)";
+const SELECT = "id, ticket_no, status, supervisor_id, supervisor_name, supervisor_phone, worker_count, contractor_name, vehicle_plates, purpose, items_description, assigned_location_note, planned_start_at, planned_end_at, checkin_at, checkout_at, admin_closed_at, admin_closed_by_name, warehouses(name, code), locations:assigned_location_id(code, name)";
 const SESSION_HOURS = 12;
 
 Deno.serve(async (req) => {

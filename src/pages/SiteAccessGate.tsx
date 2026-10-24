@@ -202,14 +202,13 @@ export default function SiteAccessGate({ station, stationName, onLogout }: { sta
                 <div className="rounded-lg border p-3"><Truck className="mb-1 h-5 w-5" /><div className="whitespace-pre-line font-mono text-lg font-bold">{(ticket.vehicle_plates || []).join("\n")}</div></div>
               </div>
 
-              <div className="rounded-lg border border-primary/40 bg-primary/10 p-4">
-                <div className="flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="h-4 w-4" />จุดวางของที่คลังกำหนด</div>
-                <div className="text-xl font-bold">{ticket.locations ? `${ticket.locations.code} ${ticket.locations.name}` : "-"}</div>
-                {ticket.assigned_location_note && <div>{ticket.assigned_location_note}</div>}
-                <div className="mt-1 text-sm">{SITE_ACCESS_PURPOSE[ticket.purpose] || ticket.purpose}: {ticket.items_description}</div>
+              <div className="rounded-lg border p-4">
+                <div className="text-sm text-muted-foreground">{purposeLabel(ticket.purpose, ticket.purpose_other)}</div>
+                <div className="mt-1 whitespace-pre-line">{ticket.items_description}</div>
               </div>
 
               <div className="text-sm text-muted-foreground">นัดหมาย {fmtDT(ticket.planned_start_at)} – {fmtDT(ticket.planned_end_at)}</div>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">จองเมื่อ {fmtDT(ticket.created_at)} <LeadTimeBadge createdAt={ticket.created_at} plannedStart={ticket.planned_start_at} /></div>
               <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-center font-semibold text-destructive">🚭 ห้ามสูบบุหรี่ · 🚯 ห้ามทิ้งขยะ</div>
 
               {canEnter ? (
@@ -219,26 +218,29 @@ export default function SiteAccessGate({ station, stationName, onLogout }: { sta
               ) : ticket.status === "checked_in" ? (
                 <div className="space-y-3">
                   <div className="rounded-lg border bg-primary/10 p-3 text-center text-lg font-semibold">เข้าพื้นที่แล้วเมื่อ {fmtDT(ticket.checkin_at)}</div>
-                  <div className="text-base font-semibold">ถ่ายรูปตรวจพื้นที่ก่อนปล่อยรถ</div>
+                  <div className="text-base font-semibold">รูปยืนยันการออกจากพื้นที่ <span className="text-sm font-normal text-muted-foreground">(ไม่บังคับ ใส่ได้สูงสุด 2 รูป)</span></div>
                   <div className="grid grid-cols-2 gap-3">
-                    {([["placement", "จุดวางของ"], ["cleanliness", "ความสะอาด / ไม่มีขยะ"]] as const).map(([type, label]) => {
+                    {([["placement", "รูปที่ 1"], ["cleanliness", "รูปที่ 2"]] as const).map(([type, label]) => {
                       const list = photos.filter((p) => p.photo_type === type);
                       return (
                         <label key={type} className={`flex min-h-32 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed p-2 text-center ${list.length ? "border-primary bg-primary/5" : "border-muted-foreground/40"}`}>
                           {list.length ? <img src={list[list.length - 1].image_url} alt={label} className="h-24 w-full rounded object-cover" /> : <ImagePlus className="h-8 w-8" />}
-                          <span className="text-sm font-medium">{uploading === type ? "กำลังอัปโหลด..." : list.length ? `✓ ${label} (แตะเพื่อถ่ายใหม่)` : `ถ่ายรูป${label}`}</span>
+                          <span className="text-sm font-medium">{uploading === type ? "กำลังอัปโหลด..." : list.length ? `✓ ${label} (แตะเพื่อถ่ายใหม่)` : `ถ่าย${label}`}</span>
                           <input type="file" accept="image/*" capture="environment" className="hidden" disabled={!!uploading}
                             onChange={(e) => { uploadPhoto(type, e.target.files?.[0]); e.target.value = ""; }} />
                         </label>
                       );
                     })}
                   </div>
-                  <Button className="h-20 w-full text-xl" disabled={busy || !!uploading || !photos.some((p) => p.photo_type === "placement") || !photos.some((p) => p.photo_type === "cleanliness")} onClick={stampOut}>
+                  <Button className="h-20 w-full text-xl" disabled={busy || !!uploading} onClick={stampOut}>
                     <LogOut className="mr-2 h-7 w-7" />{busy ? "กำลังบันทึก..." : "บันทึกเวลาออก / ปล่อยรถ"}
                   </Button>
                 </div>
               ) : ticket.status === "completed" ? (
-                <div className="rounded-lg border bg-muted p-4 text-center text-lg font-semibold">ออกจากพื้นที่แล้วเมื่อ {fmtDT(ticket.checkout_at)}</div>
+                <div className="rounded-lg border bg-muted p-4 text-center text-lg font-semibold">
+                  ออกจากพื้นที่แล้วเมื่อ {fmtDT(ticket.checkout_at)}
+                  {ticket.admin_closed_at && <div className="text-sm font-normal text-muted-foreground">ปิดตั๋วโดย Admin: {ticket.admin_closed_by_name || "-"}</div>}
+                </div>
               ) : (
                 <div className="flex items-center justify-center gap-2 rounded-lg border border-destructive bg-destructive/10 p-4 text-lg font-semibold text-destructive">
                   <ShieldAlert className="h-6 w-6" />ห้ามเข้าพื้นที่ — {!ticket.supervisor_id ? "ไม่มีผู้คุมงานบริษัท" : "ตั๋วยังไม่อนุมัติ"}
