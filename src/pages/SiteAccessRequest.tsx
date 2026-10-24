@@ -14,7 +14,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2, Ticket } from "lucide-react";
 import SiteAccessCalendar from "@/components/site-access/SiteAccessCalendar";
-import { SITE_ACCESS_PURPOSE, SITE_ACCESS_STATUS, fmtDT } from "@/lib/siteAccess";
+import { LEAD_TIERS, SITE_ACCESS_PURPOSE, SITE_ACCESS_STATUS, fmtDT, leadHours, leadTier, purposeLabel } from "@/lib/siteAccess";
+import LeadTimeBadge from "@/components/site-access/LeadTimeBadge";
 import QRCode from "react-qr-code";
 
 const schema = z.object({
@@ -35,11 +36,14 @@ export default function SiteAccessRequest() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    warehouse_id: "", contractor_name: "", worker_count: "1", purpose: "bring_in",
+    warehouse_id: "", contractor_name: "", worker_count: "1", purpose: "bring_in", purpose_other: "",
     items_description: "", supervisor_phone: "", planned_start_at: "", planned_end_at: "", notes: "",
   });
   const [plates, setPlates] = useState<string[]>([""]);
   const [ack, setAck] = useState(false);
+  const [lastBooked, setLastBooked] = useState<{ ticket_no: string; created_at: string; planned_start_at: string } | null>(null);
+  const previewLead = form.planned_start_at ? leadTier(leadHours(new Date().toISOString(), new Date(form.planned_start_at).toISOString())) : null;
+
 
   const load = async () => {
     if (!user) return;
@@ -69,21 +73,25 @@ export default function SiteAccessRequest() {
     const parsed = schema.safeParse({ ...form, worker_count: Number(form.worker_count), vehicle_plates: plates.filter((p) => p.trim()) });
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
     if (new Date(form.planned_end_at) <= new Date(form.planned_start_at)) return toast.error("เวลาสิ้นสุดต้องหลังเวลาเริ่ม");
+    if (form.purpose === "other" && !form.purpose_other.trim()) return toast.error("กรุณาระบุวัตถุประสงค์ (อื่นๆ)");
     if (!ack) return toast.error("กรุณายืนยันว่าจะไปคุมงานด้วยตนเองและรับทราบกฎความปลอดภัย");
     setSaving(true);
     const d = parsed.data;
     const { data, error } = await supabase.from("warehouse_access_tickets").insert({
       warehouse_id: d.warehouse_id, contractor_name: d.contractor_name, worker_count: d.worker_count,
       vehicle_plates: d.vehicle_plates.map((p) => p.toUpperCase()), purpose: form.purpose,
+      purpose_other: form.purpose === "other" ? form.purpose_other.trim().slice(0, 200) : null,
       items_description: d.items_description, supervisor_id: user.id,
       supervisor_name: profile.displayName || profile.fullName, supervisor_phone: d.supervisor_phone,
       planned_start_at: new Date(d.planned_start_at).toISOString(), planned_end_at: new Date(d.planned_end_at).toISOString(),
       notes: form.notes.trim() || null, safety_acknowledged: true,
-    }).select("ticket_no").single();
+    }).select("ticket_no, created_at, planned_start_at").single();
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success(`เปิดตั๋ว ${data.ticket_no} แล้ว รอคลังระบุจุดวางและอนุมัติ`);
-    setForm((f) => ({ ...f, contractor_name: "", worker_count: "1", items_description: "", planned_start_at: "", planned_end_at: "", notes: "" }));
+    setLastBooked(data);
+    const tier = leadTier(leadHours(data.created_at, data.planned_start_at));
+    toast.success(`เปิดตั๋ว ${data.ticket_no} แล้ว รอคลังอนุมัติ — ${tier ? LEAD_TIERS[tier].label : ""}`);
+    setForm((f) => ({ ...f, contractor_name: "", worker_count: "1", items_description: "", planned_start_at: "", planned_end_at: "", notes: "", purpose_other: "" }));
     setPlates([""]); setAck(false); load();
   };
 
@@ -120,6 +128,9 @@ export default function SiteAccessRequest() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{Object.entries(SITE_ACCESS_PURPOSE).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent>
                 </Select>
+                {form.purpose === "other" && (
+                  <Input value={form.purpose_other} onChange={(e) => set("purpose_other", e.target.value)} maxLength={200} placeholder="ระบุวัตถุประสงค์ *" />
+                )}
               </div>
               <div className="space-y-1.5">
                 <Label>เวลาเริ่ม *</Label>
@@ -172,10 +183,25 @@ export default function SiteAccessRequest() {
 
             <label className="flex items-start gap-2 text-sm rounded-md border p-3 bg-muted/40">
               <Checkbox checked={ack} onCheckedChange={(v) => setAck(!!v)} className="mt-0.5" />
-              <span>ข้าพเจ้าจะไปคุมงานด้วยตนเองตลอดเวลา และรับทราบกฎ: ห้ามสูบบุหรี่ ห้ามทิ้งขยะ ต้องถ่ายรูปจุดวางและความสะอาดก่อนออก</span>
+              <span>ข้าพเจ้าจะไปคุมงานด้วยตนเองตลอดเวลา และรับทราบกฎ: ห้ามสูบบุหรี่ ห้ามทิ้งขยะ และ รปภ. อาจถ่ายรูปยืนยันก่อนออกจากพื้นที่</span>
             </label>
 
+            {previewLead && (
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="text-muted-foreground">ระยะเวลาจองล่วงหน้า:</span>
+                <LeadTimeBadge createdAt={new Date().toISOString()} plannedStart={new Date(form.planned_start_at).toISOString()} />
+                {previewLead !== "gt48" && <span className="text-xs text-muted-foreground">ควรจองล่วงหน้าอย่างน้อย 48 ชั่วโมง เพื่อให้ Store เตรียมเปิดพื้นที่ได้ทัน</span>}
+              </div>
+            )}
+
             <Button type="submit" disabled={saving} className="w-full sm:w-auto">{saving ? "กำลังบันทึก..." : "ส่งคำขอเข้าพื้นที่"}</Button>
+            {lastBooked && (
+              <div className="rounded-md border bg-muted/40 p-3 text-sm space-y-1">
+                <div className="font-semibold">ส่งคำขอสำเร็จ: <span className="font-mono">{lastBooked.ticket_no}</span></div>
+                <div>จองเมื่อ {fmtDT(lastBooked.created_at)} · เข้าพื้นที่ {fmtDT(lastBooked.planned_start_at)}</div>
+                <LeadTimeBadge createdAt={lastBooked.created_at} plannedStart={lastBooked.planned_start_at} />
+              </div>
+            )}
           </form>
         </CardContent>
       </Card>
@@ -192,11 +218,10 @@ export default function SiteAccessRequest() {
                   <span className="font-mono font-semibold">{t.ticket_no}</span>
                   <Badge variant={st.variant}>{st.label}</Badge>
                 </div>
-                <div>{t.warehouses?.name} · {t.contractor_name} · {t.worker_count} คน · {(t.vehicle_plates || []).join(", ")}</div>
+                <div>{t.warehouses?.name} · {purposeLabel(t.purpose, t.purpose_other)} · {t.contractor_name} · {t.worker_count} คน · {(t.vehicle_plates || []).join(", ")}</div>
                 <div className="text-muted-foreground">{fmtDT(t.planned_start_at)} – {fmtDT(t.planned_end_at)}</div>
-                {t.status !== "pending_assignment" && t.locations && (
-                  <div>จุดวาง: <b>{t.locations.code} {t.locations.name}</b>{t.assigned_location_note ? ` — ${t.assigned_location_note}` : ""}</div>
-                )}
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">จองเมื่อ {fmtDT(t.created_at)} <LeadTimeBadge createdAt={t.created_at} plannedStart={t.planned_start_at} /></div>
+                {t.admin_closed_at && <div className="text-xs text-muted-foreground">ปิดตั๋วโดย Admin: {t.admin_closed_by_name || "-"} ({fmtDT(t.admin_closed_at)})</div>}
                 {t.status === "rejected" && t.reject_reason && <div className="text-destructive">เหตุผล: {t.reject_reason}</div>}
                 {t.status === "approved" && t.supervisor_id === user?.id && (
                   <div className="mt-2 flex flex-col items-center gap-1 rounded-md border bg-card p-3">
