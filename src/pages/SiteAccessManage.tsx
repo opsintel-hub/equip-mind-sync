@@ -56,10 +56,10 @@ export default function SiteAccessManage() {
     for (const t of filtered) {
       if (!t._tier) continue;
       const k = `${t.supervisor_name || "-"} · ${t.contractor_name || "-"}`;
-      const r = m.get(k) || { gt48: 0, h24_48: 0, h12_24: 0, lt12: 0, total: 0 };
+      const r = m.get(k) || { gt48: 0, h24_48: 0, h12_24: 0, lt12: 0, walkin: 0, total: 0 };
       r[t._tier]++; r.total++; m.set(k, r);
     }
-    return [...m.entries()].sort((a, b) => (b[1].lt12 + b[1].h12_24) - (a[1].lt12 + a[1].h12_24));
+    return [...m.entries()].sort((a, b) => (b[1].walkin + b[1].lt12 + b[1].h12_24) - (a[1].walkin + a[1].lt12 + a[1].h12_24));
   }, [filtered]);
 
   const open = (t: any, m: Mode) => { setActive(t); setMode(m); setNote(""); };
@@ -97,7 +97,7 @@ export default function SiteAccessManage() {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), "ตั๋วเข้าพื้นที่");
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary.map(([k, r]) => ({
       "ผู้คุม · ผู้รับเหมา": k, "ทั้งหมด": r.total, [LEAD_TIERS.gt48.label]: r.gt48, [LEAD_TIERS.h24_48.label]: r.h24_48,
-      [LEAD_TIERS.h12_24.label]: r.h12_24, [LEAD_TIERS.lt12.label]: r.lt12,
+      [LEAD_TIERS.h12_24.label]: r.h12_24, [LEAD_TIERS.lt12.label]: r.lt12, [LEAD_TIERS.walkin.label]: r.walkin,
     }))), "สรุปวินัยการจอง");
     XLSX.writeFile(wb, `site-access-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
@@ -132,7 +132,7 @@ export default function SiteAccessManage() {
         </div>
       </div>
 
-      <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
+      <div className="grid gap-2 grid-cols-2 md:grid-cols-5">
         {(Object.keys(LEAD_TIERS) as LeadTier[]).map((k) => (
           <button key={k} type="button" onClick={() => setLeadFilter(leadFilter === k ? "__all__" : k)}
             className={`rounded-lg border p-3 text-left ${LEAD_TIERS[k].className} ${leadFilter === k ? "ring-2 ring-ring" : ""}`}>

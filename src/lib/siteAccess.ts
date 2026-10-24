@@ -18,13 +18,14 @@ export const SITE_ACCESS_PURPOSE: Record<string, string> = {
 export const purposeLabel = (purpose?: string | null, other?: string | null) =>
   purpose === "other" ? `อื่นๆ: ${other || "-"}` : SITE_ACCESS_PURPOSE[purpose || ""] || purpose || "-";
 
-export type LeadTier = "gt48" | "h24_48" | "h12_24" | "lt12";
+export type LeadTier = "gt48" | "h24_48" | "h12_24" | "lt12" | "walkin";
 
 export const LEAD_TIERS: Record<LeadTier, { label: string; className: string }> = {
   gt48: { label: "จองล่วงหน้ามากกว่า 48 ชม.", className: "bg-success/15 text-success border-success/40" },
   h24_48: { label: "จองล่วงหน้า 24-48 ชม.", className: "bg-warning/15 text-warning border-warning/40" },
   h12_24: { label: "จองล่วงหน้า 12-24 ชม.", className: "bg-caution/15 text-caution border-caution/40" },
   lt12: { label: "จองล่วงหน้าน้อยกว่า 12 ชม.", className: "bg-destructive/15 text-destructive border-destructive/40" },
+  walkin: { label: "ไม่มีการจอง ขอเข้าพื้นที่ทันที", className: "bg-destructive text-destructive-foreground border-destructive" },
 };
 
 /** Hours between booking time and planned start. */
@@ -33,18 +34,22 @@ export const leadHours = (createdAt?: string | null, plannedStart?: string | nul
   return (new Date(plannedStart).getTime() - new Date(createdAt).getTime()) / 3_600_000;
 };
 
-/** >48 → gt48; 24 ≤ h ≤ 48 → h24_48; 12 ≤ h < 24 → h12_24; < 12 → lt12. */
+/** ≤1 → walkin (forgot to book / urgent / back-dated); >48 → gt48; 24 ≤ h ≤ 48 → h24_48; 12 ≤ h < 24 → h12_24; < 12 → lt12. */
 export const leadTier = (hours: number | null): LeadTier | null => {
   if (hours === null || Number.isNaN(hours)) return null;
   if (hours > 48) return "gt48";
   if (hours >= 24) return "h24_48";
   if (hours >= 12) return "h12_24";
-  return "lt12";
+  if (hours > 1) return "lt12";
+  return "walkin";
 };
 
 export const fmtLead = (hours: number | null) => {
   if (hours === null) return "-";
-  const h = Math.max(0, hours);
+  if (hours <= 0) return `ย้อนหลัง ${fmtLeadAbs(-hours)}`;
+  return fmtLeadAbs(hours);
+};
+const fmtLeadAbs = (h: number) => {
   const d = Math.floor(h / 24), r = Math.floor(h % 24);
   return d ? `${d} วัน ${r} ชม.` : `${r} ชม. ${Math.floor((h * 60) % 60)} นาที`;
 };

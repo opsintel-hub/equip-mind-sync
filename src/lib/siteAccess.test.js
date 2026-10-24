@@ -8,6 +8,9 @@ test("booking lead time tiers follow 48/24/12 hour thresholds", () => {
   expect(leadTier(23.9)).toBe("h12_24");
   expect(leadTier(12)).toBe("h12_24");
   expect(leadTier(11.9)).toBe("lt12");
+  expect(leadTier(1)).toBe("walkin");
+  expect(leadTier(0)).toBe("walkin");
+  expect(leadTier(-5)).toBe("walkin");
 });
 
 test("lead hours measured from booking time to planned start", () => {
