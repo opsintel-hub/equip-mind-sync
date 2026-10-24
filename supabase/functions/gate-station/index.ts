@@ -16,7 +16,7 @@ async function sha256(text: string) {
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-const SELECT = "id, ticket_no, status, supervisor_id, supervisor_name, supervisor_phone, worker_count, contractor_name, vehicle_plates, purpose, items_description, assigned_location_note, planned_start_at, planned_end_at, checkin_at, checkout_at, warehouses(name, code), locations:assigned_location_id(code, name)";
+const SELECT = "id, ticket_no, status, supervisor_id, supervisor_name, supervisor_phone, worker_count, contractor_name, vehicle_plates, purpose, purpose_other, items_description, created_at, assigned_location_note, planned_start_at, planned_end_at, checkin_at, checkout_at, admin_closed_at, admin_closed_by_name, warehouses(name, code), locations:assigned_location_id(code, name)";
 const SESSION_HOURS = 12;
 
 Deno.serve(async (req) => {
@@ -114,9 +114,7 @@ Deno.serve(async (req) => {
         if (error) throw error;
       } else if (body.kind === "checkout") {
         if (t.status !== "checked_in") return fail(400, "ตั๋วยังไม่ได้บันทึกเข้า");
-        const { data: ph } = await db.from("warehouse_access_photos").select("photo_type").eq("ticket_id", t.id);
-        const types = new Set((ph || []).map((p: any) => p.photo_type));
-        if (!types.has("placement") || !types.has("cleanliness")) return fail(400, "ยังไม่ส่งรูปตรวจพื้นที่ครบ — ห้ามปล่อยรถออก");
+        // Exit photos are optional (0-2)
         const { error } = await db.from("warehouse_access_tickets").update({
           status: "completed", checkout_at: now, checkout_by: station.created_by, checkout_station_id: station.id,
         }).eq("id", t.id).eq("status", "checked_in");

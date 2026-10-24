@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,25 +12,27 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ClipboardCheck } from "lucide-react";
+import { ClipboardCheck, Download } from "lucide-react";
 import SiteAccessCalendar from "@/components/site-access/SiteAccessCalendar";
-import { SITE_ACCESS_PURPOSE, SITE_ACCESS_STATUS, fmtDT } from "@/lib/siteAccess";
+import LeadTimeBadge from "@/components/site-access/LeadTimeBadge";
+import { LEAD_TIERS, LeadTier, SITE_ACCESS_STATUS, fmtDT, fmtLead, leadHours, leadTier, purposeLabel } from "@/lib/siteAccess";
+
+type Mode = "approve" | "reject" | "close";
 
 export default function SiteAccessManage() {
   const { user } = useAuth();
   const [tab, setTab] = useState("pending_assignment");
   const [tickets, setTickets] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [leadFilter, setLeadFilter] = useState<string>("__all__");
   const [active, setActive] = useState<any | null>(null);
-  const [mode, setMode] = useState<"approve" | "reject">("approve");
-  const [locations, setLocations] = useState<{ id: string; code: string; name: string }[]>([]);
-  const [locId, setLocId] = useState("");
+  const [mode, setMode] = useState<Mode>("approve");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    let q = supabase.from("warehouse_access_tickets").select("*, warehouses(name), locations:assigned_location_id(code,name)")
-      .order("planned_start_at", { ascending: tab === "pending_assignment" || tab === "approved" }).limit(200);
+    let q = supabase.from("warehouse_access_tickets").select("*, warehouses(name)")
+      .order("planned_start_at", { ascending: tab === "pending_assignment" || tab === "approved" }).limit(500);
     if (tab !== "all") q = q.eq("status", tab);
     const { data, error } = await q;
     if (error) toast.error(error.message);
@@ -37,43 +40,76 @@ export default function SiteAccessManage() {
   };
   useEffect(() => { load(); }, [tab]);
 
+  const withLead = useMemo(() => tickets.map((t) => {
+    const h = leadHours(t.created_at, t.planned_start_at);
+    return { ...t, _h: h, _tier: leadTier(h) as LeadTier | null };
+  }), [tickets]);
+
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
-    if (!s) return tickets;
-    return tickets.filter((t) => [t.ticket_no, t.contractor_name, t.supervisor_name, ...(t.vehicle_plates || [])].join(" ").toLowerCase().includes(s));
-  }, [tickets, search]);
+    return withLead.filter((t) => (leadFilter === "__all__" || t._tier === leadFilter)
+      && (!s || [t.ticket_no, t.contractor_name, t.supervisor_name, ...(t.vehicle_plates || [])].join(" ").toLowerCase().includes(s)));
+  }, [withLead, search, leadFilter]);
 
-  const open = async (t: any, m: "approve" | "reject") => {
-    setActive(t); setMode(m); setLocId(t.assigned_location_id || ""); setNote(m === "approve" ? t.assigned_location_note || "" : "");
-    if (m === "approve" && t.warehouse_id) {
-      const { data } = await supabase.from("locations").select("id,code,name").eq("warehouse_id", t.warehouse_id).order("code");
-      setLocations(data || []);
+  const summary = useMemo(() => {
+    const m = new Map<string, Record<LeadTier, number> & { total: number }>();
+    for (const t of filtered) {
+      if (!t._tier) continue;
+      const k = `${t.supervisor_name || "-"} · ${t.contractor_name || "-"}`;
+      const r = m.get(k) || { gt48: 0, h24_48: 0, h12_24: 0, lt12: 0, total: 0 };
+      r[t._tier]++; r.total++; m.set(k, r);
     }
-  };
+    return [...m.entries()].sort((a, b) => (b[1].lt12 + b[1].h12_24) - (a[1].lt12 + a[1].h12_24));
+  }, [filtered]);
+
+  const open = (t: any, m: Mode) => { setActive(t); setMode(m); setNote(""); };
 
   const save = async () => {
     if (!active || !user) return;
-    if (mode === "approve" && !locId) return toast.error("กรุณาเลือกจุดวางของ");
-    if (mode === "reject" && !note.trim()) return toast.error("กรุณาระบุเหตุผล");
+    if (mode !== "approve" && !note.trim()) return toast.error("กรุณาระบุเหตุผล");
     setSaving(true);
-    const patch = mode === "approve"
-      ? { status: "approved", assigned_location_id: locId, assigned_location_note: note.trim().slice(0, 500) || null, assigned_by: user.id, assigned_at: new Date().toISOString(), reject_reason: null }
-      : { status: "rejected", reject_reason: note.trim().slice(0, 500), assigned_by: user.id, assigned_at: new Date().toISOString() };
-    const { error } = await supabase.from("warehouse_access_tickets").update(patch).eq("id", active.id);
+    let error: any = null;
+    if (mode === "close") {
+      ({ error } = await supabase.rpc("admin_close_access_ticket", { _ticket_id: active.id, _reason: note.trim() }));
+    } else {
+      const patch = mode === "approve"
+        ? { status: "approved", assigned_by: user.id, assigned_at: new Date().toISOString(), reject_reason: null }
+        : { status: "rejected", reject_reason: note.trim().slice(0, 500), assigned_by: user.id, assigned_at: new Date().toISOString() };
+      ({ error } = await supabase.from("warehouse_access_tickets").update(patch).eq("id", active.id));
+    }
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success(mode === "approve" ? `อนุมัติ ${active.ticket_no} แล้ว` : `ไม่อนุมัติ ${active.ticket_no}`);
+    toast.success(mode === "approve" ? `อนุมัติ ${active.ticket_no} แล้ว` : mode === "close" ? `ปิดตั๋ว ${active.ticket_no} โดย Admin แล้ว` : `ไม่อนุมัติ ${active.ticket_no}`);
     setActive(null); load();
+  };
+
+  const exportExcel = () => {
+    const rows = filtered.map((t) => ({
+      "เลขตั๋ว": t.ticket_no, "สถานะ": SITE_ACCESS_STATUS[t.status]?.label || t.status, "คลัง": t.warehouses?.name || "-",
+      "วัตถุประสงค์": purposeLabel(t.purpose, t.purpose_other), "ผู้คุม": t.supervisor_name, "ผู้รับเหมา": t.contractor_name,
+      "จองเมื่อ": fmtDT(t.created_at), "เวลาเริ่ม": fmtDT(t.planned_start_at), "จองล่วงหน้า": fmtLead(t._h),
+      "ช่วงการจองล่วงหน้า": t._tier ? LEAD_TIERS[t._tier as LeadTier].label : "-",
+      "เวลาเข้า": fmtDT(t.checkin_at), "เวลาออก": fmtDT(t.checkout_at),
+      "ปิดตั๋วโดย Admin": t.admin_closed_at ? `${t.admin_closed_by_name || "-"} (${fmtDT(t.admin_closed_at)})` : "-",
+      "เหตุผลปิดตั๋ว": t.admin_close_reason || "-",
+    }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), "ตั๋วเข้าพื้นที่");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary.map(([k, r]) => ({
+      "ผู้คุม · ผู้รับเหมา": k, "ทั้งหมด": r.total, [LEAD_TIERS.gt48.label]: r.gt48, [LEAD_TIERS.h24_48.label]: r.h24_48,
+      [LEAD_TIERS.h12_24.label]: r.h12_24, [LEAD_TIERS.lt12.label]: r.lt12,
+    }))), "สรุปวินัยการจอง");
+    XLSX.writeFile(wb, `site-access-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2"><ClipboardCheck className="h-6 w-6" />จัดการตั๋วเข้าพื้นที่</h1>
-        <p className="text-muted-foreground text-sm">คลังตรวจคำขอ ระบุจุดวางของ และอนุมัติก่อนวันเข้าพื้นที่</p>
+        <p className="text-muted-foreground text-sm">คลังตรวจคำขอและอนุมัติก่อนวันเข้าพื้นที่ (ควรจองล่วงหน้า 48 ชั่วโมง)</p>
       </div>
       <SiteAccessCalendar />
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+      <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="pending_assignment">รออนุมัติ</TabsTrigger>
@@ -83,7 +119,27 @@ export default function SiteAccessManage() {
             <TabsTrigger value="all">ทั้งหมด</TabsTrigger>
           </TabsList>
         </Tabs>
-        <Input className="sm:w-72" placeholder="ค้นหา เลขตั๋ว / ผู้รับเหมา / ทะเบียนรถ" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Select value={leadFilter} onValueChange={setLeadFilter}>
+            <SelectTrigger className="sm:w-60"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">ทุกช่วงการจองล่วงหน้า</SelectItem>
+              {(Object.keys(LEAD_TIERS) as LeadTier[]).map((k) => <SelectItem key={k} value={k}>{LEAD_TIERS[k].label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Input className="sm:w-64" placeholder="ค้นหา เลขตั๋ว / ผู้รับเหมา / ทะเบียนรถ" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Button variant="outline" onClick={exportExcel}><Download className="h-4 w-4 mr-1" />Export Excel</Button>
+        </div>
+      </div>
+
+      <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
+        {(Object.keys(LEAD_TIERS) as LeadTier[]).map((k) => (
+          <button key={k} type="button" onClick={() => setLeadFilter(leadFilter === k ? "__all__" : k)}
+            className={`rounded-lg border p-3 text-left ${LEAD_TIERS[k].className} ${leadFilter === k ? "ring-2 ring-ring" : ""}`}>
+            <div className="text-2xl font-bold">{withLead.filter((t) => t._tier === k).length}</div>
+            <div className="text-xs">{LEAD_TIERS[k].label}</div>
+          </button>
+        ))}
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
@@ -98,44 +154,57 @@ export default function SiteAccessManage() {
                   <Badge variant={st.variant}>{st.label}</Badge>
                 </div>
                 <div className="text-muted-foreground">{fmtDT(t.planned_start_at)} – {fmtDT(t.planned_end_at)}</div>
-                <div><b>คลัง:</b> {t.warehouses?.name || "-"} · {SITE_ACCESS_PURPOSE[t.purpose] || t.purpose}</div>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">จองเมื่อ {fmtDT(t.created_at)} <LeadTimeBadge createdAt={t.created_at} plannedStart={t.planned_start_at} /></div>
+                <div><b>คลัง:</b> {t.warehouses?.name || "-"} · {purposeLabel(t.purpose, t.purpose_other)}</div>
                 <div><b>ผู้คุม:</b> {t.supervisor_name} {t.supervisor_phone && `(${t.supervisor_phone})`}</div>
                 <div><b>ผู้รับเหมา:</b> {t.contractor_name} · {t.worker_count} คน</div>
                 <div><b>ทะเบียนรถ:</b> {(t.vehicle_plates || []).join(", ") || "-"}</div>
                 <div className="whitespace-pre-line"><b>สิ่งของ:</b> {t.items_description || "-"}</div>
-                {t.locations && <div><b>จุดวาง:</b> {t.locations.code} {t.locations.name}{t.assigned_location_note ? ` — ${t.assigned_location_note}` : ""}</div>}
                 {t.reject_reason && <div className="text-destructive">เหตุผล: {t.reject_reason}</div>}
-                {(t.status === "pending_assignment" || t.status === "approved") && (
-                  <div className="flex gap-2 pt-2">
-                    <Button size="sm" onClick={() => open(t, "approve")}>{t.status === "approved" ? "แก้จุดวาง" : "ระบุจุดวาง & อนุมัติ"}</Button>
-                    <Button size="sm" variant="outline" onClick={() => open(t, "reject")}>ไม่อนุมัติ</Button>
+                {t.admin_closed_at && (
+                  <div className="rounded-md border bg-muted/40 p-2 text-xs">
+                    <b>ปิดตั๋วโดย Admin:</b> {t.admin_closed_by_name || "-"} · {fmtDT(t.admin_closed_at)}<br />เหตุผล: {t.admin_close_reason}
                   </div>
                 )}
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {t.status === "pending_assignment" && <Button size="sm" onClick={() => open(t, "approve")}>อนุมัติ</Button>}
+                  {(t.status === "pending_assignment" || t.status === "approved") && <Button size="sm" variant="outline" onClick={() => open(t, "reject")}>ไม่อนุมัติ</Button>}
+                  {(t.status === "checked_in" || t.status === "approved") && <Button size="sm" variant="secondary" onClick={() => open(t, "close")}>ปิดตั๋วแทน รปภ.</Button>}
+                </div>
               </CardContent>
             </Card>
           );
         })}
       </div>
 
+      {summary.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className="text-lg">สรุปวินัยการจองล่วงหน้า (ตามผู้คุม · ผู้รับเหมา)</CardTitle></CardHeader>
+          <CardContent className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b text-left">
+                <th className="p-2">ผู้คุม · ผู้รับเหมา</th><th className="p-2 text-right">ทั้งหมด</th>
+                {(Object.keys(LEAD_TIERS) as LeadTier[]).map((k) => <th key={k} className="p-2 text-right">{LEAD_TIERS[k].label}</th>)}
+              </tr></thead>
+              <tbody>{summary.map(([k, r]) => (
+                <tr key={k} className="border-b">
+                  <td className="p-2">{k}</td><td className="p-2 text-right">{r.total}</td>
+                  {(Object.keys(LEAD_TIERS) as LeadTier[]).map((tk) => <td key={tk} className="p-2 text-right">{r[tk]}</td>)}
+                </tr>
+              ))}</tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
+
       <Dialog open={!!active} onOpenChange={(o) => !o && setActive(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{mode === "approve" ? "ระบุจุดวางและอนุมัติ" : "ไม่อนุมัติตั๋ว"} {active?.ticket_no}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{mode === "approve" ? "อนุมัติตั๋ว" : mode === "close" ? "ปิดตั๋วแทน รปภ." : "ไม่อนุมัติตั๋ว"} {active?.ticket_no}</DialogTitle></DialogHeader>
           {mode === "approve" ? (
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label>จุดวางของ *</Label>
-                <Select value={locId || undefined} onValueChange={setLocId}>
-                  <SelectTrigger><SelectValue placeholder="เลือกตำแหน่ง" /></SelectTrigger>
-                  <SelectContent className="max-h-72">{locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.code} {l.name}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>คำแนะนำเพิ่มเติม</Label>
-                <Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder="เช่น วางชิดผนังด้านทิศเหนือ ห้ามวางทับทางเดินรถ" />
-              </div>
-            </div>
+            <p className="text-sm text-muted-foreground">ยืนยันอนุมัติให้เข้าพื้นที่ตามวันเวลาที่จอง</p>
           ) : (
             <div className="space-y-1.5">
+              {mode === "close" && <p className="text-sm text-muted-foreground">ใช้เมื่อ รปภ. ลืมปิดตั๋ว ระบบจะบันทึกว่าปิดโดย Admin (ชื่อของคุณ) — ทำได้เฉพาะ Admin ของฝ่ายที่เกี่ยวข้อง หรือ Super Admin</p>}
               <Label>เหตุผล *</Label>
               <Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} />
             </div>

@@ -40,6 +40,7 @@
 
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
+    --caution: 24 95% 50%;
 
     /* Status semantic colors */
     --status-pending: 38 92% 50%;
