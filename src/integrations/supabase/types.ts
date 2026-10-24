@@ -7156,6 +7156,10 @@ export type Database = {
       }
       warehouse_access_tickets: {
         Row: {
+          admin_close_reason: string | null
+          admin_closed_at: string | null
+          admin_closed_by: string | null
+          admin_closed_by_name: string | null
           assigned_at: string | null
           assigned_by: string | null
           assigned_location_id: string | null
@@ -7175,6 +7179,7 @@ export type Database = {
           planned_end_at: string
           planned_start_at: string
           purpose: string
+          purpose_other: string | null
           reject_reason: string | null
           safety_acknowledged: boolean
           status: string
@@ -7188,6 +7193,10 @@ export type Database = {
           worker_count: number
         }
         Insert: {
+          admin_close_reason?: string | null
+          admin_closed_at?: string | null
+          admin_closed_by?: string | null
+          admin_closed_by_name?: string | null
           assigned_at?: string | null
           assigned_by?: string | null
           assigned_location_id?: string | null
@@ -7207,6 +7216,7 @@ export type Database = {
           planned_end_at: string
           planned_start_at: string
           purpose?: string
+          purpose_other?: string | null
           reject_reason?: string | null
           safety_acknowledged?: boolean
           status?: string
@@ -7220,6 +7230,10 @@ export type Database = {
           worker_count?: number
         }
         Update: {
+          admin_close_reason?: string | null
+          admin_closed_at?: string | null
+          admin_closed_by?: string | null
+          admin_closed_by_name?: string | null
           assigned_at?: string | null
           assigned_by?: string | null
           assigned_location_id?: string | null
@@ -7239,6 +7253,7 @@ export type Database = {
           planned_end_at?: string
           planned_start_at?: string
           purpose?: string
+          purpose_other?: string | null
           reject_reason?: string | null
           safety_acknowledged?: boolean
           status?: string
@@ -7506,6 +7521,10 @@ export type Database = {
       }
       adjust_equipment_quantity: {
         Args: { _equipment_id: string; _new_qty: number; _reason: string }
+        Returns: Json
+      }
+      admin_close_access_ticket: {
+        Args: { _reason: string; _ticket_id: string }
         Returns: Json
       }
       can_submit_issue_return: {
