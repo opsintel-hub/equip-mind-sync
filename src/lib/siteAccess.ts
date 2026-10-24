@@ -23,7 +23,7 @@ export type LeadTier = "gt48" | "h24_48" | "h12_24" | "lt12";
 export const LEAD_TIERS: Record<LeadTier, { label: string; className: string }> = {
   gt48: { label: "จองล่วงหน้ามากกว่า 48 ชม.", className: "bg-success/15 text-success border-success/40" },
   h24_48: { label: "จองล่วงหน้า 24-48 ชม.", className: "bg-warning/15 text-warning border-warning/40" },
-  h12_24: { label: "จองล่วงหน้า 12-24 ชม.", className: "bg-orange-500/15 text-orange-600 border-orange-500/40" },
+  h12_24: { label: "จองล่วงหน้า 12-24 ชม.", className: "bg-caution/15 text-caution border-caution/40" },
   lt12: { label: "จองล่วงหน้าน้อยกว่า 12 ชม.", className: "bg-destructive/15 text-destructive border-destructive/40" },
 };
 
