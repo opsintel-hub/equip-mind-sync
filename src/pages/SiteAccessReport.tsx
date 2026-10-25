@@ -28,12 +28,12 @@ function CountChart({ title, data, line = false }: { title: string; data: { name
           <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" />
           <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} tickFormatter={v => v.slice(5)} />
           <YAxis allowDecimals={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-          <Tooltip /><Line type="monotone" dataKey="count" name="จำนวนตั๋ว" stroke={chartSuccess} strokeWidth={2} />
+          <Tooltip /><Line type="monotone" dataKey="count" name="จำนวนตั๋ว" stroke={chartSuccess} strokeWidth={2} isAnimationActive={false} />
         </LineChart> : <BarChart data={data} margin={{ top: 8, right: 16, bottom: 12, left: -20 }}>
           <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
           <YAxis allowDecimals={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
-          <Tooltip /><Bar dataKey="count" name="จำนวนตั๋ว" fill={chartColor} radius={[4, 4, 0, 0]} />
+          <Tooltip /><Bar dataKey="count" name="จำนวนตั๋ว" fill={chartColor} radius={[4, 4, 0, 0]} isAnimationActive={false} />
         </BarChart>}
       </ResponsiveContainer>
     </div>
@@ -57,9 +57,14 @@ export default function SiteAccessReport() {
     queryFn: async () => {
       const end = new Date(`${to}T00:00:00+07:00`);
       end.setUTCDate(end.getUTCDate() + 1);
-      const { data, error } = await supabase.rpc("site_access_report", { _from: `${from}T00:00:00+07:00`, _to: end.toISOString() });
-      if (error) throw error;
-      return (data || []) as AccessReportRow[];
+      const result: AccessReportRow[] = [];
+      for (let offset = 0; ; offset += 1000) {
+        const { data, error } = await supabase.rpc("site_access_report", { _from: `${from}T00:00:00+07:00`, _to: end.toISOString() }).range(offset, offset + 999);
+        if (error) throw error;
+        result.push(...(data || []) as AccessReportRow[]);
+        if (!data || data.length < 1000) break;
+      }
+      return result;
     },
   });
   const filtered = useMemo(() => rows.filter(r => (department === "__all__" || r.department === department) && (warehouse === "__all__" || r.warehouse_id === warehouse)), [rows, department, warehouse]);
