@@ -7840,6 +7840,26 @@ export type Database = {
         }
         Returns: undefined
       }
+      site_access_report: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          admin_closed_at: string
+          checkin_at: string
+          checkout_at: string
+          contractor_name: string
+          created_at: string
+          department: string
+          id: string
+          planned_end_at: string
+          planned_start_at: string
+          purpose: string
+          status: string
+          ticket_no: string
+          warehouse_id: string
+          warehouse_name: string
+          worker_count: number
+        }[]
+      }
       submit_issue_return: {
         Args: {
           _allocations: Json

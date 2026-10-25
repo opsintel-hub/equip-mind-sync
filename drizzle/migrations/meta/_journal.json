@@ -162,6 +162,13 @@
       "when": 1792830417263,
       "tag": "0022_site_access_purpose_other_admin_close_optional_photos",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792892155253,
+      "tag": "0023_scoped_site_access_analytics",
+      "breakpoints": true
     }
   ]
 }
