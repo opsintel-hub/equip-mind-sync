@@ -46,6 +46,8 @@ export const ROUTE_PERMISSIONS: Record<string, RoutePermissionRule> = {
   "/site-access": { fns: ["site_access_request"] },
   "/site-access-manage": { fns: ["site_access_manage"] },
   "/site-access-gate": { fns: ["site_access_gate"] },
+  // All signed-in users can open the report; its RPC enforces approval and department scope.
+  "/site-access-report": {},
 
   // Transfer
   "/transfer-history": { fns: ["transfer"] },
