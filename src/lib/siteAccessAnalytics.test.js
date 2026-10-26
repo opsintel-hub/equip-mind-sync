@@ -39,7 +39,7 @@ test("average stay is readable hours and minutes, never a raw minute count", () 
 });
 test("booking lead-time column labels each ticket by its tier with the exact hours", () => {
   expect(leadText(base)).toBe("จองล่วงหน้าน้อยกว่า 12 ชม. (10 ชม. 30 นาที)");
-  expect(leadText({ ...base, created_at: base.planned_start_at })).toBe("ไม่มีการจอง ขอเข้าพื้นที่ทันที (0 ชม. 0 นาที)");
+  expect(leadText({ ...base, created_at: base.planned_start_at })).toBe("ไม่มีการจอง ขอเข้าพื้นที่ทันที (ย้อนหลัง 0 ชม. 0 นาที)");
   expect(leadText({ ...base, created_at: "2026-10-20T03:00:00Z" })).toBe("จองล่วงหน้ามากกว่า 48 ชม. (4 วัน 0 ชม.)");
   expect(leadLabel({ created_at: null, planned_start_at: null })).toBe("ไม่ระบุ");
 });
