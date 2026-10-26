@@ -55,6 +55,28 @@ export default function SiteAccessManage() {
       && (!s || [t.ticket_no, t.contractor_name, t.supervisor_name, ...(t.vehicle_plates || [])].join(" ").toLowerCase().includes(s)));
   }, [withLead, search, leadFilter]);
 
+  const pg = useTablePagination(filtered, 10);
+
+  useEffect(() => {
+    setExpanded(new Set());
+    const ids = pg.paginatedData.map((t) => t.id);
+    if (!ids.length) { setPhotos({}); return; }
+    supabase.from("warehouse_access_photos").select("ticket_id, photo_type, image_url").in("ticket_id", ids)
+      .then(({ data }) => {
+        const m: Record<string, any[]> = {};
+        (data || []).forEach((p) => { (m[p.ticket_id] ||= []).push(p); });
+        setPhotos(m);
+      });
+  }, [pg.paginatedData]);
+
+  const toggleRow = (id: string) => setExpanded((s) => {
+    const n = new Set(s);
+    if (n.has(id)) n.delete(id); else n.add(id);
+    return n;
+  });
+  const allExpanded = pg.paginatedData.length > 0 && pg.paginatedData.every((t) => expanded.has(t.id));
+  const toggleAll = () => setExpanded(allExpanded ? new Set() : new Set(pg.paginatedData.map((t) => t.id)));
+
   const summary = useMemo(() => {
     const m = new Map<string, Record<LeadTier, number> & { total: number }>();
     for (const t of filtered) {
