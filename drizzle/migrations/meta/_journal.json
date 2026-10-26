@@ -169,6 +169,13 @@
       "when": 1792892155253,
       "tag": "0023_scoped_site_access_analytics",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792980274696,
+      "tag": "0024_site_access_ticket_department",
+      "breakpoints": true
     }
   ]
 }
