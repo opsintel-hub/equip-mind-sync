@@ -57,6 +57,16 @@ export default function GateStationManager() {
     load();
   };
 
+  const remove = async () => {
+    if (!toDelete) return;
+    setDeleting(true);
+    const { error } = await supabase.from("gate_stations").delete().eq("id", toDelete.id);
+    setDeleting(false);
+    if (error) return toast.error(error.message);
+    toast.success(`ลบจุดตรวจ ${toDelete.code} แล้ว`);
+    setToDelete(null); load();
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
