@@ -57,6 +57,18 @@ export function leadCounts(rows: AccessReportRow[]) {
   }
   return counts;
 }
+/** Booking lead-time tier label for a ticket row; missing times read as "ไม่ระบุ". */
+export function leadLabel(row: Pick<AccessReportRow, "created_at" | "planned_start_at">) {
+  const tier = leadTier(leadHours(row.created_at, row.planned_start_at));
+  return tier ? LEAD_TIERS[tier].label : "ไม่ระบุ";
+}
+/** Tier label plus the exact lead time, e.g. "จองล่วงหน้ามากกว่า 48 ชม. (3 วัน 2 ชม.)". */
+export function leadText(row: Pick<AccessReportRow, "created_at" | "planned_start_at">) {
+  const hours = leadHours(row.created_at, row.planned_start_at);
+  const tier = leadTier(hours);
+  if (!tier) return "ไม่ระบุ";
+  return `${LEAD_TIERS[tier].label} (${fmtLead(hours)})`;
+}
 export function dwellStats(rows: AccessReportRow[]) {
   // Administrative close timestamps are not evidence of a guard-recorded exit.
   const completed = rows.filter(r => r.checkin_at && r.checkout_at && !r.admin_closed_at && new Date(r.checkout_at).getTime() >= new Date(r.checkin_at).getTime());
