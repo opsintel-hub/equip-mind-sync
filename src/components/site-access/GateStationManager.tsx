@@ -126,6 +126,19 @@ export default function GateStationManager() {
           )}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>ลบจุดตรวจ {toDelete?.code}?</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            จะลบจุดตรวจ <b>{toDelete?.name}</b> และเครื่องที่ล็อกอินอยู่ทั้งหมดออกทันที (ประวัติตั๋วเข้า-ออกเดิมยังอยู่ครบ) — ลบแล้วกู้คืนไม่ได้
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setToDelete(null)}>ยกเลิก</Button>
+            <Button variant="destructive" disabled={deleting} onClick={remove}>{deleting ? "กำลังลบ..." : "ยืนยันลบ"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
