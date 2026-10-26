@@ -12,9 +12,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ClipboardCheck, Download } from "lucide-react";
+import { ChevronDown, ChevronRight, ClipboardCheck, Download, ImageIcon } from "lucide-react";
 import SiteAccessCalendar from "@/components/site-access/SiteAccessCalendar";
 import LeadTimeBadge from "@/components/site-access/LeadTimeBadge";
+import { TablePagination } from "@/components/TablePagination";
+import { useTablePagination } from "@/hooks/useTablePagination";
 import { LEAD_TIERS, LeadTier, SITE_ACCESS_STATUS, fmtDT, fmtLead, leadHours, leadTier, purposeLabel } from "@/lib/siteAccess";
 
 type Mode = "approve" | "reject" | "close";
@@ -29,6 +31,8 @@ export default function SiteAccessManage() {
   const [mode, setMode] = useState<Mode>("approve");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [photos, setPhotos] = useState<Record<string, any[]>>({});
 
   const load = async () => {
     let q = supabase.from("warehouse_access_tickets").select("*, warehouses(name)")
