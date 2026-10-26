@@ -7173,6 +7173,7 @@ export type Database = {
           contractor_name: string
           created_at: string
           created_by: string
+          department: string | null
           id: string
           items_description: string | null
           notes: string | null
@@ -7210,6 +7211,7 @@ export type Database = {
           contractor_name: string
           created_at?: string
           created_by?: string
+          department?: string | null
           id?: string
           items_description?: string | null
           notes?: string | null
@@ -7247,6 +7249,7 @@ export type Database = {
           contractor_name?: string
           created_at?: string
           created_by?: string
+          department?: string | null
           id?: string
           items_description?: string | null
           notes?: string | null
