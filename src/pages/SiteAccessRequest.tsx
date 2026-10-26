@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrentUserProfile } from "@/hooks/useCurrentUserProfile";
+import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,8 @@ export default function SiteAccessRequest() {
     items_description: "", supervisor_phone: "", planned_start_at: "", planned_end_at: "", notes: "",
   });
   const [plates, setPlates] = useState<string[]>([""]);
+  const { allowedDepartments, loading: deptLoading } = useAllowedDepartments("view");
+  const [department, setDepartment] = useState("");
   const [ack, setAck] = useState(false);
   const [lastBooked, setLastBooked] = useState<{ ticket_no: string; created_at: string; planned_start_at: string } | null>(null);
   const previewLead = form.planned_start_at ? leadTier(leadHours(new Date().toISOString(), new Date(form.planned_start_at).toISOString())) : null;
@@ -65,6 +68,13 @@ export default function SiteAccessRequest() {
     if (profile?.phone) setForm((f) => (f.supervisor_phone ? f : { ...f, supervisor_phone: profile.phone }));
   }, [profile?.phone]);
 
+  useEffect(() => {
+    if (deptLoading || department) return;
+    const own = allowedDepartments.find((d) => d.name === (profile as any)?.department);
+    if (own) setDepartment(own.name);
+    else if (allowedDepartments.length === 1) setDepartment(allowedDepartments[0].name);
+  }, [deptLoading, allowedDepartments, profile]);
+
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const submit = async (e: React.FormEvent) => {
@@ -74,6 +84,7 @@ export default function SiteAccessRequest() {
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
     if (new Date(form.planned_end_at) <= new Date(form.planned_start_at)) return toast.error("เวลาสิ้นสุดต้องหลังเวลาเริ่ม");
     if (form.purpose === "other" && !form.purpose_other.trim()) return toast.error("กรุณาระบุวัตถุประสงค์ (อื่นๆ)");
+    if (!department || !allowedDepartments.some((x) => x.name === department)) return toast.error("กรุณาเลือกฝ่ายของผู้จองตามสิทธิของคุณ");
     if (!ack) return toast.error("กรุณายืนยันว่าจะไปคุมงานด้วยตนเองและรับทราบกฎความปลอดภัย");
     setSaving(true);
     const d = parsed.data;
@@ -81,7 +92,7 @@ export default function SiteAccessRequest() {
       warehouse_id: d.warehouse_id, contractor_name: d.contractor_name, worker_count: d.worker_count,
       vehicle_plates: d.vehicle_plates.map((p) => p.toUpperCase()), purpose: form.purpose,
       purpose_other: form.purpose === "other" ? form.purpose_other.trim().slice(0, 200) : null,
-      items_description: d.items_description, supervisor_id: user.id,
+      items_description: d.items_description, supervisor_id: user.id, department,
       supervisor_name: profile.displayName || profile.fullName, supervisor_phone: d.supervisor_phone,
       planned_start_at: new Date(d.planned_start_at).toISOString(), planned_end_at: new Date(d.planned_end_at).toISOString(),
       notes: form.notes.trim() || null, safety_acknowledged: true,
@@ -141,8 +152,16 @@ export default function SiteAccessRequest() {
                 <Input type="datetime-local" value={form.planned_end_at} onChange={(e) => set("planned_end_at", e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label>ผู้คุมงาน (บริษัท)</Label>
+                <Label>ผู้จอง / ผู้คุมงาน (บริษัท)</Label>
                 <Input value={profile?.displayName || profile?.fullName || ""} disabled />
+              </div>
+              <div className="space-y-1.5">
+                <Label>ฝ่ายของผู้จอง *</Label>
+                <Select value={department || undefined} onValueChange={setDepartment} disabled={deptLoading || allowedDepartments.length <= 1}>
+                  <SelectTrigger aria-label="ฝ่ายของผู้จอง"><SelectValue placeholder={deptLoading ? "กำลังโหลด..." : allowedDepartments.length ? "เลือกฝ่าย" : "ไม่มีสิทธิฝ่าย"} /></SelectTrigger>
+                  <SelectContent>{allowedDepartments.map((d) => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}</SelectContent>
+                </Select>
+                {!deptLoading && !allowedDepartments.length && <p className="text-xs text-destructive">บัญชีของคุณยังไม่มีสิทธิฝ่าย กรุณาติดต่อผู้ดูแลระบบ</p>}
               </div>
               <div className="space-y-1.5">
                 <Label>เบอร์โทรผู้คุม *</Label>
