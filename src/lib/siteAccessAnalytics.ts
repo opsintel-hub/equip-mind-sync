@@ -1,4 +1,4 @@
-import { leadHours, leadTier, LeadTier } from "./siteAccess";
+import { fmtLead, leadHours, leadTier, LEAD_TIERS, LeadTier } from "./siteAccess";
 
 export interface AccessReportRow {
   id: string; ticket_no: string; department: string | null; warehouse_id: string;
