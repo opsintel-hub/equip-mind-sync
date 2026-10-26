@@ -83,6 +83,11 @@ export function formatDuration(minutes: number) {
   const d = Math.floor(total / 1440), h = Math.floor((total % 1440) / 60), m = total % 60;
   return d ? `${d} วัน ${h} ชม. ${m} นาที` : `${h} ชม. ${m} นาที`;
 }
+/** Averages are not tied to a calendar day, so they always read as plain hours and minutes: 2232 → "37 ชม. 12 นาที". */
+export function formatHoursMinutes(minutes: number) {
+  const total = Math.max(0, Math.floor(minutes));
+  return `${Math.floor(total / 60)} ชม. ${total % 60} นาที`;
+}
 /** Display time spent on site; admin close-outs are not real exits so they are not timed. */
 export function stayLabel(row: Pick<AccessReportRow, "status" | "checkin_at" | "checkout_at" | "admin_closed_at">, now = Date.now()) {
   if (row.admin_closed_at) return "ปิดโดย Admin (ไม่นับเวลา)";
