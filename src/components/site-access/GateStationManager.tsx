@@ -18,6 +18,8 @@ export default function GateStationManager() {
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [edit, setEdit] = useState<any | null>(null);
   const [shownPin, setShownPin] = useState<{ code: string; pin: string } | null>(null);
+  const [toDelete, setToDelete] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
     const { data } = await supabase.from("gate_stations").select("id, code, name, warehouse_id, is_active, last_used_at, locked_until").order("created_at");
