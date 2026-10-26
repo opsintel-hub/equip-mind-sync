@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { stayLabel, metricRows, distribution, dwellStats, leadCounts, departmentSummaries } from "./siteAccessAnalytics";
+import { stayLabel, metricRows, distribution, dwellStats, leadCounts, departmentSummaries, formatDuration } from "./siteAccessAnalytics";
 const base = { id: "1", ticket_no: "WAP-1", department: "ฝ่าย A", warehouse_id: "w", warehouse_name: "คลัง", contractor_name: "ทีม", worker_count: 4, purpose: "bring_in", status: "completed", created_at: "2026-10-23T16:30:00Z", planned_start_at: "2026-10-24T03:00:00Z", planned_end_at: "2026-10-24T05:00:00Z", checkin_at: "2026-10-24T03:15:00Z", checkout_at: "2026-10-24T04:15:00Z", admin_closed_at: null };
 test("creation on Friday and entry on Saturday are counted independently in Bangkok", () => {
   expect(distribution([base], "booking").days[5].count).toBe(1);
@@ -29,6 +29,12 @@ test("walk-ins include urgent and retrospective requests", () => {
 test("department totals never duplicate a visit across departments", () => {
   const summaries = departmentSummaries([base, { ...base, id: "2", department: "ฝ่าย B", worker_count: 2 }], "2026-10-01", "2026-10-31");
   expect(summaries.map(r => [r.department, r.actual, r.workers])).toEqual([["ฝ่าย A", 1, 4], ["ฝ่าย B", 1, 2]]);
+});
+test("average stay is readable hours and minutes, never a raw minute count", () => {
+  expect(formatDuration(2232)).toBe("37 ชม. 12 นาที");
+  expect(formatDuration(4239)).toBe("2 วัน 22 ชม. 39 นาที");
+  expect(formatDuration(60)).toBe("1 ชม. 0 นาที");
+  expect(formatDuration(0)).toBe("0 ชม. 0 นาที");
 });
 test("stay label formats", () => {
   expect(stayLabel({ status: "completed", checkin_at: "2026-10-19T05:00:00Z", checkout_at: "2026-10-19T08:45:00Z", admin_closed_at: null })).toBe("3 ชม. 45 นาที");
