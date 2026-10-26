@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { stayLabel, metricRows, distribution, dwellStats, leadCounts, departmentSummaries, formatDuration, formatHoursMinutes } from "./siteAccessAnalytics";
+import { stayLabel, metricRows, distribution, dwellStats, leadCounts, leadText, leadLabel, departmentSummaries, formatDuration, formatHoursMinutes } from "./siteAccessAnalytics";
 const base = { id: "1", ticket_no: "WAP-1", department: "ฝ่าย A", warehouse_id: "w", warehouse_name: "คลัง", contractor_name: "ทีม", worker_count: 4, purpose: "bring_in", status: "completed", created_at: "2026-10-23T16:30:00Z", planned_start_at: "2026-10-24T03:00:00Z", planned_end_at: "2026-10-24T05:00:00Z", checkin_at: "2026-10-24T03:15:00Z", checkout_at: "2026-10-24T04:15:00Z", admin_closed_at: null };
 test("creation on Friday and entry on Saturday are counted independently in Bangkok", () => {
   expect(distribution([base], "booking").days[5].count).toBe(1);
@@ -36,6 +36,12 @@ test("average stay is readable hours and minutes, never a raw minute count", () 
   expect(formatHoursMinutes(60)).toBe("1 ชม. 0 นาที");
   expect(formatHoursMinutes(0)).toBe("0 ชม. 0 นาที");
   expect(formatDuration(2232)).toBe("1 วัน 13 ชม. 12 นาที");
+});
+test("booking lead-time column labels each ticket by its tier with the exact hours", () => {
+  expect(leadText(base)).toBe("จองล่วงหน้าน้อยกว่า 12 ชม. (10 ชม. 30 นาที)");
+  expect(leadText({ ...base, created_at: base.planned_start_at })).toBe("ไม่มีการจอง ขอเข้าพื้นที่ทันที (ย้อนหลัง 0 ชม. 0 นาที)");
+  expect(leadText({ ...base, created_at: "2026-10-20T03:00:00Z" })).toBe("จองล่วงหน้ามากกว่า 48 ชม. (4 วัน 0 ชม.)");
+  expect(leadLabel({ created_at: null, planned_start_at: null })).toBe("ไม่ระบุ");
 });
 test("stay label formats", () => {
   expect(stayLabel({ status: "completed", checkin_at: "2026-10-19T05:00:00Z", checkout_at: "2026-10-19T08:45:00Z", admin_closed_at: null })).toBe("3 ชม. 45 นาที");
