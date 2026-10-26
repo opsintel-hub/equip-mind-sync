@@ -78,3 +78,17 @@ export function departmentSummaries(rows: AccessReportRow[], from: string, to: s
       actualDay: peak(dist.days), actualHour: peak(dist.hours), dwell: dwellStats(actual) };
   }).sort((a, b) => b.actual - a.actual || b.planned - a.planned);
 }
+export function formatDuration(minutes: number) {
+  const total = Math.max(0, Math.floor(minutes));
+  const d = Math.floor(total / 1440), h = Math.floor((total % 1440) / 60), m = total % 60;
+  return d ? `${d} วัน ${h} ชม. ${m} นาที` : `${h} ชม. ${m} นาที`;
+}
+/** Display time spent on site; admin close-outs are not real exits so they are not timed. */
+export function stayLabel(row: Pick<AccessReportRow, "status" | "checkin_at" | "checkout_at" | "admin_closed_at">, now = Date.now()) {
+  if (row.admin_closed_at) return "ปิดโดย Admin (ไม่นับเวลา)";
+  if (!row.checkin_at || ["cancelled", "rejected"].includes(row.status)) return "—";
+  const start = new Date(row.checkin_at).getTime();
+  if (row.checkout_at) return formatDuration((new Date(row.checkout_at).getTime() - start) / 60000);
+  if (row.status === "checked_in") return `อยู่ในพื้นที่ (${formatDuration((now - start) / 60000)})`;
+  return "—";
+}

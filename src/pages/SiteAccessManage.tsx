@@ -86,7 +86,7 @@ export default function SiteAccessManage() {
   const exportExcel = () => {
     const rows = filtered.map((t) => ({
       "เลขตั๋ว": t.ticket_no, "สถานะ": SITE_ACCESS_STATUS[t.status]?.label || t.status, "คลัง": t.warehouses?.name || "-",
-      "วัตถุประสงค์": purposeLabel(t.purpose, t.purpose_other), "ผู้คุม": t.supervisor_name, "ผู้รับเหมา": t.contractor_name,
+      "วัตถุประสงค์": purposeLabel(t.purpose, t.purpose_other), "ผู้คุม": t.supervisor_name, "ฝ่ายผู้จอง": t.department || "-", "ผู้รับเหมา": t.contractor_name,
       "จองเมื่อ": fmtDT(t.created_at), "เวลาเริ่ม": fmtDT(t.planned_start_at), "จองล่วงหน้า": fmtLead(t._h),
       "ช่วงการจองล่วงหน้า": t._tier ? LEAD_TIERS[t._tier as LeadTier].label : "-",
       "เวลาเข้า": fmtDT(t.checkin_at), "เวลาออก": fmtDT(t.checkout_at),
@@ -156,7 +156,7 @@ export default function SiteAccessManage() {
                 <div className="text-muted-foreground">{fmtDT(t.planned_start_at)} – {fmtDT(t.planned_end_at)}</div>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">จองเมื่อ {fmtDT(t.created_at)} <LeadTimeBadge createdAt={t.created_at} plannedStart={t.planned_start_at} /></div>
                 <div><b>คลัง:</b> {t.warehouses?.name || "-"} · {purposeLabel(t.purpose, t.purpose_other)}</div>
-                <div><b>ผู้คุม:</b> {t.supervisor_name} {t.supervisor_phone && `(${t.supervisor_phone})`}</div>
+                <div><b>ผู้จอง/ผู้คุม:</b> {t.supervisor_name} {t.supervisor_phone && `(${t.supervisor_phone})`}{t.department && <> · <b>ฝ่าย:</b> {t.department}</>}</div>
                 <div><b>ผู้รับเหมา:</b> {t.contractor_name} · {t.worker_count} คน</div>
                 <div><b>ทะเบียนรถ:</b> {(t.vehicle_plates || []).join(", ") || "-"}</div>
                 <div className="whitespace-pre-line"><b>สิ่งของ:</b> {t.items_description || "-"}</div>

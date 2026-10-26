@@ -30,3 +30,13 @@ test("department totals never duplicate a visit across departments", () => {
   const summaries = departmentSummaries([base, { ...base, id: "2", department: "ฝ่าย B", worker_count: 2 }], "2026-10-01", "2026-10-31");
   expect(summaries.map(r => [r.department, r.actual, r.workers])).toEqual([["ฝ่าย A", 1, 4], ["ฝ่าย B", 1, 2]]);
 });
+import { stayLabel as _stay } from "./siteAccessAnalytics.ts";
+import { test as _t } from "node:test";
+import _assert from "node:assert/strict";
+_t("stay label formats", () => {
+  _assert.equal(_stay({ status: "completed", checkin_at: "2026-10-19T05:00:00Z", checkout_at: "2026-10-19T08:45:00Z", admin_closed_at: null }), "3 ชม. 45 นาที");
+  _assert.equal(_stay({ status: "completed", checkin_at: "2026-10-16T05:51:00Z", checkout_at: "2026-10-19T04:30:00Z", admin_closed_at: null }), "2 วัน 22 ชม. 39 นาที");
+  _assert.equal(_stay({ status: "checked_in", checkin_at: "2026-10-19T05:00:00Z", checkout_at: null, admin_closed_at: null }, Date.parse("2026-10-19T06:30:00Z")), "อยู่ในพื้นที่ (1 ชม. 30 นาที)");
+  _assert.equal(_stay({ status: "completed", checkin_at: "2026-10-19T05:00:00Z", checkout_at: "2026-10-20T05:00:00Z", admin_closed_at: "2026-10-20T05:00:00Z" }), "ปิดโดย Admin (ไม่นับเวลา)");
+  _assert.equal(_stay({ status: "cancelled", checkin_at: null, checkout_at: null, admin_closed_at: null }), "—");
+});
