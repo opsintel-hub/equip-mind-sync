@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, KeyRound, Plus, Power } from "lucide-react";
+import { Copy, KeyRound, Plus, Power, Trash2 } from "lucide-react";
 import { fmtDT } from "@/lib/siteAccess";
 
 const genPin = () => String(Math.floor(100000 + Math.random() * 900000));
@@ -18,6 +18,8 @@ export default function GateStationManager() {
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [edit, setEdit] = useState<any | null>(null);
   const [shownPin, setShownPin] = useState<{ code: string; pin: string } | null>(null);
+  const [toDelete, setToDelete] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
     const { data } = await supabase.from("gate_stations").select("id, code, name, warehouse_id, is_active, last_used_at, locked_until").order("created_at");
@@ -55,6 +57,16 @@ export default function GateStationManager() {
     load();
   };
 
+  const remove = async () => {
+    if (!toDelete) return;
+    setDeleting(true);
+    const { error } = await supabase.from("gate_stations").delete().eq("id", toDelete.id);
+    setDeleting(false);
+    if (error) return toast.error(error.message);
+    toast.success(`ลบจุดตรวจ ${toDelete.code} แล้ว`);
+    setToDelete(null); load();
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -74,6 +86,7 @@ export default function GateStationManager() {
             <Button size="sm" variant="outline" onClick={() => resetPin(r)}><KeyRound className="mr-1 h-4 w-4" />ตั้ง PIN ใหม่</Button>
             <Button size="sm" variant="outline" onClick={() => setEdit({ ...r, warehouse_id: r.warehouse_id || "__none__" })}>แก้ไข</Button>
             <Button size="sm" variant="outline" onClick={() => toggle(r)}><Power className="mr-1 h-4 w-4" />{r.is_active ? "ปิด" : "เปิด"}</Button>
+            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => setToDelete(r)}><Trash2 className="mr-1 h-4 w-4" />ลบ</Button>
           </div>
         ))}
       </CardContent>
@@ -111,6 +124,19 @@ export default function GateStationManager() {
               <div className="break-all text-xs">{link(shownPin.code)}</div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>ลบจุดตรวจ {toDelete?.code}?</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            จะลบจุดตรวจ <b>{toDelete?.name}</b> และเครื่องที่ล็อกอินอยู่ทั้งหมดออกทันที (ประวัติตั๋วเข้า-ออกเดิมยังอยู่ครบ) — ลบแล้วกู้คืนไม่ได้
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setToDelete(null)}>ยกเลิก</Button>
+            <Button variant="destructive" disabled={deleting} onClick={remove}>{deleting ? "กำลังลบ..." : "ยืนยันลบ"}</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>
