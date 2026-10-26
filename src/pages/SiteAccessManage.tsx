@@ -12,9 +12,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ClipboardCheck, Download } from "lucide-react";
+import { ChevronDown, ChevronRight, ClipboardCheck, Download, ImageIcon } from "lucide-react";
 import SiteAccessCalendar from "@/components/site-access/SiteAccessCalendar";
 import LeadTimeBadge from "@/components/site-access/LeadTimeBadge";
+import { TablePagination } from "@/components/TablePagination";
+import { useTablePagination } from "@/hooks/useTablePagination";
 import { LEAD_TIERS, LeadTier, SITE_ACCESS_STATUS, fmtDT, fmtLead, leadHours, leadTier, purposeLabel } from "@/lib/siteAccess";
 
 type Mode = "approve" | "reject" | "close";
@@ -29,6 +31,8 @@ export default function SiteAccessManage() {
   const [mode, setMode] = useState<Mode>("approve");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [photos, setPhotos] = useState<Record<string, any[]>>({});
 
   const load = async () => {
     let q = supabase.from("warehouse_access_tickets").select("*, warehouses(name)")
@@ -50,6 +54,28 @@ export default function SiteAccessManage() {
     return withLead.filter((t) => (leadFilter === "__all__" || t._tier === leadFilter)
       && (!s || [t.ticket_no, t.contractor_name, t.supervisor_name, ...(t.vehicle_plates || [])].join(" ").toLowerCase().includes(s)));
   }, [withLead, search, leadFilter]);
+
+  const pg = useTablePagination(filtered, 10);
+
+  useEffect(() => {
+    setExpanded(new Set());
+    const ids = pg.paginatedData.map((t) => t.id);
+    if (!ids.length) { setPhotos({}); return; }
+    supabase.from("warehouse_access_photos").select("ticket_id, photo_type, image_url").in("ticket_id", ids)
+      .then(({ data }) => {
+        const m: Record<string, any[]> = {};
+        (data || []).forEach((p) => { (m[p.ticket_id] ||= []).push(p); });
+        setPhotos(m);
+      });
+  }, [pg.paginatedData]);
+
+  const toggleRow = (id: string) => setExpanded((s) => {
+    const n = new Set(s);
+    if (n.has(id)) n.delete(id); else n.add(id);
+    return n;
+  });
+  const allExpanded = pg.paginatedData.length > 0 && pg.paginatedData.every((t) => expanded.has(t.id));
+  const toggleAll = () => setExpanded(allExpanded ? new Set() : new Set(pg.paginatedData.map((t) => t.id)));
 
   const summary = useMemo(() => {
     const m = new Map<string, Record<LeadTier, number> & { total: number }>();
@@ -142,40 +168,81 @@ export default function SiteAccessManage() {
         ))}
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        {filtered.length === 0 && <p className="text-sm text-muted-foreground">ไม่มีรายการ</p>}
-        {filtered.map((t) => {
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">{filtered.length} รายการ</p>
+        <Button size="sm" variant="ghost" onClick={toggleAll} disabled={pg.paginatedData.length === 0}>
+          {allExpanded ? <><ChevronDown className="mr-1 h-4 w-4" />ซ่อนรายละเอียดทั้งหมด</> : <><ChevronRight className="mr-1 h-4 w-4" />แสดงรายละเอียดทั้งหมด</>}
+        </Button>
+      </div>
+
+      <div className="rounded-lg border divide-y overflow-hidden">
+        {pg.paginatedData.length === 0 && <p className="p-4 text-sm text-muted-foreground">ไม่มีรายการ</p>}
+        {pg.paginatedData.map((t) => {
           const st = SITE_ACCESS_STATUS[t.status] || { label: t.status, variant: "outline" as const };
+          const isOpen = expanded.has(t.id);
+          const pics = photos[t.id] || [];
           return (
-            <Card key={t.id}>
-              <CardContent className="pt-4 space-y-1.5 text-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-mono font-semibold">{t.ticket_no}</span>
-                  <Badge variant={st.variant}>{st.label}</Badge>
-                </div>
-                <div className="text-muted-foreground">{fmtDT(t.planned_start_at)} – {fmtDT(t.planned_end_at)}</div>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">จองเมื่อ {fmtDT(t.created_at)} <LeadTimeBadge createdAt={t.created_at} plannedStart={t.planned_start_at} /></div>
-                <div><b>คลัง:</b> {t.warehouses?.name || "-"} · {purposeLabel(t.purpose, t.purpose_other)}</div>
-                <div><b>ผู้จอง/ผู้คุม:</b> {t.supervisor_name} {t.supervisor_phone && `(${t.supervisor_phone})`}{t.department && <> · <b>ฝ่าย:</b> {t.department}</>}</div>
-                <div><b>ผู้รับเหมา:</b> {t.contractor_name} · {t.worker_count} คน</div>
-                <div><b>ทะเบียนรถ:</b> {(t.vehicle_plates || []).join(", ") || "-"}</div>
-                <div className="whitespace-pre-line"><b>สิ่งของ:</b> {t.items_description || "-"}</div>
-                {t.reject_reason && <div className="text-destructive">เหตุผล: {t.reject_reason}</div>}
-                {t.admin_closed_at && (
-                  <div className="rounded-md border bg-muted/40 p-2 text-xs">
-                    <b>ปิดตั๋วโดย Admin:</b> {t.admin_closed_by_name || "-"} · {fmtDT(t.admin_closed_at)}<br />เหตุผล: {t.admin_close_reason}
-                  </div>
+            <div key={t.id}>
+              <button type="button" onClick={() => toggleRow(t.id)}
+                className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/40">
+                {isOpen ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                <span className="font-mono font-semibold">{t.ticket_no}</span>
+                <Badge variant={st.variant}>{st.label}</Badge>
+                <span className="text-muted-foreground">{fmtDT(t.planned_start_at)} – {fmtDT(t.planned_end_at)}</span>
+                <LeadTimeBadge createdAt={t.created_at} plannedStart={t.planned_start_at} />
+                <span className="hidden md:inline truncate text-muted-foreground">{t.supervisor_name} · {t.contractor_name}</span>
+                {pics.length > 0 && (
+                  <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
+                    <ImageIcon className="h-3.5 w-3.5" />{pics.length}
+                  </span>
                 )}
-                <div className="flex flex-wrap gap-2 pt-2">
-                  {t.status === "pending_assignment" && <Button size="sm" onClick={() => open(t, "approve")}>อนุมัติ</Button>}
-                  {(t.status === "pending_assignment" || t.status === "approved") && <Button size="sm" variant="outline" onClick={() => open(t, "reject")}>ไม่อนุมัติ</Button>}
-                  {(t.status === "checked_in" || t.status === "approved") && <Button size="sm" variant="secondary" onClick={() => open(t, "close")}>ปิดตั๋วแทน รปภ.</Button>}
+              </button>
+              {isOpen && (
+                <div className="space-y-2 border-t bg-muted/20 px-4 py-3 text-sm">
+                  <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
+                    <div className="text-xs text-muted-foreground">จองเมื่อ {fmtDT(t.created_at)}</div>
+                    <div><b>คลัง:</b> {t.warehouses?.name || "-"} · {purposeLabel(t.purpose, t.purpose_other)}</div>
+                    <div><b>ผู้จอง/ผู้คุม:</b> {t.supervisor_name} {t.supervisor_phone && `(${t.supervisor_phone})`}{t.department && <> · <b>ฝ่าย:</b> {t.department}</>}</div>
+                    <div><b>ผู้รับเหมา:</b> {t.contractor_name} · {t.worker_count} คน</div>
+                    <div><b>ทะเบียนรถ:</b> {(t.vehicle_plates || []).join(", ") || "-"}</div>
+                    <div className="whitespace-pre-line"><b>สิ่งของ:</b> {t.items_description || "-"}</div>
+                  </div>
+                  {t.reject_reason && <div className="text-destructive">เหตุผล: {t.reject_reason}</div>}
+                  {t.admin_closed_at && (
+                    <div className="rounded-md border bg-muted/40 p-2 text-xs">
+                      <b>ปิดตั๋วโดย Admin:</b> {t.admin_closed_by_name || "-"} · {fmtDT(t.admin_closed_at)}<br />เหตุผล: {t.admin_close_reason}
+                    </div>
+                  )}
+                  {pics.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {pics.map((p) => (
+                        <a key={p.image_url} href={p.image_url} target="_blank" rel="noreferrer" title={p.photo_type}>
+                          <img src={p.image_url} alt={p.photo_type} loading="lazy"
+                            className="h-16 w-16 rounded-md border object-cover transition-transform hover:scale-105" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {t.status === "pending_assignment" && <Button size="sm" onClick={() => open(t, "approve")}>อนุมัติ</Button>}
+                    {(t.status === "pending_assignment" || t.status === "approved") && <Button size="sm" variant="outline" onClick={() => open(t, "reject")}>ไม่อนุมัติ</Button>}
+                    {(t.status === "checked_in" || t.status === "approved") && <Button size="sm" variant="secondary" onClick={() => open(t, "close")}>ปิดตั๋วแทน รปภ.</Button>}
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
+              )}
+            </div>
           );
         })}
       </div>
+
+      <TablePagination
+        currentPage={pg.currentPage}
+        totalPages={pg.totalPages}
+        totalItems={pg.totalItems}
+        pageSize={pg.pageSize}
+        onPageChange={pg.handlePageChange}
+        onPageSizeChange={pg.handlePageSizeChange}
+      />
 
       {summary.length > 0 && (
         <Card>
