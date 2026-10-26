@@ -86,6 +86,7 @@ export default function GateStationManager() {
             <Button size="sm" variant="outline" onClick={() => resetPin(r)}><KeyRound className="mr-1 h-4 w-4" />ตั้ง PIN ใหม่</Button>
             <Button size="sm" variant="outline" onClick={() => setEdit({ ...r, warehouse_id: r.warehouse_id || "__none__" })}>แก้ไข</Button>
             <Button size="sm" variant="outline" onClick={() => toggle(r)}><Power className="mr-1 h-4 w-4" />{r.is_active ? "ปิด" : "เปิด"}</Button>
+            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => setToDelete(r)}><Trash2 className="mr-1 h-4 w-4" />ลบ</Button>
           </div>
         ))}
       </CardContent>
