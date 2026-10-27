@@ -5,7 +5,7 @@ export interface AccessReportRow {
   warehouse_name: string | null; contractor_name: string; worker_count: number;
   purpose: string; status: string; created_at: string; planned_start_at: string;
   planned_end_at: string; checkin_at: string | null; checkout_at: string | null;
-  admin_closed_at: string | null;
+  admin_closed_at: string | null; vehicle_plates?: string[] | null; supervisor_name?: string | null;
 }
 export type AccessMetric = "booking" | "planned" | "actual";
 export const WEEKDAYS = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
