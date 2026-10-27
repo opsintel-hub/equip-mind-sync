@@ -3,6 +3,8 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
+import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,10 +21,15 @@ import { TablePagination } from "@/components/TablePagination";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { LEAD_TIERS, LeadTier, SITE_ACCESS_STATUS, fmtDT, fmtLead, leadHours, leadTier, purposeLabel } from "@/lib/siteAccess";
 
-type Mode = "approve" | "reject" | "close";
+type Mode = "approve" | "reject" | "close" | "identity";
 
 export default function SiteAccessManage() {
   const { user } = useAuth();
+  const { isSuperAdmin } = useIsSuperAdmin();
+  const { allowedDepartments } = useAllowedDepartments("view");
+  const [bookerName, setBookerName] = useState("");
+  const [bookerDepartment, setBookerDepartment] = useState("");
+  const [calendarVersion, setCalendarVersion] = useState(0);
   const [tab, setTab] = useState("pending_assignment");
   const [tickets, setTickets] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -88,14 +95,23 @@ export default function SiteAccessManage() {
     return [...m.entries()].sort((a, b) => (b[1].walkin + b[1].lt12 + b[1].h12_24) - (a[1].walkin + a[1].lt12 + a[1].h12_24));
   }, [filtered]);
 
-  const open = (t: any, m: Mode) => { setActive(t); setMode(m); setNote(""); };
+  const open = (t: any, m: Mode) => {
+    if (m === "identity" && !isSuperAdmin) return;
+    setActive(t); setMode(m); setNote("");
+    setBookerName(t.supervisor_name || ""); setBookerDepartment(t.department || "");
+  };
 
   const save = async () => {
     if (!active || !user) return;
-    if (mode !== "approve" && !note.trim()) return toast.error("กรุณาระบุเหตุผล");
+    if (mode === "identity") {
+      if (!isSuperAdmin) return toast.error("เฉพาะ Super Admin เท่านั้น");
+      if (!bookerName.trim() || !allowedDepartments.some((d) => d.name === bookerDepartment)) return toast.error("กรุณาระบุชื่อผู้จองและฝ่าย");
+    } else if (mode !== "approve" && !note.trim()) return toast.error("กรุณาระบุเหตุผล");
     setSaving(true);
     let error: any = null;
-    if (mode === "close") {
+    if (mode === "identity") {
+      ({ error } = await supabase.from("warehouse_access_tickets").update({ supervisor_name: bookerName.trim().slice(0, 120), department: bookerDepartment }).eq("id", active.id).select("id").single());
+    } else if (mode === "close") {
       ({ error } = await supabase.rpc("admin_close_access_ticket", { _ticket_id: active.id, _reason: note.trim() }));
     } else {
       const patch = mode === "approve"
@@ -105,7 +121,8 @@ export default function SiteAccessManage() {
     }
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success(mode === "approve" ? `อนุมัติ ${active.ticket_no} แล้ว` : mode === "close" ? `ปิดตั๋ว ${active.ticket_no} โดย Admin แล้ว` : `ไม่อนุมัติ ${active.ticket_no}`);
+    toast.success(mode === "identity" ? `แก้ไขผู้จอง ${active.ticket_no} แล้ว` : mode === "approve" ? `อนุมัติ ${active.ticket_no} แล้ว` : mode === "close" ? `ปิดตั๋ว ${active.ticket_no} โดย Admin แล้ว` : `ไม่อนุมัติ ${active.ticket_no}`);
+    setCalendarVersion((v) => v + 1);
     setActive(null); load();
   };
 
@@ -134,7 +151,7 @@ export default function SiteAccessManage() {
         <h1 className="text-2xl font-bold flex items-center gap-2"><ClipboardCheck className="h-6 w-6" />จัดการตั๋วเข้าพื้นที่</h1>
         <p className="text-muted-foreground text-sm">คลังตรวจคำขอและอนุมัติก่อนวันเข้าพื้นที่ (ควรจองล่วงหน้า 48 ชั่วโมง)</p>
       </div>
-      <SiteAccessCalendar />
+      <SiteAccessCalendar refreshKey={calendarVersion} />
       <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="flex-wrap h-auto">
@@ -224,6 +241,7 @@ export default function SiteAccessManage() {
                     </div>
                   )}
                   <div className="flex flex-wrap gap-2 pt-1">
+                    {isSuperAdmin && <Button size="sm" variant="outline" onClick={() => open(t, "identity")}>แก้ไขชื่อ / ฝ่าย</Button>}
                     {t.status === "pending_assignment" && <Button size="sm" onClick={() => open(t, "approve")}>อนุมัติ</Button>}
                     {(t.status === "pending_assignment" || t.status === "approved") && <Button size="sm" variant="outline" onClick={() => open(t, "reject")}>ไม่อนุมัติ</Button>}
                     {(t.status === "checked_in" || t.status === "approved") && <Button size="sm" variant="secondary" onClick={() => open(t, "close")}>ปิดตั๋วแทน รปภ.</Button>}
@@ -266,8 +284,15 @@ export default function SiteAccessManage() {
 
       <Dialog open={!!active} onOpenChange={(o) => !o && setActive(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{mode === "approve" ? "อนุมัติตั๋ว" : mode === "close" ? "ปิดตั๋วแทน รปภ." : "ไม่อนุมัติตั๋ว"} {active?.ticket_no}</DialogTitle></DialogHeader>
-          {mode === "approve" ? (
+          <DialogHeader><DialogTitle>{mode === "identity" ? "แก้ไขชื่อ / ฝ่ายผู้จอง" : mode === "approve" ? "อนุมัติตั๋ว" : mode === "close" ? "ปิดตั๋วแทน รปภ." : "ไม่อนุมัติตั๋ว"} {active?.ticket_no}</DialogTitle></DialogHeader>
+          {mode === "identity" ? (
+            <div className="space-y-3">
+              <div className="space-y-1.5"><Label htmlFor="edit-booker-name">ชื่อผู้จอง *</Label><Input id="edit-booker-name" value={bookerName} onChange={(e) => setBookerName(e.target.value)} maxLength={120} /></div>
+              <div className="space-y-1.5"><Label>ฝ่ายผู้จอง *</Label>
+                <Select value={bookerDepartment || undefined} onValueChange={setBookerDepartment}><SelectTrigger aria-label="แก้ไขฝ่ายผู้จอง"><SelectValue placeholder="เลือกฝ่าย" /></SelectTrigger><SelectContent>{allowedDepartments.map((d) => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}</SelectContent></Select>
+              </div>
+            </div>
+          ) : mode === "approve" ? (
             <p className="text-sm text-muted-foreground">ยืนยันอนุมัติให้เข้าพื้นที่ตามวันเวลาที่จอง</p>
           ) : (
             <div className="space-y-1.5">
