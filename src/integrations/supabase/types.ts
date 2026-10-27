@@ -7857,7 +7857,9 @@ export type Database = {
           planned_start_at: string
           purpose: string
           status: string
+          supervisor_name: string
           ticket_no: string
+          vehicle_plates: string[]
           warehouse_id: string
           warehouse_name: string
           worker_count: number
