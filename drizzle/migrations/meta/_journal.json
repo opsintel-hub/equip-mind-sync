@@ -183,6 +183,13 @@
       "when": 1793067303197,
       "tag": "0025_site_access_report_plates",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793070799358,
+      "tag": "0026_site_access_booking_identity_guard",
+      "breakpoints": true
     }
   ]
 }
