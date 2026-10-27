@@ -18,3 +18,6 @@
 - [x] Add read-only site-access report and menu available to approved users, with permission-scoped department data
 - [x] Add booking/planned/actual day-hour analytics, lead-time and dwell statistics, filtered Excel export
 - [x] Verify report calculations and authenticated report flow: 8 tests, real report tabs and Excel download, no mobile overflow or runtime errors
+- [ ] Delete only WAP-20261027-0001 and WAP-20261027-0002 test tickets and their photos, preserving inventory
+- [ ] Correct booking calendar department and show booked name/department after submission
+- [ ] Restrict booked name/department corrections to Super Admin and verify permission boundaries
