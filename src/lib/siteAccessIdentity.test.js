@@ -34,7 +34,7 @@ for (const field of ["supervisor_name", "department"]) {
       expect(actor).toBeDefined();
       await tx`SELECT set_config('request.jwt.claim.sub',${actor.id},true)`;
       await expect(tx.savepoint(async (sp) => {
-        await sp`INSERT INTO public.warehouse_access_tickets SELECT (jsonb_populate_record(NULL::public.warehouse_access_tickets, to_jsonb(t) || jsonb_build_object('id',gen_random_uuid(),'ticket_no',NULL,${field},'Unauthorized correction'))).* FROM public.warehouse_access_tickets t WHERE id=${ticket.id}`;
+        await sp`INSERT INTO public.warehouse_access_tickets SELECT (jsonb_populate_record(NULL::public.warehouse_access_tickets, to_jsonb(t) || jsonb_build_object('id',gen_random_uuid(),'ticket_no',NULL,${field}::text,'Unauthorized correction'))).* FROM public.warehouse_access_tickets t WHERE id=${ticket.id}`;
       })).rejects.toMatchObject({ code: "42501" });
       const [unchanged] = await tx`SELECT supervisor_name,department FROM public.warehouse_access_tickets WHERE id=${ticket.id}`;
       expect(unchanged[field]).toBe(ticket[field]);
