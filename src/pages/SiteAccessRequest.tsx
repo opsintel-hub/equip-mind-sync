@@ -47,7 +47,8 @@ export default function SiteAccessRequest() {
   const { isSuperAdmin } = useIsSuperAdmin();
   const [bookerName, setBookerName] = useState("");
   const [ack, setAck] = useState(false);
-  const [lastBooked, setLastBooked] = useState<{ ticket_no: string; created_at: string; planned_start_at: string } | null>(null);
+  const [lastBooked, setLastBooked] = useState<{ ticket_no: string; created_at: string; planned_start_at: string; supervisor_name: string; department: string | null } | null>(null);
+  const [calendarVersion, setCalendarVersion] = useState(0);
   const previewLead = form.planned_start_at ? leadTier(leadHours(new Date().toISOString(), new Date(form.planned_start_at).toISOString())) : null;
 
 
@@ -99,10 +100,11 @@ export default function SiteAccessRequest() {
       supervisor_name: (isSuperAdmin && bookerName.trim()) ? bookerName.trim().slice(0, 120) : (profile.displayName || profile.fullName), supervisor_phone: d.supervisor_phone,
       planned_start_at: new Date(d.planned_start_at).toISOString(), planned_end_at: new Date(d.planned_end_at).toISOString(),
       notes: form.notes.trim() || null, safety_acknowledged: true,
-    }).select("ticket_no, created_at, planned_start_at").single();
+    }).select("ticket_no, created_at, planned_start_at, supervisor_name, department").single();
     setSaving(false);
     if (error) return toast.error(error.message);
     setLastBooked(data);
+    setCalendarVersion((v) => v + 1);
     const tier = leadTier(leadHours(data.created_at, data.planned_start_at));
     toast.success(`เปิดตั๋ว ${data.ticket_no} แล้ว รอคลังอนุมัติ — ${tier ? LEAD_TIERS[tier].label : ""}`);
     setForm((f) => ({ ...f, contractor_name: "", worker_count: "1", items_description: "", planned_start_at: "", planned_end_at: "", notes: "", purpose_other: "" }));
@@ -112,7 +114,7 @@ export default function SiteAccessRequest() {
   const cancel = async (id: string) => {
     const { error } = await supabase.from("warehouse_access_tickets").update({ status: "cancelled" }).eq("id", id);
     if (error) return toast.error(error.message);
-    toast.success("ยกเลิกตั๋วแล้ว"); load();
+    toast.success("ยกเลิกตั๋วแล้ว"); setCalendarVersion((v) => v + 1); load();
   };
 
   return (
@@ -122,7 +124,7 @@ export default function SiteAccessRequest() {
         <p className="text-muted-foreground text-sm">ผู้คุมงานของบริษัทเปิดตั๋วล่วงหน้า — ผู้รับเหมาเข้าพื้นที่ได้เฉพาะเมื่อมีผู้คุมอยู่ด้วย</p>
       </div>
 
-      <SiteAccessCalendar />
+      <SiteAccessCalendar refreshKey={calendarVersion} />
 
       <Card>
         <CardHeader><CardTitle className="text-lg">เปิดตั๋วใหม่</CardTitle></CardHeader>
@@ -221,6 +223,7 @@ export default function SiteAccessRequest() {
             {lastBooked && (
               <div className="rounded-md border bg-muted/40 p-3 text-sm space-y-1">
                 <div className="font-semibold">ส่งคำขอสำเร็จ: <span className="font-mono">{lastBooked.ticket_no}</span></div>
+                <div>ผู้จอง: {lastBooked.supervisor_name} · ฝ่าย: {lastBooked.department || "ไม่ระบุฝ่าย"}</div>
                 <div>จองเมื่อ {fmtDT(lastBooked.created_at)} · เข้าพื้นที่ {fmtDT(lastBooked.planned_start_at)}</div>
                 <LeadTimeBadge createdAt={lastBooked.created_at} plannedStart={lastBooked.planned_start_at} />
               </div>
@@ -242,6 +245,7 @@ export default function SiteAccessRequest() {
                   <Badge variant={st.variant}>{st.label}</Badge>
                 </div>
                 <div>{t.warehouses?.name} · {purposeLabel(t.purpose, t.purpose_other)} · {t.contractor_name} · {t.worker_count} คน · {(t.vehicle_plates || []).join(", ")}</div>
+                <div>ผู้จอง: {t.supervisor_name} · ฝ่าย: {t.department || "ไม่ระบุฝ่าย"}</div>
                 <div className="text-muted-foreground">{fmtDT(t.planned_start_at)} – {fmtDT(t.planned_end_at)}</div>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">จองเมื่อ {fmtDT(t.created_at)} <LeadTimeBadge createdAt={t.created_at} plannedStart={t.planned_start_at} /></div>
                 {t.admin_closed_at && <div className="text-xs text-muted-foreground">ปิดตั๋วโดย Admin: {t.admin_closed_by_name || "-"} ({fmtDT(t.admin_closed_at)})</div>}
