@@ -25,7 +25,7 @@ const tone = (s: string) =>
 const hhmm = (s: string) => new Date(s).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
 const ymd = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 
-export default function SiteAccessCalendar() {
+export default function SiteAccessCalendar({ refreshKey = 0 }: { refreshKey?: number }) {
   const [month, setMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [rows, setRows] = useState<Row[]>([]);
   const [wh, setWh] = useState("__all__");
@@ -36,7 +36,7 @@ export default function SiteAccessCalendar() {
     const to = new Date(month.getFullYear(), month.getMonth() + 1, 1);
     supabase.rpc("access_ticket_calendar", { _from: from.toISOString(), _to: to.toISOString() })
       .then(({ data }) => setRows((data as Row[]) || []));
-  }, [month]);
+  }, [month, refreshKey]);
 
   const warehouses = useMemo(() => {
     const m = new Map<string, string>();
