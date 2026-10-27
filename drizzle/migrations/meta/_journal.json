@@ -176,6 +176,13 @@
       "when": 1792980274696,
       "tag": "0024_site_access_ticket_department",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793067303197,
+      "tag": "0025_site_access_report_plates",
+      "breakpoints": true
     }
   ]
 }
