@@ -1,3 +1,4 @@
+import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -43,6 +44,8 @@ export default function SiteAccessRequest() {
   const [plates, setPlates] = useState<string[]>([""]);
   const { allowedDepartments, loading: deptLoading } = useAllowedDepartments("view");
   const [department, setDepartment] = useState("");
+  const { isSuperAdmin } = useIsSuperAdmin();
+  const [bookerName, setBookerName] = useState("");
   const [ack, setAck] = useState(false);
   const [lastBooked, setLastBooked] = useState<{ ticket_no: string; created_at: string; planned_start_at: string } | null>(null);
   const previewLead = form.planned_start_at ? leadTier(leadHours(new Date().toISOString(), new Date(form.planned_start_at).toISOString())) : null;
@@ -93,7 +96,7 @@ export default function SiteAccessRequest() {
       vehicle_plates: d.vehicle_plates.map((p) => p.toUpperCase()), purpose: form.purpose,
       purpose_other: form.purpose === "other" ? form.purpose_other.trim().slice(0, 200) : null,
       items_description: d.items_description, supervisor_id: user.id, department,
-      supervisor_name: profile.displayName || profile.fullName, supervisor_phone: d.supervisor_phone,
+      supervisor_name: (isSuperAdmin && bookerName.trim()) ? bookerName.trim().slice(0, 120) : (profile.displayName || profile.fullName), supervisor_phone: d.supervisor_phone,
       planned_start_at: new Date(d.planned_start_at).toISOString(), planned_end_at: new Date(d.planned_end_at).toISOString(),
       notes: form.notes.trim() || null, safety_acknowledged: true,
     }).select("ticket_no, created_at, planned_start_at").single();
@@ -153,7 +156,8 @@ export default function SiteAccessRequest() {
               </div>
               <div className="space-y-1.5">
                 <Label>ผู้จอง / ผู้คุมงาน (บริษัท)</Label>
-                <Input value={profile?.displayName || profile?.fullName || ""} disabled />
+                {isSuperAdmin ? <Input value={bookerName} placeholder={profile?.displayName || profile?.fullName || ""} maxLength={120} onChange={(e) => setBookerName(e.target.value)} aria-label="ชื่อผู้จอง" /> : <Input value={profile?.displayName || profile?.fullName || ""} disabled />}
+                {isSuperAdmin && <p className="text-xs text-muted-foreground">Super Admin: พิมพ์ชื่อผู้จองจริงได้ (บันทึกย้อนหลัง) เว้นว่าง = ชื่อคุณ</p>}
               </div>
               <div className="space-y-1.5">
                 <Label>ฝ่ายของผู้จอง *</Label>
