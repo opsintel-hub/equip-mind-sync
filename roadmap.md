@@ -21,5 +21,5 @@
 - [x] Delete only WAP-20261027-0001 and WAP-20261027-0002 test tickets and their photos, preserving inventory
 - [x] Correct booking calendar department and show booked name/department after submission
 - [x] Restrict booked name/department corrections to Super Admin and verify permission boundaries
-- [ ] Separate Magic Ticket old Swap returns from unused issued stock; verify GI-REQ-000205 remains 3
-- [ ] Test quantity limits, duplicate/revert behavior and readback without changing live stock
+- [x] Separate Magic Ticket old Swap returns from unused issued stock; API and authenticated awaiting-usage UI verify GI-REQ-000205 remains 3; external Magic Ticket UI not available here
+- [x] Test quantity limits, duplicate/revert behavior and readback without changing live stock: 25 unit tests and rolled-back SQL integration checks pass
