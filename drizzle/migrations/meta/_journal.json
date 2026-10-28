@@ -197,6 +197,13 @@
       "when": 1793180191002,
       "tag": "0027_magic_ticket_separate_swap_returns",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1793180337504,
+      "tag": "0028_verify_magic_ticket_swap_balance",
+      "breakpoints": true
     }
   ]
 }
