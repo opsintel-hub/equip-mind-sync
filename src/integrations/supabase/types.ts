@@ -3343,6 +3343,7 @@ export type Database = {
           serial_number: string | null
           status: string | null
           sub_media_type: string | null
+          swap_returned_defective_qty: number
           transfer_to_location_id: string | null
           transferred_qty: number
           unit: string
@@ -3377,6 +3378,7 @@ export type Database = {
           serial_number?: string | null
           status?: string | null
           sub_media_type?: string | null
+          swap_returned_defective_qty?: number
           transfer_to_location_id?: string | null
           transferred_qty?: number
           unit?: string
@@ -3411,6 +3413,7 @@ export type Database = {
           serial_number?: string | null
           status?: string | null
           sub_media_type?: string | null
+          swap_returned_defective_qty?: number
           transfer_to_location_id?: string | null
           transferred_qty?: number
           unit?: string
@@ -4193,6 +4196,7 @@ export type Database = {
           reverted_serial_number: string | null
           serial_number: string | null
           status: string
+          swap_return_qty: number
           ticket_code: string | null
         }
         Insert: {
@@ -4222,6 +4226,7 @@ export type Database = {
           reverted_serial_number?: string | null
           serial_number?: string | null
           status: string
+          swap_return_qty?: number
           ticket_code?: string | null
         }
         Update: {
@@ -4251,6 +4256,7 @@ export type Database = {
           reverted_serial_number?: string | null
           serial_number?: string | null
           status?: string
+          swap_return_qty?: number
           ticket_code?: string | null
         }
         Relationships: []
@@ -7721,6 +7727,18 @@ export type Database = {
         Returns: undefined
       }
       magic_ticket_split_serials: { Args: { p: string }; Returns: string[] }
+      magic_ticket_unused_quantity: {
+        Args: {
+          defective: number
+          good: number
+          installed: number
+          issued: number
+          swap_old: number
+          transferred: number
+          written_off: number
+        }
+        Returns: number
+      }
       magic_ticket_work_log: {
         Args: { p: Json; p_api_key_id?: string }
         Returns: Json
