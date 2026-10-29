@@ -848,7 +848,7 @@ export default function InventoryReport() {
 
       return true;
     });
-  }, [combinedData, filters, categoryMap, advanceDays]);
+  }, [combinedData, filters, categoryMap, advanceDays, storageBalanceMap]);
 
   // Pagination
   const {
@@ -901,8 +901,22 @@ export default function InventoryReport() {
 
     const exportData = filteredData.map((item) => {
       const company = item.companies;
-      const location = item.locations;
       const subcategory = item.subcategories;
+      const storageLines = storageDisplayLines({
+        defaultLocationId: item.location_id,
+        defaultWarehouseId: item.locations?.warehouse_id || null,
+        defaultLocation: item.locations,
+        defaultWarehouse: item.locations?.warehouses,
+        balances: storageBalanceMap[item.id] || [],
+        fallbackQuantity: item.quantity_in_stock,
+      });
+      const warehouseSet = [...new Set(storageLines.map((l) => l.warehouseCode).filter((c) => c && c !== "-"))];
+      const warehouseLabel = warehouseSet.length > 0
+        ? warehouseSet.join(", ")
+        : (item.locations?.warehouses ? `${item.locations.warehouses.code} - ${item.locations.warehouses.name}` : "-");
+      const locationLabel = storageLines.length > 0
+        ? storageLines.map((l) => `${l.locationCode} - ${l.locationName} (${l.quantity} ${item.unit})`).join("\n")
+        : "-";
       const status = getStockStatus(
         item.quantity_in_stock,
         item.min_stock_level
