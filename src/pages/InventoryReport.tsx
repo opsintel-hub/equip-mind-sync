@@ -828,6 +828,7 @@ export default function InventoryReport() {
           item.locations?.warehouses?.name,
           item.locations?.code,
           item.locations?.name,
+          ...(storageBalanceMap[item.id] || []).flatMap((b) => [b.warehouseCode, b.warehouseName, b.locationCode, b.locationName]),
           item.unit,
           item.issue_purpose,
           item.issue_billboard_code,
