@@ -945,10 +945,8 @@ export default function InventoryReport() {
         ยี่ห้อ: item.brand || "-",
         บริษัท: company ? `${company.code} - ${company.name}` : "-",
         ฝ่าย: item.department || "-",
-        คลังสินค้า: location?.warehouses
-          ? `${location.warehouses.code} - ${location.warehouses.name}`
-          : "-",
-        ตำแหน่งจัดเก็บ: location ? `${location.code} - ${location.name}` : "-",
+        คลังสินค้า: warehouseLabel,
+        ตำแหน่งจัดเก็บ: locationLabel,
         จำนวนคงเหลือ: item.quantity_in_stock,
         หน่วย: item.unit,
         "Min Stock": item.min_stock_level,
