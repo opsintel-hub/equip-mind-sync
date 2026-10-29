@@ -29,7 +29,7 @@ import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
-import { buildStorageBalanceMap, matchesWarehouse, matchesLocation, storageDisplayLines } from "@/lib/inventoryStorage";
+import { buildStorageBalanceMap, matchesWarehouse, matchesLocation, storageDisplayLines, scopedStorageLines, sumStorageLines } from "@/lib/inventoryStorage";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { getCompatibilityBadge } from "@/components/equipment/BillboardCompatibilityField";
 import { useDeptScope } from "@/hooks/useDeptScope";
@@ -875,6 +875,33 @@ export default function InventoryReport() {
     return { label: "ปกติ", variant: "default" as const, icon: CheckCircle };
   };
 
+  // When a warehouse/location filter is active, quantities and values shown
+  // must reflect ONLY the stock physically in that warehouse/location.
+  const isStorageScoped = !!(filters.warehouseId || filters.locationId);
+
+  // Display lines for an item, scoped to the active warehouse/location filter
+  const displayLinesFor = (item: any) => {
+    const lines = storageDisplayLines({
+      defaultLocationId: item.location_id,
+      defaultWarehouseId: item.locations?.warehouse_id || null,
+      defaultLocation: item.locations,
+      defaultWarehouse: item.locations?.warehouses,
+      balances: storageBalanceMap[item.id] || [],
+      fallbackQuantity: item.quantity_in_stock,
+    });
+    if (!isStorageScoped) return lines;
+    const scoped = scopedStorageLines(lines, filters.warehouseId || null, filters.locationId || null);
+    // Item matched the filter via default location fallback but has no lines → keep original
+    return scoped.length > 0 ? scoped : lines;
+  };
+
+  // Quantity to show for an item: scoped to the filtered warehouse when filtering
+  const displayQtyFor = (item: any): number => {
+    if (!isStorageScoped) return item.quantity_in_stock || 0;
+    const lines = displayLinesFor(item);
+    return lines.length > 0 ? sumStorageLines(lines) : (item.quantity_in_stock || 0);
+  };
+
   // Summary stats
   const stats = useMemo(() => {
     const total = filteredData.length;
@@ -886,12 +913,14 @@ export default function InventoryReport() {
     }).length;
     const normal = total - outOfStock - lowStock;
     const totalValue = filteredData.reduce(
-      (sum, item) => sum + (item.quantity_in_stock || 0) * (item.unit_price || 0),
+      (sum, item) => sum + displayQtyFor(item) * (item.unit_price || 0),
       0
     );
+    const totalQty = filteredData.reduce((sum, item) => sum + displayQtyFor(item), 0);
 
-    return { total, outOfStock, lowStock, normal, totalValue };
-  }, [filteredData]);
+    return { total, outOfStock, lowStock, normal, totalValue, totalQty };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredData, isStorageScoped, filters.warehouseId, filters.locationId, storageBalanceMap]);
 
   // Export to Excel
   const handleExport = () => {
@@ -903,20 +932,14 @@ export default function InventoryReport() {
     const exportData = filteredData.map((item) => {
       const company = item.companies;
       const subcategory = item.subcategories;
-      const storageLines = storageDisplayLines({
-        defaultLocationId: item.location_id,
-        defaultWarehouseId: item.locations?.warehouse_id || null,
-        defaultLocation: item.locations,
-        defaultWarehouse: item.locations?.warehouses,
-        balances: storageBalanceMap[item.id] || [],
-        fallbackQuantity: item.quantity_in_stock,
-      });
+      const storageLines = displayLinesFor(item);
+      const scopedQty = displayQtyFor(item);
       const warehouseSet = [...new Set(storageLines.map((l) => l.warehouseCode).filter((c) => c && c !== "-"))];
       const warehouseLabel = warehouseSet.length > 0
         ? warehouseSet.join(", ")
         : (item.locations?.warehouses ? `${item.locations.warehouses.code} - ${item.locations.warehouses.name}` : "-");
       const locationLabel = storageLines.length > 0
-        ? storageLines.map((l) => `${l.locationCode} - ${l.locationName} (${l.quantity} ${item.unit})`).join("\n")
+        ? storageLines.map((l) => `${l.locationCode}${l.locationName && l.locationName !== "-" ? ` - ${l.locationName}` : ""} (${l.quantity} ${item.unit})`).join("\n")
         : "-";
       const status = getStockStatus(
         item.quantity_in_stock,
@@ -948,11 +971,14 @@ export default function InventoryReport() {
         ฝ่าย: item.department || "-",
         คลังสินค้า: warehouseLabel,
         ตำแหน่งจัดเก็บ: locationLabel,
-        จำนวนคงเหลือ: item.quantity_in_stock,
+        จำนวนคงเหลือ: scopedQty,
         หน่วย: item.unit,
         "Min Stock": item.min_stock_level,
         ราคาต่อหน่วย: item.unit_price,
-        มูลค่ารวม: item.quantity_in_stock * item.unit_price,
+        มูลค่ารวม: scopedQty * item.unit_price,
+        ...(isStorageScoped && scopedQty !== (item.quantity_in_stock || 0)
+          ? { "จำนวนคงเหลือรวมทุกคลัง": item.quantity_in_stock }
+          : {}),
         "สถานะ Stock": status.label,
         "สภาพสินค้า": getConditionLabel(item.item_condition),
         สถานะการเบิก: issueStatusLabel,
@@ -1069,13 +1095,18 @@ export default function InventoryReport() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                มูลค่ารวม
+                {isStorageScoped ? "มูลค่ารวม (เฉพาะคลังที่เลือก)" : "มูลค่ารวม"}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
                 ฿{stats.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
+              {isStorageScoped && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  รวม {stats.totalQty.toLocaleString()} ชิ้นในคลังที่เลือก
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -1190,7 +1221,9 @@ export default function InventoryReport() {
                     <TableHead className="min-w-[100px]">ฝ่าย</TableHead>
                     <TableHead className="min-w-[100px]">คลัง</TableHead>
                     <TableHead className="min-w-[200px]">ตำแหน่งจัดเก็บ</TableHead>
-                    <TableHead className="text-right min-w-[110px]" title="จำนวนคงเหลือในคลัง (ไม่รวมที่เบิกออกหรือติดตั้งอยู่บนป้าย)">คงเหลือในคลัง</TableHead>
+                    <TableHead className="text-right min-w-[110px]" title={isStorageScoped ? "จำนวนคงเหลือเฉพาะในคลัง/ตำแหน่งที่กรอง (ไม่รวมที่เบิกออกหรือติดตั้งอยู่บนป้าย)" : "จำนวนคงเหลือในคลัง (ไม่รวมที่เบิกออกหรือติดตั้งอยู่บนป้าย)"}>
+                      {isStorageScoped ? "คงเหลือในคลังที่เลือก" : "คงเหลือในคลัง"}
+                    </TableHead>
                     <TableHead className="text-right min-w-[70px]">Min</TableHead>
                     <TableHead className="text-right min-w-[110px]">ราคา/ชิ้น</TableHead>
                     <TableHead className="min-w-[120px]">สถานะ Stock</TableHead>
@@ -1308,14 +1341,7 @@ export default function InventoryReport() {
                           <TableCell>{item.department || "-"}</TableCell>
                           <TableCell>
                             {(() => {
-                              const lines = storageDisplayLines({
-                                defaultLocationId: item.location_id,
-                                defaultWarehouseId: location?.warehouse_id || null,
-                                defaultLocation: location,
-                                defaultWarehouse: location?.warehouses,
-                                balances: storageBalanceMap[item.id] || [],
-                                fallbackQuantity: item.quantity_in_stock,
-                              });
+                              const lines = displayLinesFor(item);
                               const whCodes = [...new Set(lines.map((l) => l.warehouseCode).filter((c) => c && c !== "-"))];
                               if (whCodes.length === 0) return <span className="text-muted-foreground">-</span>;
                               return (
@@ -1329,14 +1355,7 @@ export default function InventoryReport() {
                           </TableCell>
                           <TableCell>
                             {(() => {
-                              const lines = storageDisplayLines({
-                                defaultLocationId: item.location_id,
-                                defaultWarehouseId: location?.warehouse_id || null,
-                                defaultLocation: location,
-                                defaultWarehouse: location?.warehouses,
-                                balances: storageBalanceMap[item.id] || [],
-                                fallbackQuantity: item.quantity_in_stock,
-                              });
+                              const lines = displayLinesFor(item);
                               if (lines.length === 0) return <span className="text-muted-foreground">-</span>;
                               return (
                                 <div className="text-sm leading-tight space-y-1">
@@ -1344,7 +1363,7 @@ export default function InventoryReport() {
                                     <div key={l.locationId}>
                                       <span className="font-medium">{l.locationCode}</span>
                                       <span className="text-xs text-muted-foreground"> ({l.quantity.toLocaleString()} {item.unit})</span>
-                                      {l.locationName && (
+                                      {l.locationName && l.locationName !== "-" && (
                                         <div className="text-xs text-muted-foreground truncate max-w-[180px]" title={l.locationName}>
                                           {l.locationName}
                                         </div>
@@ -1356,7 +1375,12 @@ export default function InventoryReport() {
                             })()}
                           </TableCell>
                           <TableCell className="text-right font-medium">
-                            {item.quantity_in_stock.toLocaleString()} {item.unit}
+                            {displayQtyFor(item).toLocaleString()} {item.unit}
+                            {isStorageScoped && displayQtyFor(item) !== (item.quantity_in_stock || 0) && (
+                              <div className="text-xs font-normal text-muted-foreground" title="ยอดคงเหลือรวมทุกคลังในระบบ">
+                                รวมทุกคลัง {(item.quantity_in_stock || 0).toLocaleString()}
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell className="text-right text-muted-foreground">
                             {item.min_stock_level.toLocaleString()}

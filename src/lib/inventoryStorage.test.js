@@ -4,6 +4,8 @@ import {
   matchesWarehouse,
   matchesLocation,
   storageDisplayLines,
+  scopedStorageLines,
+  sumStorageLines,
 } from "./inventoryStorage";
 
 const allocRow = (equipment_id, location_id, quantity, warehouseCode, warehouseId, locationCode) => ({
@@ -104,5 +106,36 @@ describe("storageDisplayLines", () => {
 
   it("returns empty when there is no location at all", () => {
     expect(storageDisplayLines({ balances: [] })).toEqual([]);
+  });
+});
+
+describe("scopedStorageLines / sumStorageLines", () => {
+  const balances = buildStorageBalanceMap([
+    allocRow("EQ1", "LOC-A", 105, "PB-01", "WH1", "G02"),
+    allocRow("EQ1", "LOC-C", 135, "PB-01", "WH1", "H01"),
+    allocRow("EQ1", "LOC-B", 30, "PB-11", "WH2", "01"),
+  ]).EQ1;
+
+  it("returns all lines when no warehouse/location filter is set", () => {
+    expect(scopedStorageLines(balances)).toHaveLength(3);
+    expect(scopedStorageLines(balances, null, null)).toHaveLength(3);
+  });
+
+  it("keeps only lines in the selected warehouse (PB-11 → 30)", () => {
+    const scoped = scopedStorageLines(balances, "WH2");
+    expect(scoped).toHaveLength(1);
+    expect(scoped[0].warehouseCode).toBe("PB-11");
+    expect(sumStorageLines(scoped)).toBe(30);
+  });
+
+  it("keeps only lines in the selected location", () => {
+    const scoped = scopedStorageLines(balances, "WH1", "LOC-A");
+    expect(scoped).toHaveLength(1);
+    expect(scoped[0].locationCode).toBe("G02");
+    expect(sumStorageLines(scoped)).toBe(105);
+  });
+
+  it("sums multiple lines of the same warehouse", () => {
+    expect(sumStorageLines(scopedStorageLines(balances, "WH1"))).toBe(240);
   });
 });
