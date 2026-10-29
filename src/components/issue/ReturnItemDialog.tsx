@@ -14,7 +14,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { ReturnPhotoDropzone } from "./ReturnPhotoDropzone";
 import { balanceIssueReturn, lostReplacementCap, returnableAfterLost, validateDefectiveAllocations, type DefectiveAllocation, type ReturnBillboard } from "@/lib/issueReturnForm";
-import { issuedDefectiveReturned } from "@/lib/issueQuantities";
+import { issuedDefectiveReturned, returnOutstanding } from "@/lib/issueQuantities";
 
 export interface ReturnItemLine {
   id: string;
@@ -86,8 +86,7 @@ export function ReturnItemDialog({
   // Old parts returned during a Swap are not units of the newly issued stock.
   const alreadyReturned = (item?.returned_good_qty || 0) + (item ? issuedDefectiveReturned(item) : 0);
   const installedQty = item ? (item.installed_qty != null ? Number(item.installed_qty) : item.billboard_id ? issuedQty : 0) : 0;
-  const outstanding = Math.max(0, issuedQty - alreadyReturned - (independentOfInstall ? 0 : installedQty)
-    - Number(item?.written_off_qty || 0) - Number(item?.transferred_qty || 0));
+  const outstanding = item ? returnOutstanding(item, independentOfInstall) : 0;
   const lostCap = isMP ? 0 : lostReplacementCap(outstanding, installedQty, Number(item?.lost_replacement_qty || 0), independentOfInstall);
   const lost = Math.min(lostCap, Math.max(0, parseInt(lostQty || "0") || 0));
   const returnable = returnableAfterLost(outstanding, lost);
