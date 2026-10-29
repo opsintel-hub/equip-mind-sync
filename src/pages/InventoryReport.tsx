@@ -1337,14 +1337,7 @@ export default function InventoryReport() {
                           <TableCell>{item.department || "-"}</TableCell>
                           <TableCell>
                             {(() => {
-                              const lines = storageDisplayLines({
-                                defaultLocationId: item.location_id,
-                                defaultWarehouseId: location?.warehouse_id || null,
-                                defaultLocation: location,
-                                defaultWarehouse: location?.warehouses,
-                                balances: storageBalanceMap[item.id] || [],
-                                fallbackQuantity: item.quantity_in_stock,
-                              });
+                              const lines = displayLinesFor(item);
                               const whCodes = [...new Set(lines.map((l) => l.warehouseCode).filter((c) => c && c !== "-"))];
                               if (whCodes.length === 0) return <span className="text-muted-foreground">-</span>;
                               return (
@@ -1358,14 +1351,7 @@ export default function InventoryReport() {
                           </TableCell>
                           <TableCell>
                             {(() => {
-                              const lines = storageDisplayLines({
-                                defaultLocationId: item.location_id,
-                                defaultWarehouseId: location?.warehouse_id || null,
-                                defaultLocation: location,
-                                defaultWarehouse: location?.warehouses,
-                                balances: storageBalanceMap[item.id] || [],
-                                fallbackQuantity: item.quantity_in_stock,
-                              });
+                              const lines = displayLinesFor(item);
                               if (lines.length === 0) return <span className="text-muted-foreground">-</span>;
                               return (
                                 <div className="text-sm leading-tight space-y-1">
@@ -1373,7 +1359,7 @@ export default function InventoryReport() {
                                     <div key={l.locationId}>
                                       <span className="font-medium">{l.locationCode}</span>
                                       <span className="text-xs text-muted-foreground"> ({l.quantity.toLocaleString()} {item.unit})</span>
-                                      {l.locationName && (
+                                      {l.locationName && l.locationName !== "-" && (
                                         <div className="text-xs text-muted-foreground truncate max-w-[180px]" title={l.locationName}>
                                           {l.locationName}
                                         </div>
@@ -1385,7 +1371,12 @@ export default function InventoryReport() {
                             })()}
                           </TableCell>
                           <TableCell className="text-right font-medium">
-                            {item.quantity_in_stock.toLocaleString()} {item.unit}
+                            {displayQtyFor(item).toLocaleString()} {item.unit}
+                            {isStorageScoped && displayQtyFor(item) !== (item.quantity_in_stock || 0) && (
+                              <div className="text-xs font-normal text-muted-foreground" title="ยอดคงเหลือรวมทุกคลังในระบบ">
+                                รวมทุกคลัง {(item.quantity_in_stock || 0).toLocaleString()}
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell className="text-right text-muted-foreground">
                             {item.min_stock_level.toLocaleString()}
