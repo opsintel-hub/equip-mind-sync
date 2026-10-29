@@ -28,5 +28,5 @@
 - [x] Verify 10 issued / 6 installed / 4 unused / 2 old defective / 3 old used: 34 tests, authenticated desktop/mobile save and complete-document readback; isolated receipt/retry checks rolled back and UI fixture removed
 - [x] Allow the same old part to return as defective 2 and PM-used 3 with no return 1, preserving combined stock limits
 - [x] Verify split old-part returns: 40 tests; authenticated isolated 10/6/4/2/3/1 save and UI readback; test documents removed, real GI-REQ-000207 unchanged
-- [ ] Issue consumables/non-serial equipment in aggregate without per-unit S/N forms; retain serial and Media Player workflows
-- [ ] Verify aggregate quantities, billboard installation and GI-REQ-000203 dialog without issuing live stock
+- [x] Issue consumables/non-serial equipment in aggregate without per-unit S/N forms; retain serial and Media Player workflows
+- [x] Verify aggregate quantities and billboard installation with 34 passing tests; authenticated GI-REQ-000203 opens 50,000/100,000-unit dialogs and quantity editing without per-unit cards or browser errors; no live stock issued
