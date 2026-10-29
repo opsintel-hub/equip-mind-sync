@@ -3322,6 +3322,7 @@ export type Database = {
           equipment_name: string | null
           id: string
           install_status: string
+          installation_return_settled_qty: number
           installed_qty: number | null
           intended_billboard_id: string | null
           is_media_player: boolean | null
@@ -3336,6 +3337,7 @@ export type Database = {
           quantity: number
           remaining_quantity: number | null
           return_location_id: string | null
+          return_workflow_log: Json
           returned_at: string | null
           returned_by: string | null
           returned_defective_qty: number
@@ -3357,6 +3359,7 @@ export type Database = {
           equipment_name?: string | null
           id?: string
           install_status?: string
+          installation_return_settled_qty?: number
           installed_qty?: number | null
           intended_billboard_id?: string | null
           is_media_player?: boolean | null
@@ -3371,6 +3374,7 @@ export type Database = {
           quantity?: number
           remaining_quantity?: number | null
           return_location_id?: string | null
+          return_workflow_log?: Json
           returned_at?: string | null
           returned_by?: string | null
           returned_defective_qty?: number
@@ -3392,6 +3396,7 @@ export type Database = {
           equipment_name?: string | null
           id?: string
           install_status?: string
+          installation_return_settled_qty?: number
           installed_qty?: number | null
           intended_billboard_id?: string | null
           is_media_player?: boolean | null
@@ -3406,6 +3411,7 @@ export type Database = {
           quantity?: number
           remaining_quantity?: number | null
           return_location_id?: string | null
+          return_workflow_log?: Json
           returned_at?: string | null
           returned_by?: string | null
           returned_defective_qty?: number
@@ -3846,6 +3852,7 @@ export type Database = {
           equipment_name: string | null
           id: string
           is_media_player: boolean
+          item_condition: string
           location_id: string | null
           media_player_id: string | null
           notes: string | null
@@ -3855,6 +3862,7 @@ export type Database = {
           quantity: number
           received_at: string | null
           received_by: string | null
+          return_source: string
           serial_number: string | null
           status: string
           submitted_by: string | null
@@ -3872,6 +3880,7 @@ export type Database = {
           equipment_name?: string | null
           id?: string
           is_media_player?: boolean
+          item_condition?: string
           location_id?: string | null
           media_player_id?: string | null
           notes?: string | null
@@ -3881,6 +3890,7 @@ export type Database = {
           quantity: number
           received_at?: string | null
           received_by?: string | null
+          return_source?: string
           serial_number?: string | null
           status?: string
           submitted_by?: string | null
@@ -3898,6 +3908,7 @@ export type Database = {
           equipment_name?: string | null
           id?: string
           is_media_player?: boolean
+          item_condition?: string
           location_id?: string | null
           media_player_id?: string | null
           notes?: string | null
@@ -3907,6 +3918,7 @@ export type Database = {
           quantity?: number
           received_at?: string | null
           received_by?: string | null
+          return_source?: string
           serial_number?: string | null
           status?: string
           submitted_by?: string | null
@@ -4007,6 +4019,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          stock_condition: string | null
           storage_area: string | null
           storage_area_size: string | null
           updated_at: string
@@ -4027,6 +4040,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          stock_condition?: string | null
           storage_area?: string | null
           storage_area_size?: string | null
           updated_at?: string
@@ -4047,6 +4061,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          stock_condition?: string | null
           storage_area?: string | null
           storage_area_size?: string | null
           updated_at?: string
@@ -7678,6 +7693,7 @@ export type Database = {
       import_media_player_row: { Args: { p: Json }; Returns: Json }
       import_tool_row: { Args: { p: Json }; Returns: Json }
       is_approved_user: { Args: { _user_id: string }; Returns: boolean }
+      issue_old_part_candidates: { Args: { _item_id: string }; Returns: Json }
       issue_return_billboards: {
         Args: { _item_id: string }
         Returns: {
@@ -7827,6 +7843,10 @@ export type Database = {
         Returns: boolean
       }
       purge_old_activity_audit: { Args: never; Returns: number }
+      receive_issue_good_return_v2: {
+        Args: { _location_id: string; _return_id: string }
+        Returns: Json
+      }
       receive_warehouse_transfer: {
         Args: { _batch_id: string; _location_id: string }
         Returns: Json
@@ -7894,6 +7914,26 @@ export type Database = {
           _notes: string
           _symptom_id: string
           _symptom_other: string
+        }
+        Returns: Json
+      }
+      submit_issue_return_v2: {
+        Args: {
+          _defective_photos: string[]
+          _good: number
+          _good_photos: string[]
+          _installed: number
+          _issued_defective: number
+          _item_id: string
+          _no_old: number
+          _no_old_reason: string
+          _notes: string
+          _old_parts: Json
+          _site_photos: string[]
+          _submission_key: string
+          _symptom_id: string
+          _symptom_other: string
+          _used_photos: string[]
         }
         Returns: Json
       }
