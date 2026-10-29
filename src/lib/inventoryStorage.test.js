@@ -4,6 +4,8 @@ import {
   matchesWarehouse,
   matchesLocation,
   storageDisplayLines,
+  scopedStorageLines,
+  sumStorageLines,
 } from "./inventoryStorage";
 
 const allocRow = (equipment_id, location_id, quantity, warehouseCode, warehouseId, locationCode) => ({
