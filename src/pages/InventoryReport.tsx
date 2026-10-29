@@ -29,6 +29,7 @@ import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
+import { buildStorageBalanceMap, matchesWarehouse, matchesLocation, storageDisplayLines } from "@/lib/inventoryStorage";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { getCompatibilityBadge } from "@/components/equipment/BillboardCompatibilityField";
 import { useDeptScope } from "@/hooks/useDeptScope";
@@ -205,9 +206,8 @@ export default function InventoryReport() {
       if (filters.subcategoryId) {
         query = query.eq("subcategory_id", filters.subcategoryId);
       }
-      if (filters.locationId) {
-        query = query.eq("location_id", filters.locationId);
-      }
+      // locationId filter is applied client-side against real stock balances
+      // (stock_location_allocations) so transferred stock is found too.
       if (scopeDepts) query = query.in("department", scopeDepts);
       query = applyEquipmentScope(query as any) as any;
 
@@ -267,9 +267,7 @@ export default function InventoryReport() {
       if (filters.department) {
         query = query.eq("department", filters.department);
       }
-      if (filters.locationId) {
-        query = query.eq("location_id", filters.locationId);
-      }
+      // locationId filter applied client-side (see equipment query note)
       if (scopeDepts) query = query.in("department", scopeDepts);
       query = applyToolScope(query as any) as any;
 
@@ -344,9 +342,7 @@ export default function InventoryReport() {
       if (filters.department) {
         query = query.eq("department", filters.department);
       }
-      if (filters.locationId) {
-        query = query.eq("location_id", filters.locationId);
-      }
+      // locationId filter applied client-side (see equipment query note)
       if (scopeDepts) query = query.in("department", scopeDepts);
       query = applyMediaPlayerScope(query as any) as any;
 
