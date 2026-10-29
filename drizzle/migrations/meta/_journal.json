@@ -225,6 +225,13 @@
       "when": 1793240991062,
       "tag": "0031_correct_old_part_media_serial_lookup",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793248808727,
+      "tag": "0032_return_unregistered_old_parts_fewer_photos",
+      "breakpoints": true
     }
   ]
 }
