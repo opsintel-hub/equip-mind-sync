@@ -448,6 +448,21 @@ export default function InventoryReport() {
     };
   }, [receivedSerials]);
 
+  // Fetch actual stock balances per storage location (covers inter-warehouse transfers)
+  const { data: allocationRows = [] } = useQuery({
+    queryKey: ["inventory-location-allocations"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("stock_location_allocations")
+        .select("equipment_id, media_player_id, tool_id, location_id, quantity, locations:location_id(code, name, warehouse_id, warehouses:warehouse_id(id, code, name))");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // itemId -> non-zero balances per location (actual stock, not default location)
+  const storageBalanceMap = useMemo(() => buildStorageBalanceMap(allocationRows as any), [allocationRows]);
+
   // Fetch receipt prices and order_for_project for each equipment
   const { data: receiptPrices = [] } = useQuery({
     queryKey: ["inventory-receipt-prices"],
@@ -733,12 +748,18 @@ export default function InventoryReport() {
         return false;
       }
 
-      // Filter by warehouse (through location)
-      if (filters.warehouseId) {
-        const location = item.locations;
-        if (!location || location.warehouse_id !== filters.warehouseId) {
-          return false;
-        }
+      // Filter by warehouse/location against ACTUAL stock balances
+      // (items transferred to another warehouse are found under that warehouse)
+      const storageInput = {
+        defaultLocationId: item.location_id,
+        defaultWarehouseId: item.locations?.warehouse_id || null,
+        balances: storageBalanceMap[item.id] || [],
+      };
+      if (filters.warehouseId && !matchesWarehouse(storageInput, filters.warehouseId)) {
+        return false;
+      }
+      if (filters.locationId && !matchesLocation(storageInput, filters.locationId)) {
+        return false;
       }
 
       // Filter by stock status
