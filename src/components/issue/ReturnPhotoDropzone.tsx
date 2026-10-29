@@ -10,11 +10,12 @@ interface Props {
   max?: number;
   folder: string;
   label: string;
+  required?: boolean;
 }
 
 const BUCKET = "delivery-confirmations";
 
-export function ReturnPhotoDropzone({ photos, onChange, max = 3, folder, label }: Props) {
+export function ReturnPhotoDropzone({ photos, onChange, max = 3, folder, label, required = true }: Props) {
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
@@ -48,8 +49,8 @@ export function ReturnPhotoDropzone({ photos, onChange, max = 3, folder, label }
   return (
     <div className="space-y-2">
       <div className="flex justify-between text-sm">
-        <span className="font-medium">{label} <span className="text-destructive">*</span></span>
-        <span className="text-xs text-muted-foreground">{photos.length}/{max} รูป (อย่างน้อย 1)</span>
+        <span className="font-medium">{label} {required && <span className="text-destructive">*</span>}</span>
+        <span className="text-xs text-muted-foreground">{photos.length}/{max} รูป{required ? " (อย่างน้อย 1)" : ""}</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {photos.map((u, i) => (
