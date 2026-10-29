@@ -29,6 +29,7 @@ import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
+import { buildStorageBalanceMap, matchesWarehouse, matchesLocation, storageDisplayLines } from "@/lib/inventoryStorage";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { getCompatibilityBadge } from "@/components/equipment/BillboardCompatibilityField";
 import { useDeptScope } from "@/hooks/useDeptScope";
@@ -205,9 +206,8 @@ export default function InventoryReport() {
       if (filters.subcategoryId) {
         query = query.eq("subcategory_id", filters.subcategoryId);
       }
-      if (filters.locationId) {
-        query = query.eq("location_id", filters.locationId);
-      }
+      // locationId filter is applied client-side against real stock balances
+      // (stock_location_allocations) so transferred stock is found too.
       if (scopeDepts) query = query.in("department", scopeDepts);
       query = applyEquipmentScope(query as any) as any;
 
@@ -267,9 +267,7 @@ export default function InventoryReport() {
       if (filters.department) {
         query = query.eq("department", filters.department);
       }
-      if (filters.locationId) {
-        query = query.eq("location_id", filters.locationId);
-      }
+      // locationId filter applied client-side (see equipment query note)
       if (scopeDepts) query = query.in("department", scopeDepts);
       query = applyToolScope(query as any) as any;
 
@@ -344,9 +342,7 @@ export default function InventoryReport() {
       if (filters.department) {
         query = query.eq("department", filters.department);
       }
-      if (filters.locationId) {
-        query = query.eq("location_id", filters.locationId);
-      }
+      // locationId filter applied client-side (see equipment query note)
       if (scopeDepts) query = query.in("department", scopeDepts);
       query = applyMediaPlayerScope(query as any) as any;
 
@@ -451,6 +447,21 @@ export default function InventoryReport() {
       ),
     };
   }, [receivedSerials]);
+
+  // Fetch actual stock balances per storage location (covers inter-warehouse transfers)
+  const { data: allocationRows = [] } = useQuery({
+    queryKey: ["inventory-location-allocations"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("stock_location_allocations")
+        .select("equipment_id, media_player_id, tool_id, location_id, quantity, locations:location_id(code, name, warehouse_id, warehouses:warehouse_id(id, code, name))");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // itemId -> non-zero balances per location (actual stock, not default location)
+  const storageBalanceMap = useMemo(() => buildStorageBalanceMap(allocationRows as any), [allocationRows]);
 
   // Fetch receipt prices and order_for_project for each equipment
   const { data: receiptPrices = [] } = useQuery({
@@ -737,12 +748,18 @@ export default function InventoryReport() {
         return false;
       }
 
-      // Filter by warehouse (through location)
-      if (filters.warehouseId) {
-        const location = item.locations;
-        if (!location || location.warehouse_id !== filters.warehouseId) {
-          return false;
-        }
+      // Filter by warehouse/location against ACTUAL stock balances
+      // (items transferred to another warehouse are found under that warehouse)
+      const storageInput = {
+        defaultLocationId: item.location_id,
+        defaultWarehouseId: item.locations?.warehouse_id || null,
+        balances: storageBalanceMap[item.id] || [],
+      };
+      if (filters.warehouseId && !matchesWarehouse(storageInput, filters.warehouseId)) {
+        return false;
+      }
+      if (filters.locationId && !matchesLocation(storageInput, filters.locationId)) {
+        return false;
       }
 
       // Filter by stock status
@@ -811,6 +828,7 @@ export default function InventoryReport() {
           item.locations?.warehouses?.name,
           item.locations?.code,
           item.locations?.name,
+          ...(storageBalanceMap[item.id] || []).flatMap((b) => [b.warehouseCode, b.warehouseName, b.locationCode, b.locationName]),
           item.unit,
           item.issue_purpose,
           item.issue_billboard_code,
@@ -831,7 +849,7 @@ export default function InventoryReport() {
 
       return true;
     });
-  }, [combinedData, filters, categoryMap, advanceDays]);
+  }, [combinedData, filters, categoryMap, advanceDays, storageBalanceMap]);
 
   // Pagination
   const {
@@ -884,8 +902,22 @@ export default function InventoryReport() {
 
     const exportData = filteredData.map((item) => {
       const company = item.companies;
-      const location = item.locations;
       const subcategory = item.subcategories;
+      const storageLines = storageDisplayLines({
+        defaultLocationId: item.location_id,
+        defaultWarehouseId: item.locations?.warehouse_id || null,
+        defaultLocation: item.locations,
+        defaultWarehouse: item.locations?.warehouses,
+        balances: storageBalanceMap[item.id] || [],
+        fallbackQuantity: item.quantity_in_stock,
+      });
+      const warehouseSet = [...new Set(storageLines.map((l) => l.warehouseCode).filter((c) => c && c !== "-"))];
+      const warehouseLabel = warehouseSet.length > 0
+        ? warehouseSet.join(", ")
+        : (item.locations?.warehouses ? `${item.locations.warehouses.code} - ${item.locations.warehouses.name}` : "-");
+      const locationLabel = storageLines.length > 0
+        ? storageLines.map((l) => `${l.locationCode} - ${l.locationName} (${l.quantity} ${item.unit})`).join("\n")
+        : "-";
       const status = getStockStatus(
         item.quantity_in_stock,
         item.min_stock_level
@@ -914,10 +946,8 @@ export default function InventoryReport() {
         ยี่ห้อ: item.brand || "-",
         บริษัท: company ? `${company.code} - ${company.name}` : "-",
         ฝ่าย: item.department || "-",
-        คลังสินค้า: location?.warehouses
-          ? `${location.warehouses.code} - ${location.warehouses.name}`
-          : "-",
-        ตำแหน่งจัดเก็บ: location ? `${location.code} - ${location.name}` : "-",
+        คลังสินค้า: warehouseLabel,
+        ตำแหน่งจัดเก็บ: locationLabel,
         จำนวนคงเหลือ: item.quantity_in_stock,
         หน่วย: item.unit,
         "Min Stock": item.min_stock_level,
@@ -1277,23 +1307,53 @@ export default function InventoryReport() {
                           </TableCell>
                           <TableCell>{item.department || "-"}</TableCell>
                           <TableCell>
-                            {location?.warehouses ? (
-                              <div className="text-sm font-medium">{location.warehouses.code}</div>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
+                            {(() => {
+                              const lines = storageDisplayLines({
+                                defaultLocationId: item.location_id,
+                                defaultWarehouseId: location?.warehouse_id || null,
+                                defaultLocation: location,
+                                defaultWarehouse: location?.warehouses,
+                                balances: storageBalanceMap[item.id] || [],
+                                fallbackQuantity: item.quantity_in_stock,
+                              });
+                              const whCodes = [...new Set(lines.map((l) => l.warehouseCode).filter((c) => c && c !== "-"))];
+                              if (whCodes.length === 0) return <span className="text-muted-foreground">-</span>;
+                              return (
+                                <div className="text-sm leading-tight space-y-0.5">
+                                  {whCodes.map((code) => (
+                                    <div key={code} className="font-medium">{code}</div>
+                                  ))}
+                                </div>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell>
-                            {location ? (
-                              <div className="text-sm leading-tight">
-                                <div className="font-medium">{location.code}</div>
-                                <div className="text-xs text-muted-foreground truncate max-w-[180px]" title={location.name}>
-                                  {location.name}
+                            {(() => {
+                              const lines = storageDisplayLines({
+                                defaultLocationId: item.location_id,
+                                defaultWarehouseId: location?.warehouse_id || null,
+                                defaultLocation: location,
+                                defaultWarehouse: location?.warehouses,
+                                balances: storageBalanceMap[item.id] || [],
+                                fallbackQuantity: item.quantity_in_stock,
+                              });
+                              if (lines.length === 0) return <span className="text-muted-foreground">-</span>;
+                              return (
+                                <div className="text-sm leading-tight space-y-1">
+                                  {lines.map((l) => (
+                                    <div key={l.locationId}>
+                                      <span className="font-medium">{l.locationCode}</span>
+                                      <span className="text-xs text-muted-foreground"> ({l.quantity.toLocaleString()} {item.unit})</span>
+                                      {l.locationName && (
+                                        <div className="text-xs text-muted-foreground truncate max-w-[180px]" title={l.locationName}>
+                                          {l.locationName}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
                                 </div>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
+                              );
+                            })()}
                           </TableCell>
                           <TableCell className="text-right font-medium">
                             {item.quantity_in_stock.toLocaleString()} {item.unit}
