@@ -118,7 +118,7 @@ export default function SiteAccessRequest() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 w-full">
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2"><Ticket className="h-6 w-6" />จองเข้าพื้นที่คลัง</h1>
         <p className="text-muted-foreground text-sm">ผู้คุมงานของบริษัทเปิดตั๋วล่วงหน้า — ผู้รับเหมาเข้าพื้นที่ได้เฉพาะเมื่อมีผู้คุมอยู่ด้วย</p>

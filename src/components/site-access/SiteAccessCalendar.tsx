@@ -123,7 +123,7 @@ export default function SiteAccessCalendar({ refreshKey = 0 }: { refreshKey?: nu
                     className={`min-h-20 rounded-md border p-1 text-left align-top transition-colors hover:bg-muted ${inMonth ? "" : "opacity-40"} ${selected === k ? "ring-2 ring-primary" : ""}`}>
                     <div className={`text-xs ${k === today ? "font-bold text-primary" : ""}`}>{d.getDate()}</div>
                     {items.slice(0, 3).map((r) => (
-                      <div key={r.id} className={`mt-0.5 truncate rounded border px-1 text-[10px] ${tone(r.status)}`}>{hhmm(r.planned_start_at)} {r.supervisor_name}</div>
+                      <div key={r.id} title={`${hhmm(r.planned_start_at)} ${r.supervisor_name ?? ""} (${r.department || "ไม่ระบุฝ่าย"})`} className={`mt-0.5 truncate rounded border px-1 text-[10px] ${tone(r.status)}`}>{hhmm(r.planned_start_at)} {r.supervisor_name} <span className="opacity-75">({r.department || "ไม่ระบุฝ่าย"})</span></div>
                     ))}
                     {items.length > 3 && <div className="text-[10px] text-muted-foreground">+{items.length - 3} รายการ</div>}
                   </button>
