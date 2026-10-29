@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { lineLeft, billboardLeft, issuedDefectiveReturned } from "./issueQuantities";
+import { lineLeft, billboardLeft, issuedDefectiveReturned, returnOutstanding } from "./issueQuantities";
 
 describe("Magic Ticket Swap stock accounting", () => {
   const swap = { issued_quantity: 5, installed_qty: 1, returned_good_qty: 1, returned_defective_qty: 1, swap_returned_defective_qty: 1 };
@@ -21,5 +21,15 @@ describe("Magic Ticket Swap stock accounting", () => {
   });
   test("legacy rows without Swap metadata retain existing defective accounting", () => {
     expect(issuedDefectiveReturned({ returned_defective_qty: 1 })).toBe(1);
+  });
+  test("return dialog can settle the last unit after a Swap old-part return", () => {
+    // 5 issued, 1 installed, 1 unused good returned, 1 old Swap part returned:
+    // the dialog must allow returning all 3 remaining units, not just 2.
+    expect(returnOutstanding(swap, false)).toBe(3);
+  });
+  test("return dialog for billboard+return purposes also ignores Swap old-part returns", () => {
+    // Installing does not clear the return obligation for these purposes,
+    // so only the 1 unused good return settles: 5 - 1 = 4 (Swap old part ignored).
+    expect(returnOutstanding(swap, true)).toBe(4);
   });
 });

@@ -24,13 +24,14 @@ export const lineLeft = (line: IssueQuantities) => Math.max(
 );
 const settledOther = (line: IssueQuantities) =>
   Number(line.written_off_qty || 0) + Number(line.transferred_qty || 0);
-const returnedTotal = (line: IssueQuantities) =>
-  Number(line.returned_good_qty || 0) + Number(line.returned_defective_qty || 0);
-
 /** Units still awaiting a billboard assignment (cleared once installed). */
 export const billboardLeft = (line: IssueQuantities) =>
   Math.max(0, lineIssued(line) - lineInstalled(line) - Number(line.returned_good_qty || 0) - issuedDefectiveReturned(line) - settledOther(line));
 
 /** Units still to be returned when a purpose needs BOTH billboard and return: installing does not clear it. */
 export const returnLeftIndependent = (line: IssueQuantities) =>
-  Math.max(0, lineIssued(line) - returnedTotal(line) - settledOther(line));
+  Math.max(0, lineIssued(line) - Number(line.returned_good_qty || 0) - issuedDefectiveReturned(line) - settledOther(line));
+
+/** Outstanding units the in-app return dialog may still settle. */
+export const returnOutstanding = (line: IssueQuantities, independentOfInstall: boolean) =>
+  independentOfInstall ? returnLeftIndependent(line) : lineLeft(line);
