@@ -654,7 +654,7 @@ const DefectiveReturnEntry = () => {
     if (fromAssessmentInfo || existingTicket) return true;
     const { data, error } = await supabase
       .from("goods_issue_pending_items")
-      .select("id, serial_number, quantity, issued_quantity, installed_qty, billboard_id, returned_good_qty, returned_defective_qty, written_off_qty, transferred_qty, goods_issue_pending!inner(document_no, status, requester_name)")
+      .select("id, serial_number, quantity, issued_quantity, installed_qty, billboard_id, returned_good_qty, returned_defective_qty, swap_returned_defective_qty, written_off_qty, transferred_qty, goods_issue_pending!inner(document_no, status, requester_name)")
       .eq(isMediaPlayer ? "media_player_id" : "equipment_id", selectedItemId)
       .in("goods_issue_pending.status", ["issued", "partial_return", "partially_issued"]);
     if (error) return true; // do not block on lookup failure
