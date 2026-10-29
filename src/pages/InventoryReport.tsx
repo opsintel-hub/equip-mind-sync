@@ -29,7 +29,7 @@ import { DeviceTypeBadge } from "@/components/media-player/DeviceTypeBadge";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
-import { buildStorageBalanceMap, matchesWarehouse, matchesLocation, storageDisplayLines } from "@/lib/inventoryStorage";
+import { buildStorageBalanceMap, matchesWarehouse, matchesLocation, storageDisplayLines, scopedStorageLines, sumStorageLines } from "@/lib/inventoryStorage";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { getCompatibilityBadge } from "@/components/equipment/BillboardCompatibilityField";
 import { useDeptScope } from "@/hooks/useDeptScope";
@@ -875,6 +875,33 @@ export default function InventoryReport() {
     return { label: "ปกติ", variant: "default" as const, icon: CheckCircle };
   };
 
+  // When a warehouse/location filter is active, quantities and values shown
+  // must reflect ONLY the stock physically in that warehouse/location.
+  const isStorageScoped = !!(filters.warehouseId || filters.locationId);
+
+  // Display lines for an item, scoped to the active warehouse/location filter
+  const displayLinesFor = (item: any) => {
+    const lines = storageDisplayLines({
+      defaultLocationId: item.location_id,
+      defaultWarehouseId: item.locations?.warehouse_id || null,
+      defaultLocation: item.locations,
+      defaultWarehouse: item.locations?.warehouses,
+      balances: storageBalanceMap[item.id] || [],
+      fallbackQuantity: item.quantity_in_stock,
+    });
+    if (!isStorageScoped) return lines;
+    const scoped = scopedStorageLines(lines, filters.warehouseId || null, filters.locationId || null);
+    // Item matched the filter via default location fallback but has no lines → keep original
+    return scoped.length > 0 ? scoped : lines;
+  };
+
+  // Quantity to show for an item: scoped to the filtered warehouse when filtering
+  const displayQtyFor = (item: any): number => {
+    if (!isStorageScoped) return item.quantity_in_stock || 0;
+    const lines = displayLinesFor(item);
+    return lines.length > 0 ? sumStorageLines(lines) : (item.quantity_in_stock || 0);
+  };
+
   // Summary stats
   const stats = useMemo(() => {
     const total = filteredData.length;
@@ -886,12 +913,14 @@ export default function InventoryReport() {
     }).length;
     const normal = total - outOfStock - lowStock;
     const totalValue = filteredData.reduce(
-      (sum, item) => sum + (item.quantity_in_stock || 0) * (item.unit_price || 0),
+      (sum, item) => sum + displayQtyFor(item) * (item.unit_price || 0),
       0
     );
+    const totalQty = filteredData.reduce((sum, item) => sum + displayQtyFor(item), 0);
 
-    return { total, outOfStock, lowStock, normal, totalValue };
-  }, [filteredData]);
+    return { total, outOfStock, lowStock, normal, totalValue, totalQty };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredData, isStorageScoped, filters.warehouseId, filters.locationId, storageBalanceMap]);
 
   // Export to Excel
   const handleExport = () => {
