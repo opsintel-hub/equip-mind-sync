@@ -32,6 +32,7 @@ import { logStockMovement } from "@/lib/stockMovement";
 import { SerialNumberSelect, SerialNumberItem } from "@/components/equipment/SerialNumberSelect";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
+import { requiresEquipmentUnitAssignments, createEquipmentAssignments, equipmentInstallRows } from "@/lib/issueAssignmentMode";
 
 interface EquipmentWithDetails {
   id: string;
@@ -39,6 +40,8 @@ interface EquipmentWithDetails {
   name: string;
   quantity_in_stock: number;
   serial_number: string | null;
+  is_consumable: boolean;
+  equipment_serial_numbers: { id: string }[];
   expiry_date: string | null;
   warranty_expiry_date: string | null;
   warehouse_entry_date: string;
@@ -185,7 +188,7 @@ const IssueGoods = () => {
       let q = supabase
         .from("equipment")
         .select(`
-          id, code, name, quantity_in_stock, serial_number, expiry_date, warranty_expiry_date, warehouse_entry_date, location_id, department,
+          id, code, name, quantity_in_stock, serial_number, is_consumable, equipment_serial_numbers(id), expiry_date, warranty_expiry_date, warehouse_entry_date, location_id, department,
           locations(id, name, code, warehouse_id, warehouses(id, name, code))
         `)
         .eq("is_active", true)
@@ -200,6 +203,15 @@ const IssueGoods = () => {
       })[];
     },
   });
+
+  const itemUsesEquipmentUnits = (item: PendingItem) => {
+    const details = equipment?.find(e => e.id === item.equipment_id);
+    // Do not silently treat inaccessible/unloaded equipment as untracked.
+    return details ? requiresEquipmentUnitAssignments(details, item.serial_number) : null;
+  };
+  const selectedUsesEquipmentUnits = selectedItem && !selectedItem.is_media_player
+    ? itemUsesEquipmentUnits(selectedItem)
+    : false;
 
   // Fetch available Media Player units (in stock) for multi-unit issuance — dept-scoped
   const { data: availableMpUnits, refetch: refetchMpUnits } = useQuery({
@@ -348,11 +360,13 @@ const IssueGoods = () => {
       const previousIssued = selectedItem.issued_quantity || 0;
       const totalIssued = previousIssued + issuedQty;
       const isMediaPlayer = selectedItem.is_media_player;
+      const usesEquipmentUnits = isMediaPlayer ? false : itemUsesEquipmentUnits(selectedItem);
+      if (usesEquipmentUnits === null) throw new Error("ไม่สามารถโหลดข้อมูลประเภทสินค้าได้ กรุณาลองใหม่");
 
       // Per-unit assignment validation + combine values stored on the pending item row
       let combinedSerial: string | null = null;
       let combinedBillboardId: string | null = null;
-      const activeAssignments = unitAssignments.slice(0, issuedQty);
+      const activeAssignments = usesEquipmentUnits ? unitAssignments.slice(0, issuedQty) : [];
       const activeMpAssignments = mpUnitAssignments.slice(0, issuedQty);
 
       if (isMediaPlayer && issuedQty > 0) {
@@ -381,7 +395,7 @@ const IssueGoods = () => {
         combinedSerial = activeMpAssignments.map(a => a.serial_number).join("\n").trim() || null;
         const bbSet = new Set(activeMpAssignments.map(a => a.billboard_id || ""));
         combinedBillboardId = bbSet.size === 1 ? (activeMpAssignments[0]?.billboard_id || null) : null;
-      } else if (!isMediaPlayer && issuedQty > 0) {
+      } else if (usesEquipmentUnits && issuedQty > 0) {
         if (activeAssignments.length !== issuedQty) {
           throw new Error(`กรุณาระบุข้อมูลให้ครบ ${issuedQty} เครื่อง`);
         }
@@ -397,6 +411,8 @@ const IssueGoods = () => {
         }
         const bbSet = new Set(activeAssignments.map(a => a.billboard_id || ""));
         combinedBillboardId = bbSet.size === 1 ? (activeAssignments[0]?.billboard_id || null) : null;
+      } else if (!isMediaPlayer) {
+        combinedBillboardId = issueData.billboard_id || null;
       }
 
       // Determine new status
@@ -503,7 +519,7 @@ const IssueGoods = () => {
           if (splitError) throw splitError;
         }
       } else {
-        const targetBb = combinedBillboardId ?? selectedItem.billboard_id;
+        const targetBb = usesEquipmentUnits ? combinedBillboardId ?? selectedItem.billboard_id : combinedBillboardId;
         const { error: updateError } = await supabase
           .from("goods_issue_pending_items")
           .update({
@@ -689,7 +705,8 @@ const IssueGoods = () => {
         // Per-unit billboard installation — group rows by billboard_id, insert 1 record per unit
         const billboardLabelCache = new Map<string, string>();
         const getBbLabel = async (bbId: string) => {
-          if (billboardLabelCache.has(bbId)) return billboardLabelCache.get(bbId)!;
+          const cachedLabel = billboardLabelCache.get(bbId);
+          if (cachedLabel) return cachedLabel;
           const { data: bbInfo } = await supabase
             .from("billboards")
             .select("old_code, location_name")
@@ -701,9 +718,8 @@ const IssueGoods = () => {
         };
 
         // Build per-unit billboard list (fall back to existing item.billboard_id if a row left blank)
-        const installRows = activeAssignments
-          .map(a => ({ billboard_id: a.billboard_id || selectedItem.billboard_id || "", serial_number: a.serial_number || null }))
-          .filter(r => r.billboard_id);
+        const installRows = equipmentInstallRows(activeAssignments, usesEquipmentUnits, issuedQty,
+          usesEquipmentUnits ? selectedItem.billboard_id || "" : issueData.billboard_id);
 
         // For scheduled/delivery pickups, defer the install to the "ยืนยันรับสินค้า" step.
         if (!deferInstall) {
@@ -714,7 +730,7 @@ const IssueGoods = () => {
               .insert({
                 billboard_id: r.billboard_id,
                 equipment_id: selectedItem.equipment_id,
-                quantity: 1,
+                quantity: r.quantity,
                 installation_date: new Date().toISOString().split('T')[0],
                 notes: issueData.notes || `เบิกจากเอกสาร ${parentRequest?.document_no}`,
                 created_by: user.id,
@@ -727,7 +743,7 @@ const IssueGoods = () => {
               equipment_code: selectedItem.equipment_code || "",
               equipment_name: selectedItem.equipment_name || "",
               movement_type: "install_to_billboard",
-              quantity: 1,
+              quantity: r.quantity,
               stock_before: currentStock,
               stock_after: newStock,
               reference_type: "billboard_equipment",
@@ -929,6 +945,11 @@ const IssueGoods = () => {
   });
 
   const handleIssueItem = (item: PendingItem) => {
+    const usesEquipmentUnits = item.is_media_player ? false : itemUsesEquipmentUnits(item);
+    if (usesEquipmentUnits === null) {
+      toast.error("ไม่สามารถโหลดข้อมูลประเภทสินค้าได้ กรุณารอข้อมูลหรือลองใหม่");
+      return;
+    }
     setTransferDispatchKey(crypto.randomUUID());
     setSelectedItem(item);
     const qtyToIssue = item.remaining_quantity && item.remaining_quantity > 0 
@@ -943,12 +964,7 @@ const IssueGoods = () => {
     });
     // Initialize per-unit assignments for non-Media Player items
     if (!item.is_media_player) {
-      const initial = Array.from({ length: qtyToIssue }, () => ({
-        serial_number: "",
-        serial_number_source: "equipment",
-        billboard_id: item.billboard_id || "",
-      }));
-      setUnitAssignments(initial);
+      setUnitAssignments(createEquipmentAssignments(qtyToIssue, usesEquipmentUnits, item.billboard_id || ""));
       setMpUnitAssignments([]);
     } else {
       setUnitAssignments([]);
@@ -985,6 +1001,7 @@ const IssueGoods = () => {
       });
       return;
     }
+    if (!selectedUsesEquipmentUnits) return;
     setUnitAssignments((prev) => {
       const next = [...prev];
       const defaultBillboard = selectedItem?.billboard_id || "";
@@ -1678,7 +1695,7 @@ const IssueGoods = () => {
             )}
 
             {/* Per-unit S/N + Billboard assignments (Equipment only — Media Player handled above) */}
-            {!selectedItem?.is_media_player && unitAssignments.length > 0 && (
+            {selectedUsesEquipmentUnits && unitAssignments.length > 0 && (
               <div className="space-y-2">
                 <Label className="flex items-center gap-1">
                   <Hash className="h-3 w-3" />
@@ -1719,6 +1736,16 @@ const IssueGoods = () => {
               </div>
             )}
 
+            {selectedItem && !selectedItem.is_media_player && selectedUsesEquipmentUnits === false && !transferWarehouse && (
+              <div className="space-y-2">
+                <Label>ป้ายโฆษณา (ไม่บังคับ)</Label>
+                <BillboardSelect
+                  value={issueData.billboard_id}
+                  onChange={(value) => setIssueData(prev => ({ ...prev, billboard_id: value }))}
+                />
+              </div>
+            )}
+
             {/* MP billboard handled per-unit in the table above */}
 
             {/* View Equipment Image Button */}
@@ -1727,7 +1754,9 @@ const IssueGoods = () => {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => handleViewEquipmentImages(selectedItem.equipment_id!, selectedItem.equipment_name || selectedItem.equipment_code || "สินค้า")}
+                  onClick={() => {
+                    if (selectedItem.equipment_id) handleViewEquipmentImages(selectedItem.equipment_id, selectedItem.equipment_name || selectedItem.equipment_code || "สินค้า");
+                  }}
                   className="gap-2"
                 >
                   <Image className="h-4 w-4" />
