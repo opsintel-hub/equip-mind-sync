@@ -149,16 +149,18 @@ export function ReturnItemDialog({ open, onOpenChange, documentNo, item, onSaved
     <div className="overflow-y-auto min-h-0 px-5 py-4 space-y-4">
       {item?.serial_number && <Badge variant="outline" className="whitespace-pre-line">S/N: {item.serial_number}</Badge>}
       {step===1 ? <>
-        <div className="flex flex-wrap justify-between gap-2 bg-muted/50 rounded-md p-3 text-sm"><span>เบิกทั้งหมด <strong>{issued} {item?.unit}</strong></span><span className="text-muted-foreground">คืนก่อนหน้า {returned} {item?.unit}</span></div>
-        <div className="divide-y">
-          {quantityInput("installed-actual",legacyEditable?"ใช้จริงที่ป้าย":"ใช้จริงที่ป้าย (บันทึกแล้ว)",installed,v=>{setInstalled(v);setGood(String(Math.max(0,issued-numberOf(v)-returned-otherClosed-numberOf(issuedDefective))));},priorInstalled,!legacyEditable)}
-          {legacyEditable && <Badge variant="outline" className="my-2 text-warning">ยอดเดิมอนุมานจากการระบุป้าย · ยืนยันจำนวนใช้จริง</Badge>}
-          {quantityInput("unused-good","ของเหลือคืนคลัง",good,setGood,balance.unused)}
-        </div>
-        <div className="flex items-center gap-2"><Checkbox id="issued-damaged" checked={showIssuedDefective} onCheckedChange={v=>{setShowIssuedDefective(v===true);if(!v)setIssuedDefective("0");}}/><Label htmlFor="issued-damaged">ของที่เบิกเสียก่อนใช้</Label></div>
-        {showIssuedDefective && quantityInput("issued-defective","จำนวนเสียจากยอดเบิก",issuedDefective,setIssuedDefective,balance.unused)}
-        {numberOf(good)>0 && <ReturnPhotoDropzone required={false} photos={goodPhotos} onChange={setGoodPhotos} folder="good" label="รูปของเหลือคืนคลัง (ไม่บังคับ)"/>}
-        <div className={`rounded-md p-3 text-sm ${balance.unusedRemaining<0?"bg-destructive/10 text-destructive":"bg-muted text-foreground"}`}>ใช้จริง {installed} + คืนครั้งนี้ {numberOf(good)+numberOf(issuedDefective)} + คืนก่อนหน้า {returned}{otherClosed>0?` + ปิดยอดอื่น ${otherClosed}`:""} / เบิก {issued}<div className="mt-1 font-medium">เหลือถือไปใช้งาน {Math.max(0,balance.unusedRemaining)} {item?.unit}</div></div>
+        <div className="flex flex-wrap justify-between gap-2 bg-muted/50 rounded-lg p-3 text-sm"><span>เบิกทั้งหมด <strong>{issued} {item?.unit}</strong></span><span className="text-muted-foreground">คืนก่อนหน้า {returned} {item?.unit}</span></div>
+        {sectionCard(<>① สรุปการใช้งานของที่เบิกไป</>,<>
+          <div className="divide-y divide-border">
+            {quantityInput("installed-actual",legacyEditable?"ใช้จริงที่ป้าย":"ใช้จริงที่ป้าย (บันทึกแล้ว)",installed,v=>{setInstalled(v);setGood(String(Math.max(0,issued-numberOf(v)-returned-otherClosed-numberOf(issuedDefective))));},priorInstalled,!legacyEditable)}
+            {quantityInput("unused-good","ของเหลือคืนคลัง",good,setGood,balance.unused)}
+          </div>
+          {legacyEditable && <Badge variant="outline" className="text-warning">ยอดเดิมอนุมานจากการระบุป้าย · ยืนยันจำนวนใช้จริง</Badge>}
+          <div className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-2"><Checkbox id="issued-damaged" checked={showIssuedDefective} onCheckedChange={v=>{setShowIssuedDefective(v===true);if(!v)setIssuedDefective("0");}}/><Label htmlFor="issued-damaged" className="text-sm">ของที่เบิกเสียก่อนใช้</Label></div>
+          {showIssuedDefective && quantityInput("issued-defective","จำนวนเสียจากยอดเบิก",issuedDefective,setIssuedDefective,balance.unused)}
+          {numberOf(good)>0 && <ReturnPhotoDropzone required={false} photos={goodPhotos} onChange={setGoodPhotos} folder="good" label="รูปของเหลือคืนคลัง (ไม่บังคับ)"/>}
+        </>)}
+        <div className={`rounded-lg border p-3 text-sm ${balance.unusedRemaining<0?"border-destructive/40 bg-destructive/10 text-destructive":"border-primary/30 bg-primary/5 text-foreground"}`}><div className="font-medium mb-1">สรุปยอดของที่เบิก</div>ใช้จริง {installed} + คืนครั้งนี้ {numberOf(good)+numberOf(issuedDefective)} + คืนก่อนหน้า {returned}{otherClosed>0?` + ปิดยอดอื่น ${otherClosed}`:""} / เบิก {issued}<div className="mt-1 font-semibold">เหลือถือไปใช้งาน {Math.max(0,balance.unusedRemaining)} {item?.unit}</div></div>
         {stepOneError && <p role="alert" className="text-sm text-destructive">{stepOneError}</p>}
       </> : <>
         <div className="flex flex-wrap justify-between gap-2 text-sm bg-muted/50 rounded-md p-3"><span>ใช้จริง <strong>{installed} {item?.unit}</strong></span><span>สรุปของเดิมแล้ว {settled} {item?.unit}</span></div>
