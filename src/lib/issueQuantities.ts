@@ -8,6 +8,7 @@ export interface IssueQuantities {
   swap_returned_defective_qty?: number | null;
   written_off_qty?: number | null;
   transferred_qty?: number | null;
+  installation_return_settled_qty?: number | null;
 }
 
 export const lineIssued = (line: IssueQuantities) => Number(line.issued_quantity ?? line.quantity ?? 0);
@@ -30,7 +31,7 @@ export const billboardLeft = (line: IssueQuantities) =>
 
 /** Units still to be returned when a purpose needs BOTH billboard and return: installing does not clear it. */
 export const returnLeftIndependent = (line: IssueQuantities) =>
-  Math.max(0, lineIssued(line) - Number(line.returned_good_qty || 0) - issuedDefectiveReturned(line) - settledOther(line));
+  Math.max(0, lineIssued(line) - Number(line.returned_good_qty || 0) - issuedDefectiveReturned(line) - settledOther(line) - Number(line.installation_return_settled_qty || 0));
 
 /** Outstanding units the in-app return dialog may still settle. */
 export const returnOutstanding = (line: IssueQuantities, independentOfInstall: boolean) =>

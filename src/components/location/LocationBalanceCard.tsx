@@ -72,6 +72,7 @@ export function LocationBalanceCard({
                   <div className="text-sm font-medium truncate">
                     {b.zoneCode ? `${b.zoneCode}${b.code}` : b.code} - {b.name}
                   </div>
+                  {b.stockCondition === "used" && <Badge variant="outline" className="text-xs text-primary">SPARE-USED · ใช้งานแล้ว</Badge>}
                   <div className="text-xs text-muted-foreground truncate">
                     {b.warehouseCode ? `${b.warehouseCode} ${b.warehouseName || ""}` : "ไม่ระบุคลัง"}
                   </div>

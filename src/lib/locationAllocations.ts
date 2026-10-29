@@ -101,6 +101,7 @@ export interface LocationBalance {
   zoneCode?: string | null;
   warehouseCode?: string | null;
   warehouseName?: string | null;
+  stockCondition?: string | null;
 }
 
 export interface BalanceFilter {
@@ -113,7 +114,7 @@ export interface BalanceFilter {
 export const fetchLocationBalances = async (filter: BalanceFilter): Promise<LocationBalance[]> => {
   let query = supabase
     .from("stock_location_allocations")
-    .select("location_id, quantity, locations:location_id(code, name, zones:zone_id(code), warehouses:warehouse_id(code, name))");
+    .select("location_id, quantity, locations:location_id(code, name, stock_condition, zones:zone_id(code), warehouses:warehouse_id(code, name))");
 
   if (filter.equipmentId) query = query.eq("equipment_id", filter.equipmentId);
   else if (filter.mediaPlayerId) query = query.eq("media_player_id", filter.mediaPlayerId);
@@ -139,6 +140,7 @@ export const fetchLocationBalances = async (filter: BalanceFilter): Promise<Loca
       zoneCode: row.locations?.zones?.code ?? null,
       warehouseCode: row.locations?.warehouses?.code ?? null,
       warehouseName: row.locations?.warehouses?.name ?? null,
+      stockCondition: row.locations?.stock_condition ?? null,
     });
   });
 

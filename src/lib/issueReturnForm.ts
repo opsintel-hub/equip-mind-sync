@@ -50,3 +50,16 @@ export const lostReplacementCap = (outstanding: number, installed: number, alrea
 
 /** Quantity still to be split between good and defective after the lost-replacement close-out. */
 export const returnableAfterLost = (outstanding: number, lost: number) => Math.max(0, outstanding - Math.max(0, lost));
+
+/** Two independent ledgers: issued stock and old assets removed from the site. */
+export const twoStepReturnBalance = (issued: number, installed: number, returned: number, otherClosed: number, good: number, issuedDefective: number, oldDefective: number, oldUsed: number, noOld: number, installationSettled = 0) => {
+  const unused = Math.max(0, issued - installed - returned - otherClosed);
+  const installationOpen = Math.max(0, installed - installationSettled);
+  return {
+    unused,
+    installationOpen,
+    unusedRemaining: unused - good - issuedDefective,
+    oldTotal: oldDefective + oldUsed,
+    installationRemaining: installationOpen - oldDefective - oldUsed - noOld,
+  };
+};
