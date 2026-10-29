@@ -90,6 +90,26 @@ export const matchesLocation = (input: StorageMatchInput, locationId: string): b
   return input.defaultLocationId === locationId;
 };
 
+/**
+ * จำกัดบรรทัดยอดคงเหลือตามตัวกรองคลัง/ตำแหน่งที่ผู้ใช้เลือก
+ * - ไม่เลือกตัวกรอง → คืนทุกบรรทัด (ภาพรวมทั้งระบบ)
+ * - เลือกคลัง/ตำแหน่ง → คืนเฉพาะบรรทัดที่ตรง เพื่อให้ยอด/มูลค่าที่แสดงตรงกับคลังนั้นจริง
+ */
+export const scopedStorageLines = (
+  lines: StorageBalance[],
+  warehouseId?: string | null,
+  locationId?: string | null,
+): StorageBalance[] => {
+  let result = lines || [];
+  if (warehouseId) result = result.filter((l) => l.warehouseId === warehouseId);
+  if (locationId) result = result.filter((l) => l.locationId === locationId);
+  return result;
+};
+
+/** ผลรวมจำนวนของบรรทัดยอดคงเหลือ */
+export const sumStorageLines = (lines: StorageBalance[]): number =>
+  (lines || []).reduce((sum, l) => sum + (Number(l.quantity) || 0), 0);
+
 /** บรรทัดแสดงผลคลัง/ตำแหน่งสำหรับตารางและ Excel — ใช้ยอดจริงถ้ามี ไม่งั้นใช้ตำแหน่งเริ่มต้น */
 export const storageDisplayLines = (
   input: StorageMatchInput & {
