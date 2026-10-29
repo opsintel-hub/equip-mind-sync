@@ -137,7 +137,9 @@ export function ReturnItemDialog({ open, onOpenChange, documentNo, item, onSaved
     } catch(e:unknown) { toast.error(e instanceof Error ? e.message : "บันทึกไม่สำเร็จ กรุณาลองใหม่"); }
     finally { setSaving(false); }
   };
-  const quantityInput = (id:string, label:string, value:string, change:(v:string)=>void, max:number, disabled=false) => <div className="flex items-center justify-between gap-3 py-3"><Label htmlFor={id} className="leading-relaxed">{label}</Label><div className="flex shrink-0 items-center gap-2"><Input id={id} type="number" min={0} max={max} value={value} disabled={disabled} className="w-24 text-right" onChange={e=>change(e.target.value)} onWheel={e=>e.currentTarget.blur()} /><span className="text-xs text-muted-foreground">{item?.unit}</span></div></div>;
+  const quantityInput = (id:string, label:string, value:string, change:(v:string)=>void, max:number, disabled=false) => <div className="flex items-center justify-between gap-3 py-2.5"><Label htmlFor={id} className="leading-relaxed text-sm">{label}</Label><div className="flex shrink-0 items-center gap-2"><Input id={id} type="number" min={0} max={max} value={value} disabled={disabled} className="w-24 text-right" onChange={e=>change(e.target.value)} onWheel={e=>e.currentTarget.blur()} /><span className="w-8 text-xs text-muted-foreground">{item?.unit}</span></div></div>;
+  const sectionCard = (title:React.ReactNode, children:React.ReactNode, tone:"default"|"danger"="default") => <section className={`rounded-lg border ${tone==="danger"?"border-destructive/40 bg-destructive/5":"border-border bg-card"} p-4 space-y-3`}><h3 className="flex items-center gap-2 text-sm font-semibold">{title}</h3>{children}</section>;
+  const requiredMark = <span className="text-destructive" aria-hidden>*</span>;
 
   return <Dialog open={open} onOpenChange={v=>{if(!saving)onOpenChange(v);}}><DialogContent className="max-w-2xl max-h-[90dvh] flex flex-col overflow-hidden p-0">
     <DialogHeader className="px-5 pt-5 shrink-0"><DialogTitle className="flex items-center gap-2"><PackageCheck className="h-5 w-5 text-primary"/>ส่งคืนสินค้า</DialogTitle><DialogDescription>{documentNo} · {item?.equipment_code} {item?.equipment_name}</DialogDescription></DialogHeader>
@@ -147,35 +149,62 @@ export function ReturnItemDialog({ open, onOpenChange, documentNo, item, onSaved
     <div className="overflow-y-auto min-h-0 px-5 py-4 space-y-4">
       {item?.serial_number && <Badge variant="outline" className="whitespace-pre-line">S/N: {item.serial_number}</Badge>}
       {step===1 ? <>
-        <div className="flex flex-wrap justify-between gap-2 bg-muted/50 rounded-md p-3 text-sm"><span>เบิกทั้งหมด <strong>{issued} {item?.unit}</strong></span><span className="text-muted-foreground">คืนก่อนหน้า {returned} {item?.unit}</span></div>
-        <div className="divide-y">
-          {quantityInput("installed-actual",legacyEditable?"ใช้จริงที่ป้าย":"ใช้จริงที่ป้าย (บันทึกแล้ว)",installed,v=>{setInstalled(v);setGood(String(Math.max(0,issued-numberOf(v)-returned-otherClosed-numberOf(issuedDefective))));},priorInstalled,!legacyEditable)}
-          {legacyEditable && <Badge variant="outline" className="my-2 text-warning">ยอดเดิมอนุมานจากการระบุป้าย · ยืนยันจำนวนใช้จริง</Badge>}
-          {quantityInput("unused-good","ของเหลือคืนคลัง",good,setGood,balance.unused)}
-        </div>
-        <div className="flex items-center gap-2"><Checkbox id="issued-damaged" checked={showIssuedDefective} onCheckedChange={v=>{setShowIssuedDefective(v===true);if(!v)setIssuedDefective("0");}}/><Label htmlFor="issued-damaged">ของที่เบิกเสียก่อนใช้</Label></div>
-        {showIssuedDefective && quantityInput("issued-defective","จำนวนเสียจากยอดเบิก",issuedDefective,setIssuedDefective,balance.unused)}
-        {numberOf(good)>0 && <ReturnPhotoDropzone required={false} photos={goodPhotos} onChange={setGoodPhotos} folder="good" label="รูปของเหลือคืนคลัง (ไม่บังคับ)"/>}
-        <div className={`rounded-md p-3 text-sm ${balance.unusedRemaining<0?"bg-destructive/10 text-destructive":"bg-muted text-foreground"}`}>ใช้จริง {installed} + คืนครั้งนี้ {numberOf(good)+numberOf(issuedDefective)} + คืนก่อนหน้า {returned}{otherClosed>0?` + ปิดยอดอื่น ${otherClosed}`:""} / เบิก {issued}<div className="mt-1 font-medium">เหลือถือไปใช้งาน {Math.max(0,balance.unusedRemaining)} {item?.unit}</div></div>
+        <div className="flex flex-wrap justify-between gap-2 bg-muted/50 rounded-lg p-3 text-sm"><span>เบิกทั้งหมด <strong>{issued} {item?.unit}</strong></span><span className="text-muted-foreground">คืนก่อนหน้า {returned} {item?.unit}</span></div>
+        {sectionCard(<>① สรุปการใช้งานของที่เบิกไป</>,<>
+          <div className="divide-y divide-border">
+            {quantityInput("installed-actual",legacyEditable?"ใช้จริงที่ป้าย":"ใช้จริงที่ป้าย (บันทึกแล้ว)",installed,v=>{setInstalled(v);setGood(String(Math.max(0,issued-numberOf(v)-returned-otherClosed-numberOf(issuedDefective))));},priorInstalled,!legacyEditable)}
+            {quantityInput("unused-good","ของเหลือคืนคลัง",good,setGood,balance.unused)}
+          </div>
+          {legacyEditable && <Badge variant="outline" className="text-warning">ยอดเดิมอนุมานจากการระบุป้าย · ยืนยันจำนวนใช้จริง</Badge>}
+          <div className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-2"><Checkbox id="issued-damaged" checked={showIssuedDefective} onCheckedChange={v=>{setShowIssuedDefective(v===true);if(!v)setIssuedDefective("0");}}/><Label htmlFor="issued-damaged" className="text-sm">ของที่เบิกเสียก่อนใช้</Label></div>
+          {showIssuedDefective && quantityInput("issued-defective","จำนวนเสียจากยอดเบิก",issuedDefective,setIssuedDefective,balance.unused)}
+          {numberOf(good)>0 && <ReturnPhotoDropzone required={false} photos={goodPhotos} onChange={setGoodPhotos} folder="good" label="รูปของเหลือคืนคลัง (ไม่บังคับ)"/>}
+        </>)}
+        <div className={`rounded-lg border p-3 text-sm ${balance.unusedRemaining<0?"border-destructive/40 bg-destructive/10 text-destructive":"border-primary/30 bg-primary/5 text-foreground"}`}><div className="font-medium mb-1">สรุปยอดของที่เบิก</div>ใช้จริง {installed} + คืนครั้งนี้ {numberOf(good)+numberOf(issuedDefective)} + คืนก่อนหน้า {returned}{otherClosed>0?` + ปิดยอดอื่น ${otherClosed}`:""} / เบิก {issued}<div className="mt-1 font-semibold">เหลือถือไปใช้งาน {Math.max(0,balance.unusedRemaining)} {item?.unit}</div></div>
         {stepOneError && <p role="alert" className="text-sm text-destructive">{stepOneError}</p>}
       </> : <>
-        <div className="flex flex-wrap justify-between gap-2 text-sm bg-muted/50 rounded-md p-3"><span>ใช้จริง <strong>{installed} {item?.unit}</strong></span><span>สรุปของเดิมแล้ว {settled} {item?.unit}</span></div>
-        <h3 className="font-medium">มีของเก่าถอดกลับจากป้ายไหม?</h3>
-        {rows.map((row,index)=><div key={row.key} className="border-b pb-4 space-y-2">
-          <div className="flex items-center justify-between gap-2"><span className="text-sm font-medium">ของเก่ารายการ {index+1}</span><Button size="icon" variant="ghost" title="ลบรายการ" aria-label={`ลบของเก่ารายการ ${index+1}`} onClick={()=>setRows(rs=>rs.filter(r=>r.key!==row.key))}><Trash2 className="h-4 w-4"/></Button></div>
-          <SearchableSelect value={row.asset} placeholder="เลือกอุปกรณ์เดิมที่ป้าย" searchPlaceholder="ค้นหารหัส / ชื่อ / S/N" options={options.map(c=>({value:c.kind+":"+c.id,label:`${c.billboard_label} · ${c.code} ${c.name}`,description:`${c.serial_number?"S/N: "+c.serial_number+" · ":""}เหลือ ${oldPartRemaining(c,rows,index)} ${item?.unit}`,disabled:oldPartUnavailable(c,row.condition,rows,index)}))} onValueChange={v=>setRows(rs=>rs.map(r=>r.key===row.key?{...r,asset:v}:r))}/>
-          <div className="flex flex-wrap gap-2"><Button size="sm" variant={row.condition==="defective"?"default":"outline"} onClick={()=>setRows(rs=>rs.map(r=>r.key===row.key?{...r,condition:"defective"}:r))}>เสียจากการใช้งาน</Button><Button size="sm" variant={row.condition==="used"?"default":"outline"} onClick={()=>setRows(rs=>rs.map(r=>r.key===row.key?{...r,condition:"used"}:r))}>PM · ยังใช้งานได้</Button></div>
-          {quantityInput(`old-quantity-${index}`,"จำนวนถอดกลับ",row.quantity,v=>setRows(rs=>rs.map(r=>r.key===row.key?{...r,quantity:v}:r)),(()=>{const asset=options.find(c=>c.kind+":"+c.id===row.asset);return asset?oldPartRemaining(asset,rows,index):0;})())}
-          {row.condition==="used" && <Badge variant="outline" className="text-primary">SPARE-USED · ใช้งานแล้ว</Badge>}
-        </div>)}
-        <Button variant="outline" size="sm" disabled={loading} onClick={()=>setRows(rs=>{const choices=options.flatMap(asset=>(["defective","used"] as const).map(condition=>({asset,condition})));const free=choices.find(c=>!oldPartUnavailable(c.asset,c.condition,rs));return [...rs,{key:crypto.randomUUID(),asset:free?free.asset.kind+":"+free.asset.id:"",quantity:"1",condition:free?.condition || "defective"}];})}><Plus className="mr-1 h-4 w-4"/>เพิ่มของเก่าถอดกลับ</Button>
-        {!loading && candidates.length===0 && <p className="text-sm text-muted-foreground">ป้ายนี้ยังไม่มีอุปกรณ์เดิมในระบบ · กดเพิ่มเพื่อบันทึกของเดิมก่อนเริ่มใช้ระบบได้</p>}
-        {balance.installationOpen>0 && <><div className="flex items-center gap-2"><Checkbox id="no-old-part" checked={noOldEnabled} onCheckedChange={v=>{setNoOldEnabled(v===true);setNoOld(v?String(Math.max(0,balance.installationRemaining)):"0");if(!v)setNoOldReason("");}}/><Label htmlFor="no-old-part">ไม่มีของเดิมส่งคืน</Label></div>
-          {noOldEnabled && <div className="space-y-2 border-l-2 border-border pl-3">{quantityInput("no-old-quantity","จำนวนไม่มีของคืน",noOld,setNoOld,balance.installationOpen)}<div className="flex flex-wrap gap-2"><Button size="sm" variant={noOldReason==="ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม"?"default":"outline"} onClick={()=>setNoOldReason("ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม")}>ติดตั้งใหม่</Button><Button size="sm" variant={noOldReason!=="ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม"?"default":"outline"} onClick={()=>setNoOldReason("")}>สูญหาย / ถูกขโมย</Button></div>{noOldReason!=="ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม" && <><Textarea aria-label="เหตุผลไม่มีของเดิมคืน" placeholder="เหตุที่ของเดิมสูญหายหรือถูกขโมย" value={noOldReason} onChange={e=>setNoOldReason(e.target.value)}/><ReturnPhotoDropzone required={false} photos={sitePhotos} onChange={setSitePhotos} folder="good" label="รูปหน้างาน (ไม่บังคับ)"/></>}</div>}</>}
-        {oldUsed>0 && <ReturnPhotoDropzone required={false} photos={usedPhotos} onChange={setUsedPhotos} folder="good" label="รูปของดีจาก PM (ไม่บังคับ)"/>}
-        {oldDef+numberOf(issuedDefective)>0 && <div className="space-y-2"><Label>อาการเสีย</Label><SymptomSelect value={symptomId} onChange={setSymptomId}/><Textarea aria-label="รายละเอียดอาการเสีย" placeholder="รายละเอียดอาการเสีย" value={symptomOther} onChange={e=>setSymptomOther(e.target.value)}/><ReturnPhotoDropzone photos={defPhotos} onChange={setDefPhotos} folder="defective" label="รูปของเสีย (อย่างน้อย 1 รูป)"/></div>}
-        <div className="bg-muted rounded-md p-3 text-sm space-y-1"><div className="font-medium">ส่งให้คลัง</div><div>ของเหลือ {good} · ของเก่าเสีย {oldDef} · SPARE-USED {oldUsed} {item?.unit}</div><div className="text-muted-foreground">ไม่มีของเดิมคืน {noOld} · ยังไม่สรุป {Math.max(0,balance.installationRemaining)} {item?.unit}</div></div>
-        <Label htmlFor="return-notes">หมายเหตุ (ถ้ามี)</Label><Textarea id="return-notes" value={notes} onChange={e=>setNotes(e.target.value)} rows={2}/>
+        <div className="flex flex-wrap justify-between gap-2 text-sm bg-muted/50 rounded-lg p-3"><span>ใช้จริง <strong>{installed} {item?.unit}</strong></span><span>สรุปของเดิมแล้ว {settled} {item?.unit}</span></div>
+        {sectionCard(<>② ของเก่าที่ถอดกลับจากป้าย <span className="text-xs font-normal text-muted-foreground">(แยกรายการตามสภาพของ)</span></>,<>
+          {rows.length===0 && <p className="rounded-md border border-dashed border-border bg-muted/30 p-3 text-sm text-muted-foreground">ยังไม่มีรายการ · กดปุ่มด้านล่างเพื่อเพิ่มของเก่าที่ถอดกลับ (เช่น เสีย 2 / PM 3)</p>}
+          {rows.map((row,index)=><div key={row.key} className="rounded-lg border border-border bg-muted/20 p-3 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2 text-sm font-semibold"><span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${row.condition==="defective"?"bg-destructive/10 text-destructive":"bg-primary/10 text-primary"}`}>{index+1}</span>ของเก่ารายการ {index+1}</span>
+              <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-destructive" title="ลบรายการ" aria-label={`ลบของเก่ารายการ ${index+1}`} onClick={()=>setRows(rs=>rs.filter(r=>r.key!==row.key))}><Trash2 className="h-4 w-4"/></Button>
+            </div>
+            <div className="space-y-1"><Label className="text-xs text-muted-foreground">อุปกรณ์เดิมที่ป้าย {requiredMark}</Label>
+              <SearchableSelect value={row.asset} placeholder="เลือกอุปกรณ์เดิมที่ป้าย" searchPlaceholder="ค้นหารหัส / ชื่อ / S/N" options={options.map(c=>({value:c.kind+":"+c.id,label:`${c.billboard_label} · ${c.code} ${c.name}`,description:`${c.serial_number?"S/N: "+c.serial_number+" · ":""}เหลือ ${oldPartRemaining(c,rows,index)} ${item?.unit}`,disabled:oldPartUnavailable(c,row.condition,rows,index)}))} onValueChange={v=>setRows(rs=>rs.map(r=>r.key===row.key?{...r,asset:v}:r))}/>
+            </div>
+            <div className="space-y-1"><Label className="text-xs text-muted-foreground">สภาพของที่ถอดกลับ {requiredMark}</Label>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant={row.condition==="defective"?"destructive":"outline"} onClick={()=>setRows(rs=>rs.map(r=>r.key===row.key?{...r,condition:"defective"}:r))}>เสียจากการใช้งาน</Button>
+                <Button size="sm" variant={row.condition==="used"?"default":"outline"} onClick={()=>setRows(rs=>rs.map(r=>r.key===row.key?{...r,condition:"used"}:r))}>PM · ยังใช้งานได้</Button>
+              </div>
+            </div>
+            <div className="rounded-md bg-card px-3">{quantityInput(`old-quantity-${index}`,"จำนวนถอดกลับ",row.quantity,v=>setRows(rs=>rs.map(r=>r.key===row.key?{...r,quantity:v}:r)),(()=>{const asset=options.find(c=>c.kind+":"+c.id===row.asset);return asset?oldPartRemaining(asset,rows,index):0;})())}</div>
+            {row.condition==="used" && <Badge variant="outline" className="text-primary">SPARE-USED · เข้าคลังอะไหล่มือสอง</Badge>}
+            {row.condition==="defective" && <Badge variant="outline" className="text-destructive">เข้าคลังของเสีย (WH-DEFECT)</Badge>}
+          </div>)}
+          <Button variant="outline" size="sm" className="w-full border-dashed" disabled={loading} onClick={()=>setRows(rs=>{const choices=options.flatMap(asset=>(["defective","used"] as const).map(condition=>({asset,condition})));const free=choices.find(c=>!oldPartUnavailable(c.asset,c.condition,rs));return [...rs,{key:crypto.randomUUID(),asset:free?free.asset.kind+":"+free.asset.id:"",quantity:"1",condition:free?.condition || "defective"}];})}><Plus className="mr-1 h-4 w-4"/>เพิ่มของเก่าถอดกลับ</Button>
+          {!loading && candidates.length===0 && <p className="text-xs text-muted-foreground">ป้ายนี้ยังไม่มีอุปกรณ์เดิมในระบบ · กดเพิ่มเพื่อบันทึกของเดิมก่อนเริ่มใช้ระบบได้</p>}
+        </>)}
+        {balance.installationOpen>0 && sectionCard(<>③ ไม่มีของเดิมส่งคืน <span className="text-xs font-normal text-muted-foreground">(ติดตั้งใหม่ / สูญหาย)</span></>,<>
+          <div className="flex items-center gap-2"><Checkbox id="no-old-part" checked={noOldEnabled} onCheckedChange={v=>{setNoOldEnabled(v===true);setNoOld(v?String(Math.max(0,balance.installationRemaining)):"0");if(!v)setNoOldReason("");}}/><Label htmlFor="no-old-part" className="text-sm">ไม่มีของเดิมส่งคืน</Label></div>
+          {noOldEnabled && <div className="space-y-3 rounded-md bg-muted/30 p-3">
+            {quantityInput("no-old-quantity","จำนวนไม่มีของคืน",noOld,setNoOld,balance.installationOpen)}
+            <div className="space-y-1"><Label className="text-xs text-muted-foreground">เหตุผล {requiredMark}</Label>
+              <div className="flex flex-wrap gap-2"><Button size="sm" variant={noOldReason==="ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม"?"default":"outline"} onClick={()=>setNoOldReason("ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม")}>ติดตั้งใหม่</Button><Button size="sm" variant={noOldReason!=="ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม"?"default":"outline"} onClick={()=>setNoOldReason("")}>สูญหาย / ถูกขโมย</Button></div>
+            </div>
+            {noOldReason!=="ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม" && <><Textarea aria-label="เหตุผลไม่มีของเดิมคืน" placeholder="เหตุที่ของเดิมสูญหายหรือถูกขโมย" value={noOldReason} onChange={e=>setNoOldReason(e.target.value)}/><ReturnPhotoDropzone required={false} photos={sitePhotos} onChange={setSitePhotos} folder="good" label="รูปหน้างาน (ไม่บังคับ)"/></>}
+          </div>}
+        </>)}
+        {oldUsed>0 && sectionCard(<>④ รูปของดีจาก PM <span className="text-xs font-normal text-muted-foreground">(ไม่บังคับ)</span></>,<ReturnPhotoDropzone required={false} photos={usedPhotos} onChange={setUsedPhotos} folder="good" label="รูปของดีจาก PM (ไม่บังคับ)"/>)}
+        {oldDef+numberOf(issuedDefective)>0 && sectionCard(<>{oldUsed>0?"⑤":"④"} ข้อมูลของเสีย {requiredMark}</>,<>
+          <div className="space-y-1"><Label className="text-xs text-muted-foreground">อาการเสีย {requiredMark}</Label><SymptomSelect value={symptomId} onChange={setSymptomId}/></div>
+          <Textarea aria-label="รายละเอียดอาการเสีย" placeholder="รายละเอียดอาการเสียเพิ่มเติม (ถ้ามี)" value={symptomOther} onChange={e=>setSymptomOther(e.target.value)}/>
+          <ReturnPhotoDropzone photos={defPhotos} onChange={setDefPhotos} folder="defective" label="รูปของเสีย (บังคับอย่างน้อย 1 รูป)"/>
+        </>,"danger")}
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm space-y-1"><div className="font-semibold">สรุปส่งให้คลัง</div><div>ของเหลือ {good} · ของเก่าเสีย {oldDef} · SPARE-USED {oldUsed} {item?.unit}</div><div className={balance.installationRemaining>0?"text-destructive font-medium":"text-muted-foreground"}>ไม่มีของเดิมคืน {noOld} · ยังไม่สรุป {Math.max(0,balance.installationRemaining)} {item?.unit}</div></div>
+        <div className="space-y-1"><Label htmlFor="return-notes" className="text-sm">หมายเหตุ (ถ้ามี)</Label><Textarea id="return-notes" value={notes} onChange={e=>setNotes(e.target.value)} rows={2}/></div>
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       </>}
     </div>
