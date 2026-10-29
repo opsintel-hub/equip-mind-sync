@@ -971,11 +971,14 @@ export default function InventoryReport() {
         ฝ่าย: item.department || "-",
         คลังสินค้า: warehouseLabel,
         ตำแหน่งจัดเก็บ: locationLabel,
-        จำนวนคงเหลือ: item.quantity_in_stock,
+        จำนวนคงเหลือ: scopedQty,
         หน่วย: item.unit,
         "Min Stock": item.min_stock_level,
         ราคาต่อหน่วย: item.unit_price,
-        มูลค่ารวม: item.quantity_in_stock * item.unit_price,
+        มูลค่ารวม: scopedQty * item.unit_price,
+        ...(isStorageScoped && scopedQty !== (item.quantity_in_stock || 0)
+          ? { "จำนวนคงเหลือรวมทุกคลัง": item.quantity_in_stock }
+          : {}),
         "สถานะ Stock": status.label,
         "สภาพสินค้า": getConditionLabel(item.item_condition),
         สถานะการเบิก: issueStatusLabel,
