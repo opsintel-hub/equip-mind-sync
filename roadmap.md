@@ -26,3 +26,5 @@
 - [x] Simplify issue returns into two steps separating issued stock and old billboard parts
 - [x] Support PM good used returns with condition-aware atomic warehouse receipt and dedicated used locations; location pickers show SPARE-USED
 - [x] Verify 10 issued / 6 installed / 4 unused / 2 old defective / 3 old used: 34 tests, authenticated desktop/mobile save and complete-document readback; isolated receipt/retry checks rolled back and UI fixture removed
+- [x] Allow the same old part to return as defective 2 and PM-used 3 with no return 1, preserving combined stock limits
+- [x] Verify split old-part returns: 40 tests; authenticated isolated 10/6/4/2/3/1 save and UI readback; test documents removed, real GI-REQ-000207 unchanged

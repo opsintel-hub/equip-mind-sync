@@ -63,3 +63,22 @@ export const twoStepReturnBalance = (issued: number, installed: number, returned
     installationRemaining: installationOpen - oldDefective - oldUsed - noOld,
   };
 };
+
+export interface OldPartOption { id: string; kind: string; quantity: number; serial_number: string | null }
+export interface OldPartRow { asset: string; quantity: string; condition: "used" | "defective" }
+
+export const oldPartRemaining = (option: OldPartOption, rows: OldPartRow[], excludingIndex = -1) =>
+  Math.max(0, option.quantity - rows.reduce((sum, row, index) => index !== excludingIndex && row.asset === `${option.kind}:${option.id}` ? sum + Math.max(0, Number(row.quantity) || 0) : sum, 0));
+
+export const oldPartUnavailable = (option: OldPartOption, condition: OldPartRow["condition"], rows: OldPartRow[], excludingIndex = -1) =>
+  oldPartRemaining(option, rows, excludingIndex) <= 0 || rows.some((row, index) => index !== excludingIndex && row.asset === `${option.kind}:${option.id}` && (row.condition === condition || !!option.serial_number || option.kind === "media_player"));
+
+export const validateOldPartRows = (options: OldPartOption[], rows: OldPartRow[]) => {
+  for (const [index, row] of rows.entries()) {
+    const option = options.find(c => `${c.kind}:${c.id}` === row.asset);
+    if (!option || !Number.isInteger(Number(row.quantity)) || Number(row.quantity) <= 0) return "กรุณาเลือกของเก่าและระบุจำนวนเต็มอย่างน้อย 1";
+    if (oldPartUnavailable(option, row.condition, rows, index)) return "ของเก่ารหัสเดียวกันต้องแยกคนละสภาพ และรายการมี S/N ห้ามแบ่งคืน";
+    if (Number(row.quantity) > oldPartRemaining(option, rows, index)) return "จำนวนของเก่ารวมทุกสภาพเกินยอดอุปกรณ์ที่ป้าย";
+  }
+  return null;
+};
