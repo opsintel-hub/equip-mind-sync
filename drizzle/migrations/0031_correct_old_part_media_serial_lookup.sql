@@ -1,0 +1,1 @@
+DO $$ DECLARE d text; BEGIN SELECT pg_get_functiondef('public.issue_old_part_candidates(uuid)'::regprocedure) INTO d; d:=replace(d,'''serial_number'',m.serial_number','''serial_number'',concat_ws(E''\n'',m.serial_number_1,m.serial_number_2)'); EXECUTE d; END; $$;

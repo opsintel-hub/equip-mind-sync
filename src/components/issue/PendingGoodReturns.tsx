@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { WarehouseLocationSelect } from "@/components/location/WarehouseLocationSelect";
-import { logStockMovement } from "@/lib/stockMovement";
 import { useAuth } from "@/hooks/useAuth";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 import { toast } from "sonner";
@@ -76,6 +75,7 @@ export function PendingGoodReturns() {
         : { data: null, error: null };
       if (locationError) throw locationError;
       if (request !== defaultRequest.current) return;
+      if (r.item_condition === "used") return;
       const next = receiptStorageDefault(item?.department, location, allowedDepartments.map(d => d.name));
       setDepartment(next.department);
       setWarehouseId(next.warehouseId);
@@ -92,55 +92,8 @@ export function PendingGoodReturns() {
     setSaving(true);
     try {
       const qty = Number(target.quantity);
-      if (target.media_player_id) {
-        const { data: mp } = await supabase.from("media_players").select("code, name, quantity").eq("id", target.media_player_id).maybeSingle();
-        const before = mp?.quantity || 0;
-        const { error } = await supabase
-          .from("media_players")
-          .update({ quantity: 1, status: "active", billboard_id: null, location_id: locationId })
-          .eq("id", target.media_player_id);
-        if (error) throw error;
-        await logStockMovement({
-          equipment_id: target.media_player_id,
-          equipment_code: mp?.code || target.equipment_code || "",
-          equipment_name: mp?.name || target.equipment_name || "",
-          movement_type: "receive",
-          quantity: qty,
-          stock_before: before,
-          stock_after: 1,
-          reference_type: "route_return",
-          reference_document: target.document_no,
-          location_id: locationId,
-          notes: target.notes || "คืนของดีจากหน้างาน (คลังรับเข้า)",
-          item_condition: "good",
-        });
-      } else if (target.equipment_id) {
-        const { data: eq } = await supabase.from("equipment").select("quantity_in_stock").eq("id", target.equipment_id).maybeSingle();
-        const before = eq?.quantity_in_stock || 0;
-        const after = before + qty;
-        const { error } = await supabase.from("equipment").update({ quantity_in_stock: after }).eq("id", target.equipment_id);
-        if (error) throw error;
-        await logStockMovement({
-          equipment_id: target.equipment_id,
-          equipment_code: target.equipment_code || "",
-          equipment_name: target.equipment_name || "",
-          movement_type: "receive",
-          quantity: qty,
-          stock_before: before,
-          stock_after: after,
-          reference_type: "route_return",
-          reference_document: target.document_no,
-          location_id: locationId,
-          notes: target.notes || "คืนของดีจากหน้างาน (คลังรับเข้า)",
-          item_condition: "good",
-        });
-      }
-      const { error: uErr } = await supabase
-        .from("issue_good_returns")
-        .update({ status: "received", received_by: user?.id, received_at: new Date().toISOString(), warehouse_id: warehouseId || null, location_id: locationId })
-        .eq("id", target.id);
-      if (uErr) throw uErr;
-      await supabase.from("goods_issue_pending_items").update({ return_location_id: locationId } as any).eq("id", target.pending_item_id);
+      const { error } = await supabase.rpc("receive_issue_good_return_v2", { _return_id: target.id, _location_id: locationId });
+      if (error) throw error;
       toast.success(`รับของดี ${qty} เข้าคลังแล้ว`);
       setTarget(null);
       qc.invalidateQueries({ queryKey: ["issue-good-returns-pending"] });
@@ -181,6 +134,7 @@ export function PendingGoodReturns() {
                   <TableCell className="font-medium">{r.document_no}</TableCell>
                   <TableCell>
                     {r.equipment_code} {r.equipment_name}
+                    {r.item_condition === "used" && <Badge variant="outline" className="ml-2 text-primary">SPARE-USED · ใช้งานแล้ว</Badge>}
                     {Array.isArray((r as any).photos) && (r as any).photos.length > 0 && (
                       <div className="flex gap-1 mt-1">
                         {(r as any).photos.map((u: string) => (
@@ -212,12 +166,13 @@ export function PendingGoodReturns() {
       <Dialog open={!!target} onOpenChange={(v) => { if (!v) { ++defaultRequest.current; setTarget(null); } }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>รับของดีเข้าคลัง</DialogTitle>
+            <DialogTitle>{target?.item_condition === "used" ? "รับ SPARE-USED เข้าคลัง" : "รับของเหลือเข้าคลัง"}</DialogTitle>
             <DialogDescription>
               {target?.document_no} · {target?.equipment_code} {target?.equipment_name} · {target?.quantity} {target?.unit}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            {target?.item_condition === "used" && <Badge variant="outline" className="text-primary">ใช้งานแล้ว · เก็บช่อง SPARE-USED หรือช่องว่างแยกจากของใหม่</Badge>}
             <div className="space-y-2">
               <Label>ฝ่าย</Label>
               <SimpleDepartmentSelect disabled={loadingDefault || saving} value={department} onChange={(v) => { setDepartment(v); setWarehouseId(""); setLocationId(""); }} />

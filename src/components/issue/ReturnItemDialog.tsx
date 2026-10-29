@@ -1,21 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { RefreshCw, PackageCheck, AlertTriangle, MapPin, Plus, Trash2, Wrench } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, PackageCheck, Plus, Trash2 } from "lucide-react";
 import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { formatBillboardLabel } from "@/lib/billboardUtils";
 import { ReturnPhotoDropzone } from "./ReturnPhotoDropzone";
-import { balanceIssueReturn, lostReplacementCap, returnableAfterLost, validateDefectiveAllocations, type DefectiveAllocation, type ReturnBillboard } from "@/lib/issueReturnForm";
-import { issuedDefectiveReturned, returnOutstanding } from "@/lib/issueQuantities";
+import { issuedDefectiveReturned, lineInstalled } from "@/lib/issueQuantities";
+import { twoStepReturnBalance } from "@/lib/issueReturnForm";
 
+interface OldPart { id: string; kind: "equipment" | "media_player"; billboard_id: string; billboard_label: string; code: string; name: string; serial_number: string | null; quantity: number }
+interface OldRow { key: string; asset: string; quantity: string; condition: "used" | "defective" }
+const numberOf = (v: string) => Math.max(0, Number(v) || 0);
 export interface ReturnItemLine {
   id: string;
   pending_id: string;
@@ -36,6 +38,7 @@ export interface ReturnItemLine {
   written_off_qty?: number | null;
   lost_replacement_qty?: number | null;
   transferred_qty?: number | null;
+  installation_return_settled_qty?: number | null;
   notes: string | null;
 }
 
@@ -52,356 +55,134 @@ interface Props {
   independentOfInstall?: boolean;
 }
 
-export function ReturnItemDialog({
-  open,
-  onOpenChange,
-  documentNo,
-  pendingId,
-  requesterName,
-  requesterDepartment,
-  item,
-  onSaved,
-  independentOfInstall = false,
-}: Props) {
+export function ReturnItemDialog({ open, onOpenChange, documentNo, item, onSaved, independentOfInstall = false }: Props) {
+  const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
-
-  const [goodQty, setGoodQty] = useState("0");
-
-  const [defectiveQty, setDefectiveQty] = useState("0");
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [installed, setInstalled] = useState("0");
+  const [good, setGood] = useState("0");
+  const [issuedDefective, setIssuedDefective] = useState("0");
+  const [showIssuedDefective, setShowIssuedDefective] = useState(false);
+  const [candidates, setCandidates] = useState<OldPart[]>([]);
+  const [rows, setRows] = useState<OldRow[]>([]);
+  const [noOldEnabled, setNoOldEnabled] = useState(false);
+  const [noOld, setNoOld] = useState("0");
+  const [noOldReason, setNoOldReason] = useState("");
+  const [notes, setNotes] = useState("");
   const [symptomId, setSymptomId] = useState("");
   const [symptomOther, setSymptomOther] = useState("");
-  const [allocations, setAllocations] = useState<DefectiveAllocation[]>([]);
-  const [loadingBillboards, setLoadingBillboards] = useState(false);
-  const [billboardLoadError, setBillboardLoadError] = useState(false);
-  const [docBillboards, setDocBillboards] = useState<ReturnBillboard[]>([]);
-  const [notes, setNotes] = useState("");
   const [goodPhotos, setGoodPhotos] = useState<string[]>([]);
   const [defPhotos, setDefPhotos] = useState<string[]>([]);
-  const [lostQty, setLostQty] = useState("0");
-  const [lostReason, setLostReason] = useState("");
-  const [lostPhotos, setLostPhotos] = useState<string[]>([]);
-
-  const isMP = !!(item?.media_player_id || item?.is_media_player);
-  const issuedQty = item ? item.issued_quantity ?? item.quantity : 0;
-  // Old parts returned during a Swap are not units of the newly issued stock.
-  const alreadyReturned = (item?.returned_good_qty || 0) + (item ? issuedDefectiveReturned(item) : 0);
-  const installedQty = item ? (item.installed_qty != null ? Number(item.installed_qty) : item.billboard_id ? issuedQty : 0) : 0;
-  const outstanding = item ? returnOutstanding(item, independentOfInstall) : 0;
-  const lostCap = isMP ? 0 : lostReplacementCap(outstanding, installedQty, Number(item?.lost_replacement_qty || 0), independentOfInstall);
-  const lost = Math.min(lostCap, Math.max(0, parseInt(lostQty || "0") || 0));
-  const returnable = returnableAfterLost(outstanding, lost);
+  const [usedPhotos, setUsedPhotos] = useState<string[]>([]);
+  const [sitePhotos, setSitePhotos] = useState<string[]>([]);
+  const [submissionKey, setSubmissionKey] = useState("");
+  const issued = Number(item?.issued_quantity ?? item?.quantity ?? 0);
+  const priorInstalled = item ? lineInstalled(item) : 0;
+  const returned = Number(item?.returned_good_qty || 0) + (item ? issuedDefectiveReturned(item) : 0);
+  const otherClosed = Math.max(0, Number(item?.written_off_qty || 0) - Number(item?.lost_replacement_qty || 0)) + Number(item?.transferred_qty || 0);
+  const settled = Math.max(Number(item?.installation_return_settled_qty || 0), Number(item?.swap_returned_defective_qty || 0)) + Number(item?.lost_replacement_qty || 0);
+  const oldDef = rows.filter(r => r.condition === "defective").reduce((sum,r) => sum + numberOf(r.quantity),0);
+  const oldUsed = rows.filter(r => r.condition === "used").reduce((sum,r) => sum + numberOf(r.quantity),0);
+  const balance = twoStepReturnBalance(issued, numberOf(installed), returned, otherClosed, numberOf(good), numberOf(issuedDefective), oldDef, oldUsed, numberOf(noOld), settled);
+  const legacyEditable = item?.installed_qty == null && !item?.media_player_id && !item?.is_media_player && !item?.serial_number;
 
   useEffect(() => {
     if (!open || !item) return;
-    setGoodQty(String(outstanding));
-    setDefectiveQty("0");
-    setSymptomId("");
-    setSymptomOther("");
-    setNotes("");
-    setGoodPhotos([]);
-    setDefPhotos([]);
-    setLostQty("0");
-    setLostReason("");
-    setLostPhotos([]);
-    setAllocations([]);
-    setLoadingBillboards(true);
-    setBillboardLoadError(false);
-    setDocBillboards([]);
-
     let cancelled = false;
-    // Only assignments belonging to this issue item/document are return choices.
-    (async () => {
-      const { data, error: loadError } = await supabase.rpc("issue_return_billboards", { _item_id: item.id });
+    setStep(1); setInstalled(String(priorInstalled));
+    setGood(String(Math.max(0, issued - priorInstalled - returned - otherClosed)));
+    setIssuedDefective("0"); setShowIssuedDefective(false); setRows([]); setCandidates([]);
+    setNoOldEnabled(false); setNoOld("0"); setNoOldReason(""); setNotes(""); setSymptomId(""); setSymptomOther("");
+    setGoodPhotos([]); setDefPhotos([]); setUsedPhotos([]); setSitePhotos([]); setSubmissionKey(crypto.randomUUID());
+    setLoading(true); setLoadError("");
+    supabase.rpc("issue_old_part_candidates", { _item_id: item.id }).then(({data,error}) => {
       if (cancelled) return;
-      setLoadingBillboards(false);
-      if (loadError) {
-        setBillboardLoadError(true);
-        toast.error("โหลดป้ายของใบเบิกไม่สำเร็จ");
-        return;
-      }
-      const list: ReturnBillboard[] = (data || []).map((b) => ({
-        id: b.id,
-        label: formatBillboardLabel(b.old_code, b.location_name, b.equipment_code),
-        qty: Number(b.qty),
-      }));
-      setDocBillboards(list);
-      setAllocations(list.length === 1 ? [{ billboardId: list[0].id, quantity: "0" }] : []);
-    })();
+      setLoading(false);
+      if (error) setLoadError("โหลดอุปกรณ์ที่ป้ายไม่สำเร็จ: " + error.message);
+      else setCandidates(Array.isArray(data) ? data as unknown as OldPart[] : []);
+    });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, item?.id]);
+  }, [open,item?.id]);
 
-  // Good + defective (from issued qty) can never exceed what is still outstanding
-  const good = Math.min(returnable, Math.max(0, parseInt(goodQty || "0") || 0));
-  const defective = Math.min(returnable - good, Math.max(0, parseInt(defectiveQty || "0") || 0));
-
-  useEffect(() => {
-    if (docBillboards.length !== 1) return;
-    setAllocations([{ billboardId: docBillboards[0].id, quantity: String(defective) }]);
-  }, [defective, docBillboards]);
-
-  const error = useMemo(() => {
-    if (!item) return "ไม่พบรายการ";
-    if (loadingBillboards) return "กำลังโหลดป้ายของใบเบิก...";
-    if (billboardLoadError) return "โหลดป้ายไม่สำเร็จ กรุณาปิดแล้วเปิดหน้าต่างใหม่";
-    if (good + defective + lost === 0) return "กรุณาระบุจำนวนที่ส่งคืนหรือติดตั้งทดแทนอย่างน้อย 1";
-    if (lost > 0 && !lostReason.trim()) return "กรุณาระบุเหตุที่ของเดิมสูญหาย/ถูกขโมย";
-    if (lost > 0 && lostPhotos.length < 1) return "กรุณาแนบรูปหน้างานที่ติดตั้งทดแทนอย่างน้อย 1 รูป";
-    const allocationError = validateDefectiveAllocations(docBillboards, allocations, defective);
-    if (allocationError) return allocationError;
-    if ((defective > 0) && !symptomId && !symptomOther.trim())
-      return "กรุณาระบุอาการเสีย";
-    if (good > 0 && goodPhotos.length < 1) return "กรุณาแนบรูปของดีอย่างน้อย 1 รูป";
-    if ((defective > 0) && defPhotos.length < 1) return "กรุณาแนบรูปของเสียอย่างน้อย 1 รูป";
-    return null;
-  }, [item, good, defective, symptomId, symptomOther, allocations, docBillboards, goodPhotos, defPhotos, loadingBillboards, billboardLoadError, lost, lostReason, lostPhotos]);
+  const stepOneError = numberOf(installed) > priorInstalled || numberOf(installed) < settled
+    ? "จำนวนใช้จริงไม่ตรงกับประวัติที่บันทึกแล้ว"
+    : balance.unusedRemaining < 0 ? "จำนวนคืนเกินของที่เหลือจากใบเบิก"
+    : [installed,good,issuedDefective].some(v => !Number.isInteger(Number(v)) || Number(v) < 0) ? "กรุณาระบุจำนวนเต็มตั้งแต่ 0 ขึ้นไป" : null;
+  const rowError = rows.some(r => {
+    const asset = candidates.find(c => c.kind + ":" + c.id === r.asset);
+    return !asset || !Number.isInteger(Number(r.quantity)) || numberOf(r.quantity) <= 0 || numberOf(r.quantity) > asset.quantity;
+  }) ? "กรุณาเลือกของเก่าและจำนวนให้ตรงกับอุปกรณ์ที่ป้าย" : null;
+  const error = stepOneError || loadError || (loading ? "กำลังโหลดอุปกรณ์ที่ป้าย…" : null) || rowError
+    || (balance.installationRemaining < 0 ? "ยอดของเก่ารวมกับไม่มีของคืนเกินยอดใช้จริง" : null)
+    || (independentOfInstall && balance.installationRemaining !== 0 ? `ยังไม่ได้สรุปของเดิมอีก ${balance.installationRemaining} ${item?.unit}` : null)
+    || (numberOf(noOld)>0 && !noOldReason.trim() ? "กรุณาระบุเหตุผลที่ไม่มีของเดิมคืน" : null)
+    || (numberOf(noOld)>0 && noOldReason !== "ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม" && sitePhotos.length===0 ? "กรุณาแนบรูปหน้างาน" : null)
+    || (numberOf(good)>0 && goodPhotos.length===0 ? "กรุณาแนบรูปของเหลือคืนคลัง" : null)
+    || (oldUsed>0 && usedPhotos.length===0 ? "กรุณาแนบรูปของดีที่ถอดจาก PM" : null)
+    || (oldDef+numberOf(issuedDefective)>0 && !symptomId && !symptomOther.trim() ? "กรุณาระบุอาการเสีย" : null)
+    || (oldDef+numberOf(issuedDefective)>0 && defPhotos.length===0 ? "กรุณาแนบรูปของเสีย" : null)
+    || (numberOf(good)+numberOf(issuedDefective)+oldDef+oldUsed+numberOf(noOld)===0 ? "ยังไม่มีรายการส่งคืนหรือสรุปงาน" : null);
 
   const handleSave = async () => {
-    if (!item || error) {
-      if (error) toast.error(error);
-      return;
-    }
+    if (!item || error || saving) return;
     setSaving(true);
     try {
-      if (lost > 0) {
-        const { error: lostError } = await supabase.rpc("record_lost_replacement", {
-          _item_id: item.id, _quantity: lost, _reason: lostReason.trim(), _photos: lostPhotos,
-        });
-        if (lostError) throw lostError;
-      }
-      if (good + defective === 0) {
-        toast.success(`บันทึกติดตั้งทดแทน ${lost} ${item.unit} แล้ว (ไม่มีของเดิมส่งคืน)`);
-        onSaved();
-        onOpenChange(false);
-        return;
-      }
-      const { error: saveError } = await supabase.rpc("submit_issue_return", {
-        _item_id: item.id,
-        _good: good,
-        _defective: defective,
-        _allocations: defective > 0 && docBillboards.length > 0
-          ? allocations.map((a) => ({ billboard_id: a.billboardId, quantity: Number(a.quantity) })) : [],
-        _symptom_id: symptomId || null,
-        _symptom_other: symptomOther.trim(),
-        _notes: notes.trim(),
-        _good_photos: goodPhotos,
-        _defective_photos: defPhotos,
+      const {error:saveError} = await supabase.rpc("submit_issue_return_v2", {
+        _item_id:item.id, _installed:numberOf(installed), _good:numberOf(good), _issued_defective:numberOf(issuedDefective),
+        _old_parts:rows.map(r => { const asset = candidates.find(c=>c.kind+":"+c.id===r.asset); return {id:asset?.id,kind:asset?.kind,quantity:numberOf(r.quantity),condition:r.condition}; }),
+        _no_old:numberOf(noOld), _no_old_reason:noOldReason.trim(), _notes:notes.trim(), _good_photos:goodPhotos,
+        _defective_photos:defPhotos, _used_photos:usedPhotos, _site_photos:sitePhotos,
+        _symptom_id:symptomId || null, _symptom_other:symptomOther.trim(), _submission_key:submissionKey,
       });
       if (saveError) throw saveError;
-
-      toast.success(
-        `บันทึกการส่งคืนสำเร็จ — ${lost > 0 ? `ติดตั้งทดแทน ${lost}, ` : ""}${good > 0 ? `ของดี ${good} ส่งให้คลังแล้ว` : ""}${defective > 0 ? `, ของเสีย ${defective} รอคลังกดรับเข้า` : ""}`,
-      );
-      onSaved();
-      onOpenChange(false);
-    } catch (e: any) {
-      toast.error("เกิดข้อผิดพลาด: " + e.message);
-    } finally {
-      setSaving(false);
-    }
+      toast.success("บันทึกการส่งคืนแล้ว รอคลังรับสินค้า"); onSaved(); onOpenChange(false);
+    } catch(e:unknown) { toast.error(e instanceof Error ? e.message : "บันทึกไม่สำเร็จ กรุณาลองใหม่"); }
+    finally { setSaving(false); }
   };
+  const quantityInput = (id:string, label:string, value:string, change:(v:string)=>void, max:number, disabled=false) => <div className="flex items-center justify-between gap-3 py-3"><Label htmlFor={id} className="leading-relaxed">{label}</Label><div className="flex shrink-0 items-center gap-2"><Input id={id} type="number" min={0} max={max} value={value} disabled={disabled} className="w-24 text-right" onChange={e=>change(e.target.value)} onWheel={e=>e.currentTarget.blur()} /><span className="text-xs text-muted-foreground">{item?.unit}</span></div></div>;
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <RefreshCw className="w-5 h-5" />
-            ส่งคืนสินค้า (แยกของดี / ของเสีย)
-          </DialogTitle>
-          <DialogDescription>
-            เอกสาร {documentNo} · {item?.equipment_code} {item?.equipment_name}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-3 rounded-lg bg-muted/50 text-sm">
-            <div>
-              <div className="text-muted-foreground text-xs">เบิก</div>
-              <div className="font-semibold">{issuedQty} {item?.unit}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground text-xs">ติดตั้งแล้ว</div>
-              <div className="font-semibold text-blue-600">{installedQty}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground text-xs">คืนแล้ว</div>
-              <div className="font-semibold text-green-600">{alreadyReturned}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground text-xs">ค้าง</div>
-              <div className="font-semibold text-orange-600">{outstanding}</div>
-            </div>
-          </div>
-
-          {item?.serial_number && (
-            <Badge variant="outline" className="font-mono text-xs whitespace-pre-line">S/N: {item.serial_number}</Badge>
-          )}
-
-          {lostCap > 0 && (
-            <div className="rounded-lg border p-3 space-y-3">
-              <div className="flex items-center gap-2 font-medium text-primary">
-                <Wrench className="w-4 h-4" /> ติดตั้งทดแทน — ของเดิมสูญหาย/ถูกขโมย (ไม่มีของคืน)
-              </div>
-              <div className="space-y-2">
-                <Label>จำนวนที่ใช้ติดตั้งทดแทน (สูงสุด {lostCap} {item?.unit})</Label>
-                <Input
-                  type="number" min={0} max={lostCap} value={lostQty}
-                  onChange={(e) => {
-                    const v = Math.min(lostCap, Math.max(0, parseInt(e.target.value || "0", 10) || 0));
-                    setLostQty(String(v));
-                    const rest = returnableAfterLost(outstanding, v);
-                    const g = Math.min(rest, Math.max(0, parseInt(goodQty || "0") || 0));
-                    setGoodQty(String(g));
-                    setDefectiveQty(String(rest - g));
-                  }}
-                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
-                />
-              </div>
-              {lost > 0 && (
-                <>
-                  <Textarea placeholder="เช่น สายเดิมถูกขโมย ติดตั้งสายใหม่แทน" value={lostReason}
-                    onChange={(e) => setLostReason(e.target.value)} rows={2} />
-                  <ReturnPhotoDropzone photos={lostPhotos} onChange={setLostPhotos} folder="good" label="รูปหน้างานหลังติดตั้ง" />
-                </>
-              )}
-              <p className="text-xs text-muted-foreground">ใช้เฉพาะยอดที่ติดตั้งกับป้ายจริงแต่ไม่มีของเดิมส่งคืน ระบบปิดยอดนี้โดยไม่เพิ่มสต็อกและไม่สร้างของเสีย พร้อมบันทึกผู้ทำและเวลา</p>
-            </div>
-          )}
-
-          {/* GOOD */}
-          <div className="rounded-lg border p-3 space-y-3">
-            <div className="flex items-center gap-2 font-medium text-green-700">
-              <PackageCheck className="w-4 h-4" /> คืนของดี (รอคลังกดรับเข้า)
-            </div>
-            <div className="space-y-2">
-              <Label>จำนวน</Label>
-              <Input
-                type="number"
-                min={0}
-                max={returnable}
-                value={goodQty}
-                onChange={(e) => {
-                  const balance = balanceIssueReturn(returnable, e.target.value);
-                  setGoodQty(String(balance.selected));
-                  setDefectiveQty(String(balance.remaining));
-                }}
-                onWheel={(e) => (e.target as HTMLInputElement).blur()}
-              />
-            </div>
-            {good > 0 && (
-              <ReturnPhotoDropzone photos={goodPhotos} onChange={setGoodPhotos} folder="good" label="รูปของดี" />
-            )}
-            <p className="text-xs text-muted-foreground">ของดีจะถูกส่งให้เจ้าหน้าที่คลังเลือกคลังและตำแหน่งจัดเก็บ ก่อนเข้าสต็อก</p>
-          </div>
-
-          {/* DEFECTIVE */}
-          <div className="rounded-lg border p-3 space-y-3">
-            <div className="flex items-center gap-2 font-medium text-destructive">
-              <AlertTriangle className="w-4 h-4" /> คืนของเสีย (รอคลังกดรับเข้า)
-            </div>
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label>จำนวน (จากยอดเบิก)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={returnable}
-                  value={defectiveQty}
-                  onChange={(e) => {
-                    const balance = balanceIssueReturn(returnable, e.target.value);
-                    setDefectiveQty(String(balance.selected));
-                    setGoodQty(String(balance.remaining));
-                  }}
-                  onWheel={(e) => (e.target as HTMLInputElement).blur()}
-                />
-              </div>
-            </div>
-
-            {(defective > 0) && (
-              <>
-                <Separator />
-                <ReturnPhotoDropzone photos={defPhotos} onChange={setDefPhotos} folder="defective" label="รูปของเสีย" />
-                <div className="space-y-2">
-                  <Label>อาการเสีย {isMP && <span className="text-destructive">*</span>}</Label>
-                  <SymptomSelect value={symptomId} onChange={setSymptomId} />
-                  <Textarea
-                    placeholder="รายละเอียดอาการเพิ่มเติม..."
-                    value={symptomOther}
-                    onChange={(e) => setSymptomOther(e.target.value)}
-                    rows={2}
-                  />
-                </div>
-                {docBillboards.length > 0 && (
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5" /> ป้ายที่ระบุไว้ในใบเบิก
-                    </Label>
-                    <div className="space-y-2">
-                      {allocations.map((allocation, index) => {
-                        const selected = docBillboards.find((b) => b.id === allocation.billboardId);
-                        return (
-                          <div key={index} className="grid grid-cols-[minmax(0,1fr)_5rem_2rem] items-start gap-2">
-                            <div className="min-w-0 space-y-1">
-                              <SearchableSelect
-                                value={allocation.billboardId}
-                                placeholder="เลือกป้ายจากใบเบิก"
-                                searchPlaceholder="ค้นหาป้าย..."
-                                options={docBillboards.map((b) => ({
-                                  value: b.id, label: b.label,
-                                  description: `ติดตั้งคงเหลือ ${b.qty} ${item?.unit || ""}`,
-                                  disabled: allocations.some((a, i) => i !== index && a.billboardId === b.id),
-                                }))}
-                                onValueChange={(value) => setAllocations((rows) => rows.map((a, i) => i === index ? { ...a, billboardId: value } : a))}
-                              />
-                              {selected && <p className="text-xs text-muted-foreground">ติดตั้งคงเหลือ {selected.qty} {item?.unit}</p>}
-                            </div>
-                            <Input
-                              type="number" min={1} max={selected?.qty || 0} step={1}
-                              aria-label={`จำนวนของเสียป้าย ${index + 1}`}
-                              value={allocation.quantity}
-                              onChange={(e) => setAllocations((rows) => rows.map((a, i) => i === index ? { ...a, quantity: e.target.value } : a))}
-                              onWheel={(e) => e.currentTarget.blur()}
-                            />
-                            <Button type="button" size="icon" variant="ghost" className="h-9 w-8"
-                              disabled={docBillboards.length === 1}
-                              title="ลบแถวป้าย" aria-label={`ลบแถวป้าย ${index + 1}`}
-                              onClick={() => setAllocations((rows) => rows.filter((_, i) => i !== index))}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        );
-                      })}
-                      {docBillboards.length > 1 && (
-                        <Button type="button" variant="outline" size="sm"
-                          disabled={allocations.length >= docBillboards.length}
-                          onClick={() => setAllocations((rows) => [...rows, { billboardId: "", quantity: "1" }])}>
-                          <Plus className="mr-1 h-4 w-4" /> เพิ่มป้าย
-                        </Button>
-                      )}
-                      <p className="text-sm">ยอดแยกป้าย {allocations.reduce((sum, a) => sum + (Number(a.quantity) || 0), 0)} / ของเสีย {defective} {item?.unit}</p>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label>หมายเหตุ</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
-          </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
+  return <Dialog open={open} onOpenChange={v=>{if(!saving)onOpenChange(v);}}><DialogContent className="max-w-2xl max-h-[90dvh] flex flex-col overflow-hidden p-0">
+    <DialogHeader className="px-5 pt-5 shrink-0"><DialogTitle className="flex items-center gap-2"><PackageCheck className="h-5 w-5 text-primary"/>ส่งคืนสินค้า</DialogTitle><DialogDescription>{documentNo} · {item?.equipment_code} {item?.equipment_name}</DialogDescription></DialogHeader>
+    <div className="grid grid-cols-2 gap-2 px-5 text-sm shrink-0">
+      {["ของที่เบิกไป","ของเก่าจากป้าย"].map((label,i)=><div key={label} className={`flex items-center gap-2 border-b-2 py-2 ${step===i+1?"border-primary text-primary":"border-border text-muted-foreground"}`}><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs">{step>i+1?<Check className="h-3 w-3"/>:i+1}</span>{label}</div>)}
+    </div>
+    <div className="overflow-y-auto min-h-0 px-5 py-4 space-y-4">
+      {item?.serial_number && <Badge variant="outline" className="whitespace-pre-line">S/N: {item.serial_number}</Badge>}
+      {step===1 ? <>
+        <div className="flex flex-wrap justify-between gap-2 bg-muted/50 rounded-md p-3 text-sm"><span>เบิกทั้งหมด <strong>{issued} {item?.unit}</strong></span><span className="text-muted-foreground">คืนก่อนหน้า {returned} {item?.unit}</span></div>
+        <div className="divide-y">
+          {quantityInput("installed-actual",legacyEditable?"ใช้จริงที่ป้าย":"ใช้จริงที่ป้าย (บันทึกแล้ว)",installed,v=>{setInstalled(v);setGood(String(Math.max(0,issued-numberOf(v)-returned-otherClosed-numberOf(issuedDefective))));},priorInstalled,!legacyEditable)}
+          {legacyEditable && <Badge variant="outline" className="my-2 text-warning">ยอดเดิมอนุมานจากการระบุป้าย · ยืนยันจำนวนใช้จริง</Badge>}
+          {quantityInput("unused-good","ของเหลือคืนคลัง",good,setGood,balance.unused)}
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>ยกเลิก</Button>
-          <Button onClick={handleSave} disabled={saving || !!error}>
-            {saving ? "กำลังบันทึก..." : "บันทึกการส่งคืน"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+        <div className="flex items-center gap-2"><Checkbox id="issued-damaged" checked={showIssuedDefective} onCheckedChange={v=>{setShowIssuedDefective(v===true);if(!v)setIssuedDefective("0");}}/><Label htmlFor="issued-damaged">ของที่เบิกเสียก่อนใช้</Label></div>
+        {showIssuedDefective && quantityInput("issued-defective","จำนวนเสียจากยอดเบิก",issuedDefective,setIssuedDefective,balance.unused)}
+        {numberOf(good)>0 && <ReturnPhotoDropzone photos={goodPhotos} onChange={setGoodPhotos} folder="good" label="รูปของเหลือคืนคลัง"/>}
+        <div className={`rounded-md p-3 text-sm ${balance.unusedRemaining<0?"bg-destructive/10 text-destructive":"bg-muted text-foreground"}`}>ใช้จริง {installed} + คืนครั้งนี้ {numberOf(good)+numberOf(issuedDefective)} + คืนก่อนหน้า {returned}{otherClosed>0?` + ปิดยอดอื่น ${otherClosed}`:""} / เบิก {issued}<div className="mt-1 font-medium">เหลือถือไปใช้งาน {Math.max(0,balance.unusedRemaining)} {item?.unit}</div></div>
+        {stepOneError && <p role="alert" className="text-sm text-destructive">{stepOneError}</p>}
+      </> : <>
+        <div className="flex flex-wrap justify-between gap-2 text-sm bg-muted/50 rounded-md p-3"><span>ใช้จริง <strong>{installed} {item?.unit}</strong></span><span>สรุปของเดิมแล้ว {settled} {item?.unit}</span></div>
+        <h3 className="font-medium">มีของเก่าถอดกลับจากป้ายไหม?</h3>
+        {rows.map((row,index)=><div key={row.key} className="border-b pb-4 space-y-2">
+          <div className="flex items-center justify-between gap-2"><span className="text-sm font-medium">ของเก่ารายการ {index+1}</span><Button size="icon" variant="ghost" title="ลบรายการ" aria-label={`ลบของเก่ารายการ ${index+1}`} onClick={()=>setRows(rs=>rs.filter(r=>r.key!==row.key))}><Trash2 className="h-4 w-4"/></Button></div>
+          <SearchableSelect value={row.asset} placeholder="เลือกอุปกรณ์เดิมที่ป้าย" searchPlaceholder="ค้นหารหัส / ชื่อ / S/N" options={candidates.map(c=>({value:c.kind+":"+c.id,label:`${c.billboard_label} · ${c.code} ${c.name}`,description:`${c.serial_number?"S/N: "+c.serial_number+" · ":""}มี ${c.quantity} ${item?.unit}`,disabled:rows.some(r=>r.key!==row.key&&r.asset===c.kind+":"+c.id)}))} onValueChange={v=>setRows(rs=>rs.map(r=>r.key===row.key?{...r,asset:v}:r))}/>
+          <div className="flex flex-wrap gap-2"><Button size="sm" variant={row.condition==="defective"?"default":"outline"} onClick={()=>setRows(rs=>rs.map(r=>r.key===row.key?{...r,condition:"defective"}:r))}>เสียจากการใช้งาน</Button><Button size="sm" variant={row.condition==="used"?"default":"outline"} onClick={()=>setRows(rs=>rs.map(r=>r.key===row.key?{...r,condition:"used"}:r))}>PM · ยังใช้งานได้</Button></div>
+          {quantityInput(`old-quantity-${index}`,"จำนวนถอดกลับ",row.quantity,v=>setRows(rs=>rs.map(r=>r.key===row.key?{...r,quantity:v}:r)),candidates.find(c=>c.kind+":"+c.id===row.asset)?.quantity || 0)}
+          {row.condition==="used" && <Badge variant="outline" className="text-primary">SPARE-USED · ใช้งานแล้ว</Badge>}
+        </div>)}
+        <Button variant="outline" size="sm" disabled={loading||candidates.length<=rows.length} onClick={()=>setRows(rs=>[...rs,{key:crypto.randomUUID(),asset:candidates.length===1?candidates[0].kind+":"+candidates[0].id:"",quantity:"1",condition:"defective"}])}><Plus className="mr-1 h-4 w-4"/>เพิ่มของเก่าถอดกลับ</Button>
+        {!loading && candidates.length===0 && <p className="text-sm text-muted-foreground">ไม่พบอุปกรณ์เดิมที่ยังติดตั้งอยู่ในป้ายของใบเบิกนี้</p>}
+        {balance.installationOpen>0 && <><div className="flex items-center gap-2"><Checkbox id="no-old-part" checked={noOldEnabled} onCheckedChange={v=>{setNoOldEnabled(v===true);setNoOld(v?String(Math.max(0,balance.installationRemaining)):"0");if(!v)setNoOldReason("");}}/><Label htmlFor="no-old-part">ไม่มีของเดิมส่งคืน</Label></div>
+          {noOldEnabled && <div className="space-y-2 border-l-2 border-border pl-3">{quantityInput("no-old-quantity","จำนวนไม่มีของคืน",noOld,setNoOld,balance.installationOpen)}<div className="flex flex-wrap gap-2"><Button size="sm" variant={noOldReason==="ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม"?"default":"outline"} onClick={()=>setNoOldReason("ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม")}>ติดตั้งใหม่</Button><Button size="sm" variant={noOldReason!=="ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม"?"default":"outline"} onClick={()=>setNoOldReason("")}>สูญหาย / ถูกขโมย</Button></div>{noOldReason!=="ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม" && <><Textarea aria-label="เหตุผลไม่มีของเดิมคืน" placeholder="เหตุที่ของเดิมสูญหายหรือถูกขโมย" value={noOldReason} onChange={e=>setNoOldReason(e.target.value)}/><ReturnPhotoDropzone photos={sitePhotos} onChange={setSitePhotos} folder="good" label="รูปหน้างานหลังติดตั้ง"/></>}</div>}</>}
+        {oldUsed>0 && <ReturnPhotoDropzone photos={usedPhotos} onChange={setUsedPhotos} folder="good" label="รูปของดีจาก PM (SPARE-USED)"/>}
+        {oldDef+numberOf(issuedDefective)>0 && <div className="space-y-2"><Label>อาการเสีย</Label><SymptomSelect value={symptomId} onChange={setSymptomId}/><Textarea aria-label="รายละเอียดอาการเสีย" placeholder="รายละเอียดอาการเสีย" value={symptomOther} onChange={e=>setSymptomOther(e.target.value)}/><ReturnPhotoDropzone photos={defPhotos} onChange={setDefPhotos} folder="defective" label="รูปของเสีย"/></div>}
+        <div className="bg-muted rounded-md p-3 text-sm space-y-1"><div className="font-medium">ส่งให้คลัง</div><div>ของเหลือ {good} · ของเก่าเสีย {oldDef} · SPARE-USED {oldUsed} {item?.unit}</div><div className="text-muted-foreground">ไม่มีของเดิมคืน {noOld} · ยังไม่สรุป {Math.max(0,balance.installationRemaining)} {item?.unit}</div></div>
+        <Label htmlFor="return-notes">หมายเหตุ (ถ้ามี)</Label><Textarea id="return-notes" value={notes} onChange={e=>setNotes(e.target.value)} rows={2}/>
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      </>}
+    </div>
+    <DialogFooter className="border-t px-5 py-3 shrink-0 flex-row justify-between gap-2"><Button variant="outline" disabled={saving} onClick={()=>step===1?onOpenChange(false):setStep(1)}>{step===1?"ยกเลิก":<><ArrowLeft className="mr-1 h-4 w-4"/>ย้อนกลับ</>}</Button>{step===1?<Button disabled={!!stepOneError} onClick={()=>setStep(2)}>ถัดไป<ArrowRight className="ml-1 h-4 w-4"/></Button>:<Button disabled={saving||!!error} onClick={handleSave}>{saving?"กำลังบันทึก…":"ยืนยันส่งคืน"}</Button>}</DialogFooter>
+  </DialogContent></Dialog>;
 }
