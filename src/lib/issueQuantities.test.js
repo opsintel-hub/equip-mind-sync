@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { lineLeft, billboardLeft, issuedDefectiveReturned } from "./issueQuantities";
+import { lineLeft, billboardLeft, issuedDefectiveReturned, returnOutstanding } from "./issueQuantities";
 
 describe("Magic Ticket Swap stock accounting", () => {
   const swap = { issued_quantity: 5, installed_qty: 1, returned_good_qty: 1, returned_defective_qty: 1, swap_returned_defective_qty: 1 };
