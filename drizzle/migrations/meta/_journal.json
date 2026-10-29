@@ -232,6 +232,13 @@
       "when": 1793248808727,
       "tag": "0032_return_unregistered_old_parts_fewer_photos",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793249758182,
+      "tag": "0033_split_old_part_returns_by_condition",
+      "breakpoints": true
     }
   ]
 }
