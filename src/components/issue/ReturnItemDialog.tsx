@@ -15,7 +15,7 @@ import { ReturnPhotoDropzone } from "./ReturnPhotoDropzone";
 import { issuedDefectiveReturned, lineInstalled } from "@/lib/issueQuantities";
 import { twoStepReturnBalance } from "@/lib/issueReturnForm";
 
-interface OldPart { id: string; kind: "equipment" | "media_player"; billboard_id: string; billboard_label: string; code: string; name: string; serial_number: string | null; quantity: number }
+interface OldPart { id: string; kind: "equipment" | "media_player" | "unregistered"; billboard_id: string; billboard_label: string; code: string; name: string; serial_number: string | null; quantity: number }
 interface OldRow { key: string; asset: string; quantity: string; condition: "used" | "defective" }
 const numberOf = (v: string) => Math.max(0, Number(v) || 0);
 export interface ReturnItemLine {
@@ -85,6 +85,8 @@ export function ReturnItemDialog({ open, onOpenChange, documentNo, item, onSaved
   const oldDef = rows.filter(r => r.condition === "defective").reduce((sum,r) => sum + numberOf(r.quantity),0);
   const oldUsed = rows.filter(r => r.condition === "used").reduce((sum,r) => sum + numberOf(r.quantity),0);
   const balance = twoStepReturnBalance(issued, numberOf(installed), returned, otherClosed, numberOf(good), numberOf(issuedDefective), oldDef, oldUsed, numberOf(noOld), settled);
+  const allowUnregistered = !!item?.equipment_id && !item?.media_player_id && !item?.is_media_player;
+  const options: OldPart[] = allowUnregistered && item ? [...candidates, { id: item.equipment_id!, kind: "unregistered", billboard_id: item.billboard_id || "", billboard_label: "ของเดิมก่อนเริ่มใช้ระบบ (ไม่มีในระบบ)", code: item.equipment_code || "", name: item.equipment_name || "", serial_number: null, quantity: Math.max(0, balance.installationOpen) }] : candidates;
   const legacyEditable = item?.installed_qty == null && !item?.media_player_id && !item?.is_media_player && !item?.serial_number;
 
   useEffect(() => {
@@ -111,16 +113,13 @@ export function ReturnItemDialog({ open, onOpenChange, documentNo, item, onSaved
     : balance.unusedRemaining < 0 ? "จำนวนคืนเกินของที่เหลือจากใบเบิก"
     : [installed,good,issuedDefective].some(v => !Number.isInteger(Number(v)) || Number(v) < 0) ? "กรุณาระบุจำนวนเต็มตั้งแต่ 0 ขึ้นไป" : null;
   const rowError = rows.some(r => {
-    const asset = candidates.find(c => c.kind + ":" + c.id === r.asset);
+    const asset = options.find(c => c.kind + ":" + c.id === r.asset);
     return !asset || !Number.isInteger(Number(r.quantity)) || numberOf(r.quantity) <= 0 || numberOf(r.quantity) > asset.quantity;
   }) ? "กรุณาเลือกของเก่าและจำนวนให้ตรงกับอุปกรณ์ที่ป้าย" : null;
   const error = stepOneError || loadError || (loading ? "กำลังโหลดอุปกรณ์ที่ป้าย…" : null) || rowError
     || (balance.installationRemaining < 0 ? "ยอดของเก่ารวมกับไม่มีของคืนเกินยอดใช้จริง" : null)
     || (independentOfInstall && balance.installationRemaining !== 0 ? `ยังไม่ได้สรุปของเดิมอีก ${balance.installationRemaining} ${item?.unit}` : null)
     || (numberOf(noOld)>0 && !noOldReason.trim() ? "กรุณาระบุเหตุผลที่ไม่มีของเดิมคืน" : null)
-    || (numberOf(noOld)>0 && noOldReason !== "ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม" && sitePhotos.length===0 ? "กรุณาแนบรูปหน้างาน" : null)
-    || (numberOf(good)>0 && goodPhotos.length===0 ? "กรุณาแนบรูปของเหลือคืนคลัง" : null)
-    || (oldUsed>0 && usedPhotos.length===0 ? "กรุณาแนบรูปของดีที่ถอดจาก PM" : null)
     || (oldDef+numberOf(issuedDefective)>0 && !symptomId && !symptomOther.trim() ? "กรุณาระบุอาการเสีย" : null)
     || (oldDef+numberOf(issuedDefective)>0 && defPhotos.length===0 ? "กรุณาแนบรูปของเสีย" : null)
     || (numberOf(good)+numberOf(issuedDefective)+oldDef+oldUsed+numberOf(noOld)===0 ? "ยังไม่มีรายการส่งคืนหรือสรุปงาน" : null);
@@ -131,7 +130,7 @@ export function ReturnItemDialog({ open, onOpenChange, documentNo, item, onSaved
     try {
       const {error:saveError} = await supabase.rpc("submit_issue_return_v2", {
         _item_id:item.id, _installed:numberOf(installed), _good:numberOf(good), _issued_defective:numberOf(issuedDefective),
-        _old_parts:rows.map(r => { const asset = candidates.find(c=>c.kind+":"+c.id===r.asset); return {id:asset?.id,kind:asset?.kind,quantity:numberOf(r.quantity),condition:r.condition}; }),
+        _old_parts:rows.map(r => { const asset = options.find(c=>c.kind+":"+c.id===r.asset); return {id:asset?.id,kind:asset?.kind,quantity:numberOf(r.quantity),condition:r.condition}; }),
         _no_old:numberOf(noOld), _no_old_reason:noOldReason.trim(), _notes:notes.trim(), _good_photos:goodPhotos,
         _defective_photos:defPhotos, _used_photos:usedPhotos, _site_photos:sitePhotos,
         _symptom_id:symptomId || null, _symptom_other:symptomOther.trim(), _submission_key:submissionKey,
@@ -159,7 +158,7 @@ export function ReturnItemDialog({ open, onOpenChange, documentNo, item, onSaved
         </div>
         <div className="flex items-center gap-2"><Checkbox id="issued-damaged" checked={showIssuedDefective} onCheckedChange={v=>{setShowIssuedDefective(v===true);if(!v)setIssuedDefective("0");}}/><Label htmlFor="issued-damaged">ของที่เบิกเสียก่อนใช้</Label></div>
         {showIssuedDefective && quantityInput("issued-defective","จำนวนเสียจากยอดเบิก",issuedDefective,setIssuedDefective,balance.unused)}
-        {numberOf(good)>0 && <ReturnPhotoDropzone photos={goodPhotos} onChange={setGoodPhotos} folder="good" label="รูปของเหลือคืนคลัง"/>}
+        {numberOf(good)>0 && <ReturnPhotoDropzone photos={goodPhotos} onChange={setGoodPhotos} folder="good" label="รูปของเหลือคืนคลัง (ไม่บังคับ)"/>}
         <div className={`rounded-md p-3 text-sm ${balance.unusedRemaining<0?"bg-destructive/10 text-destructive":"bg-muted text-foreground"}`}>ใช้จริง {installed} + คืนครั้งนี้ {numberOf(good)+numberOf(issuedDefective)} + คืนก่อนหน้า {returned}{otherClosed>0?` + ปิดยอดอื่น ${otherClosed}`:""} / เบิก {issued}<div className="mt-1 font-medium">เหลือถือไปใช้งาน {Math.max(0,balance.unusedRemaining)} {item?.unit}</div></div>
         {stepOneError && <p role="alert" className="text-sm text-destructive">{stepOneError}</p>}
       </> : <>
@@ -167,17 +166,17 @@ export function ReturnItemDialog({ open, onOpenChange, documentNo, item, onSaved
         <h3 className="font-medium">มีของเก่าถอดกลับจากป้ายไหม?</h3>
         {rows.map((row,index)=><div key={row.key} className="border-b pb-4 space-y-2">
           <div className="flex items-center justify-between gap-2"><span className="text-sm font-medium">ของเก่ารายการ {index+1}</span><Button size="icon" variant="ghost" title="ลบรายการ" aria-label={`ลบของเก่ารายการ ${index+1}`} onClick={()=>setRows(rs=>rs.filter(r=>r.key!==row.key))}><Trash2 className="h-4 w-4"/></Button></div>
-          <SearchableSelect value={row.asset} placeholder="เลือกอุปกรณ์เดิมที่ป้าย" searchPlaceholder="ค้นหารหัส / ชื่อ / S/N" options={candidates.map(c=>({value:c.kind+":"+c.id,label:`${c.billboard_label} · ${c.code} ${c.name}`,description:`${c.serial_number?"S/N: "+c.serial_number+" · ":""}มี ${c.quantity} ${item?.unit}`,disabled:rows.some(r=>r.key!==row.key&&r.asset===c.kind+":"+c.id)}))} onValueChange={v=>setRows(rs=>rs.map(r=>r.key===row.key?{...r,asset:v}:r))}/>
+          <SearchableSelect value={row.asset} placeholder="เลือกอุปกรณ์เดิมที่ป้าย" searchPlaceholder="ค้นหารหัส / ชื่อ / S/N" options={options.map(c=>({value:c.kind+":"+c.id,label:`${c.billboard_label} · ${c.code} ${c.name}`,description:`${c.serial_number?"S/N: "+c.serial_number+" · ":""}มี ${c.quantity} ${item?.unit}`,disabled:rows.some(r=>r.key!==row.key&&r.asset===c.kind+":"+c.id)}))} onValueChange={v=>setRows(rs=>rs.map(r=>r.key===row.key?{...r,asset:v}:r))}/>
           <div className="flex flex-wrap gap-2"><Button size="sm" variant={row.condition==="defective"?"default":"outline"} onClick={()=>setRows(rs=>rs.map(r=>r.key===row.key?{...r,condition:"defective"}:r))}>เสียจากการใช้งาน</Button><Button size="sm" variant={row.condition==="used"?"default":"outline"} onClick={()=>setRows(rs=>rs.map(r=>r.key===row.key?{...r,condition:"used"}:r))}>PM · ยังใช้งานได้</Button></div>
-          {quantityInput(`old-quantity-${index}`,"จำนวนถอดกลับ",row.quantity,v=>setRows(rs=>rs.map(r=>r.key===row.key?{...r,quantity:v}:r)),candidates.find(c=>c.kind+":"+c.id===row.asset)?.quantity || 0)}
+          {quantityInput(`old-quantity-${index}`,"จำนวนถอดกลับ",row.quantity,v=>setRows(rs=>rs.map(r=>r.key===row.key?{...r,quantity:v}:r)),options.find(c=>c.kind+":"+c.id===row.asset)?.quantity || 0)}
           {row.condition==="used" && <Badge variant="outline" className="text-primary">SPARE-USED · ใช้งานแล้ว</Badge>}
         </div>)}
-        <Button variant="outline" size="sm" disabled={loading||candidates.length<=rows.length} onClick={()=>setRows(rs=>[...rs,{key:crypto.randomUUID(),asset:candidates.length===1?candidates[0].kind+":"+candidates[0].id:"",quantity:"1",condition:"defective"}])}><Plus className="mr-1 h-4 w-4"/>เพิ่มของเก่าถอดกลับ</Button>
-        {!loading && candidates.length===0 && <p className="text-sm text-muted-foreground">ไม่พบอุปกรณ์เดิมที่ยังติดตั้งอยู่ในป้ายของใบเบิกนี้</p>}
+        <Button variant="outline" size="sm" disabled={loading||options.length<=rows.length} onClick={()=>setRows(rs=>{const free=options.find(c=>!rs.some(r=>r.asset===c.kind+":"+c.id));return [...rs,{key:crypto.randomUUID(),asset:free?free.kind+":"+free.id:"",quantity:"1",condition:"defective"}];})}><Plus className="mr-1 h-4 w-4"/>เพิ่มของเก่าถอดกลับ</Button>
+        {!loading && candidates.length===0 && <p className="text-sm text-muted-foreground">ป้ายนี้ยังไม่มีอุปกรณ์เดิมในระบบ · กดเพิ่มเพื่อบันทึกของเดิมก่อนเริ่มใช้ระบบได้</p>}
         {balance.installationOpen>0 && <><div className="flex items-center gap-2"><Checkbox id="no-old-part" checked={noOldEnabled} onCheckedChange={v=>{setNoOldEnabled(v===true);setNoOld(v?String(Math.max(0,balance.installationRemaining)):"0");if(!v)setNoOldReason("");}}/><Label htmlFor="no-old-part">ไม่มีของเดิมส่งคืน</Label></div>
-          {noOldEnabled && <div className="space-y-2 border-l-2 border-border pl-3">{quantityInput("no-old-quantity","จำนวนไม่มีของคืน",noOld,setNoOld,balance.installationOpen)}<div className="flex flex-wrap gap-2"><Button size="sm" variant={noOldReason==="ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม"?"default":"outline"} onClick={()=>setNoOldReason("ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม")}>ติดตั้งใหม่</Button><Button size="sm" variant={noOldReason!=="ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม"?"default":"outline"} onClick={()=>setNoOldReason("")}>สูญหาย / ถูกขโมย</Button></div>{noOldReason!=="ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม" && <><Textarea aria-label="เหตุผลไม่มีของเดิมคืน" placeholder="เหตุที่ของเดิมสูญหายหรือถูกขโมย" value={noOldReason} onChange={e=>setNoOldReason(e.target.value)}/><ReturnPhotoDropzone photos={sitePhotos} onChange={setSitePhotos} folder="good" label="รูปหน้างานหลังติดตั้ง"/></>}</div>}</>}
-        {oldUsed>0 && <ReturnPhotoDropzone photos={usedPhotos} onChange={setUsedPhotos} folder="good" label="รูปของดีจาก PM (SPARE-USED)"/>}
-        {oldDef+numberOf(issuedDefective)>0 && <div className="space-y-2"><Label>อาการเสีย</Label><SymptomSelect value={symptomId} onChange={setSymptomId}/><Textarea aria-label="รายละเอียดอาการเสีย" placeholder="รายละเอียดอาการเสีย" value={symptomOther} onChange={e=>setSymptomOther(e.target.value)}/><ReturnPhotoDropzone photos={defPhotos} onChange={setDefPhotos} folder="defective" label="รูปของเสีย"/></div>}
+          {noOldEnabled && <div className="space-y-2 border-l-2 border-border pl-3">{quantityInput("no-old-quantity","จำนวนไม่มีของคืน",noOld,setNoOld,balance.installationOpen)}<div className="flex flex-wrap gap-2"><Button size="sm" variant={noOldReason==="ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม"?"default":"outline"} onClick={()=>setNoOldReason("ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม")}>ติดตั้งใหม่</Button><Button size="sm" variant={noOldReason!=="ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม"?"default":"outline"} onClick={()=>setNoOldReason("")}>สูญหาย / ถูกขโมย</Button></div>{noOldReason!=="ติดตั้งใหม่ ไม่มีอุปกรณ์เดิม" && <><Textarea aria-label="เหตุผลไม่มีของเดิมคืน" placeholder="เหตุที่ของเดิมสูญหายหรือถูกขโมย" value={noOldReason} onChange={e=>setNoOldReason(e.target.value)}/><ReturnPhotoDropzone photos={sitePhotos} onChange={setSitePhotos} folder="good" label="รูปหน้างาน (ไม่บังคับ)"/></>}</div>}</>}
+        {oldUsed>0 && <ReturnPhotoDropzone photos={usedPhotos} onChange={setUsedPhotos} folder="good" label="รูปของดีจาก PM (ไม่บังคับ)"/>}
+        {oldDef+numberOf(issuedDefective)>0 && <div className="space-y-2"><Label>อาการเสีย</Label><SymptomSelect value={symptomId} onChange={setSymptomId}/><Textarea aria-label="รายละเอียดอาการเสีย" placeholder="รายละเอียดอาการเสีย" value={symptomOther} onChange={e=>setSymptomOther(e.target.value)}/><ReturnPhotoDropzone photos={defPhotos} onChange={setDefPhotos} folder="defective" label="รูปของเสีย (อย่างน้อย 1 รูป)"/></div>}
         <div className="bg-muted rounded-md p-3 text-sm space-y-1"><div className="font-medium">ส่งให้คลัง</div><div>ของเหลือ {good} · ของเก่าเสีย {oldDef} · SPARE-USED {oldUsed} {item?.unit}</div><div className="text-muted-foreground">ไม่มีของเดิมคืน {noOld} · ยังไม่สรุป {Math.max(0,balance.installationRemaining)} {item?.unit}</div></div>
         <Label htmlFor="return-notes">หมายเหตุ (ถ้ามี)</Label><Textarea id="return-notes" value={notes} onChange={e=>setNotes(e.target.value)} rows={2}/>
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
