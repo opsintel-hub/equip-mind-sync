@@ -22,4 +22,12 @@ describe("Magic Ticket Swap stock accounting", () => {
   test("legacy rows without Swap metadata retain existing defective accounting", () => {
     expect(issuedDefectiveReturned({ returned_defective_qty: 1 })).toBe(1);
   });
+  test("return dialog can settle the last unit after a Swap old-part return", () => {
+    // 5 issued, 1 installed, 1 unused good returned, 1 old Swap part returned:
+    // the dialog must allow returning all 3 remaining units, not just 2.
+    expect(returnOutstanding(swap, false)).toBe(3);
+  });
+  test("return dialog for billboard+return purposes also ignores Swap old-part returns", () => {
+    expect(returnOutstanding(swap, true)).toBe(3);
+  });
 });
