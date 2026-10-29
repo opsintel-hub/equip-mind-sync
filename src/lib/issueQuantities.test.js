@@ -28,6 +28,8 @@ describe("Magic Ticket Swap stock accounting", () => {
     expect(returnOutstanding(swap, false)).toBe(3);
   });
   test("return dialog for billboard+return purposes also ignores Swap old-part returns", () => {
-    expect(returnOutstanding(swap, true)).toBe(3);
+    // Installing does not clear the return obligation for these purposes,
+    // so only the 1 unused good return settles: 5 - 1 = 4 (Swap old part ignored).
+    expect(returnOutstanding(swap, true)).toBe(4);
   });
 });
