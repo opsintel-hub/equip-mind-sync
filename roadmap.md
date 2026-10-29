@@ -23,3 +23,6 @@
 - [x] Restrict booked name/department corrections to Super Admin and verify permission boundaries
 - [x] Separate Magic Ticket old Swap returns from unused issued stock; API and authenticated awaiting-usage UI verify GI-REQ-000205 remains 3; external Magic Ticket UI not available here
 - [x] Test quantity limits, duplicate/revert behavior and readback without changing live stock: 25 unit tests and rolled-back SQL integration checks pass
+- [ ] Simplify issue returns into two steps separating issued stock and old billboard parts
+- [ ] Support PM good used returns with condition-aware warehouse receipt, preserving stock and permissions
+- [ ] Verify 10 issued / 6 installed / 4 unused / 2 old defective / 3 old used balance and desktop/mobile return flow
