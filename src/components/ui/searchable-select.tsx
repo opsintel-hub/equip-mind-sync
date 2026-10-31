@@ -16,6 +16,31 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
+/**
+ * Keeps the top match visible inside the option list.
+ *
+ * cmdk only scrolls the highlighted option into view, so a list left scrolled
+ * from earlier browsing can hide the best match after a search. Reset the list
+ * to the top whenever it opens or the search term changes, then reset once more
+ * on the next frame because cmdk re-sorts and re-highlights options after the
+ * current render.
+ */
+function useResetListScroll(isOpen: boolean, search: string) {
+  const listRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const list = listRef.current;
+    if (!isOpen || !list) return;
+    list.scrollTop = 0;
+    const frame = requestAnimationFrame(() => {
+      list.scrollTop = 0;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isOpen, search]);
+
+  return listRef;
+}
+
 export interface SearchableSelectOption {
   value: string;
   label: string;
@@ -61,6 +86,7 @@ export function SearchableSelect({
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState(initialSearch ?? "");
+  const listRef = useResetListScroll(open, search);
 
   React.useEffect(() => {
     if (open) setSearch(initialSearch ?? "");
@@ -108,7 +134,7 @@ export function SearchableSelect({
             onValueChange={(v) => { setSearch(v); onSearchChange?.(v); }}
           />
 
-          <CommandList className="max-h-60">
+          <CommandList ref={listRef} className="max-h-60">
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => {
@@ -188,6 +214,8 @@ export function SearchableMultiSelect({
   maxDisplay = 2,
 }: SearchableMultiSelectProps) {
   const [open, setOpen] = React.useState(false);
+  const [search, setSearch] = React.useState("");
+  const listRef = useResetListScroll(open, search);
 
   const selectedOptions = options.filter((option) => values.includes(option.value));
 
@@ -232,8 +260,9 @@ export function SearchableMultiSelect({
           <CommandInput 
             placeholder={searchPlaceholder} 
             className="h-9"
+            onValueChange={(v) => setSearch(v)}
           />
-          <CommandList className="max-h-60">
+          <CommandList ref={listRef} className="max-h-60">
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
               {options.map((option) => {
