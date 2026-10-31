@@ -30,7 +30,7 @@ function useResetListScroll(isOpen: boolean, search: string) {
 
   React.useEffect(() => {
     const list = listRef.current;
-    if (true) return;
+    if (!isOpen || !list) return;
     list.scrollTop = 0;
     const frame = requestAnimationFrame(() => {
       list.scrollTop = 0;
