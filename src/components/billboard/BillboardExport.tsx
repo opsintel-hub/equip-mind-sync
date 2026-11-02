@@ -31,10 +31,17 @@ const BillboardExport = ({ currentFilters }: BillboardExportProps) => {
   const { data: filterOptions } = useQuery({
     queryKey: ["billboard-export-options"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("billboards")
-        .select("region, department, status");
-      if (error) throw error;
+      const data: { region: string | null; department: string | null; status: string }[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data: page, error } = await supabase
+          .from("billboards")
+          .select("region, department, status")
+          .order("id")
+          .range(from, from + 999);
+        if (error) throw error;
+        data.push(...((page as any[]) || []));
+        if (!page || page.length < 1000) break;
+      }
 
       return {
         regions: [...new Set(data.map(b => b.region).filter(Boolean))].sort(),
@@ -47,20 +54,21 @@ const BillboardExport = ({ currentFilters }: BillboardExportProps) => {
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      let query = supabase.from("billboards").select("*");
-
-      if (exportFilters.region) {
-        query = query.eq("region", exportFilters.region);
+      const PAGE = 1000;
+      const data: any[] = [];
+      for (let from = 0; ; from += PAGE) {
+        let query = supabase.from("billboards").select("*");
+        if (exportFilters.region) query = query.eq("region", exportFilters.region);
+        if (exportFilters.department) query = query.eq("department", exportFilters.department);
+        if (exportFilters.status) query = query.eq("status", exportFilters.status);
+        const { data: page, error } = await query
+          .order("old_code")
+          .order("id")
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        data.push(...(page || []));
+        if (!page || page.length < PAGE) break;
       }
-      if (exportFilters.department) {
-        query = query.eq("department", exportFilters.department);
-      }
-      if (exportFilters.status) {
-        query = query.eq("status", exportFilters.status);
-      }
-
-      const { data, error } = await query.order("old_code");
-      if (error) throw error;
 
       if (!data || data.length === 0) {
         toast.error("ไม่พบข้อมูลที่ตรงกับเงื่อนไข");
