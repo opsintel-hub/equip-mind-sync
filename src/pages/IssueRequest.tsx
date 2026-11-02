@@ -19,6 +19,7 @@ import { th } from "date-fns/locale";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { CompanySelect } from "@/components/company/CompanySelect";
 import { SectionSelect } from "@/components/section/SectionSelect";
+import { purposeAllowedFor } from "@/lib/purposeScope";
 import { SerialNumberSelect, SerialNumberItem } from "@/components/equipment/SerialNumberSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { SearchableSelect } from "@/components/ui/searchable-select";
@@ -58,6 +59,8 @@ interface IssuePurpose {
   requires_billboard: boolean;
   requires_return: boolean;
   allow_all_categories: boolean;
+  allowed_department_ids?: string[] | null;
+  allowed_section_ids?: string[] | null;
 }
 
 interface CategoryMapping {
@@ -352,7 +355,7 @@ const IssueRequest = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("issue_purposes")
-        .select("id, name, description, requires_billboard, requires_return, allow_all_categories, is_transfer")
+        .select("id, name, description, requires_billboard, requires_return, allow_all_categories, is_transfer, allowed_department_ids, allowed_section_ids")
         .eq("is_active", true)
         .order("name");
       if (error) throw error;
@@ -425,6 +428,24 @@ const IssueRequest = () => {
     },
   });
 
+  const { data: sectionDeptMap = {} } = useQuery({
+    queryKey: ["sections-dept-map"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("sections").select("id, department_id");
+      if (error) throw error;
+      return Object.fromEntries((data || []).map((r: any) => [r.id, r.department_id])) as Record<string, string>;
+    },
+  });
+  const requesterDeptId = departments?.find((d: any) => d.name === headerData.requester_department)?.id;
+  const visiblePurposes = (purposes || []).filter((p) =>
+    purposeAllowedFor(p, requesterDeptId, headerData.section, sectionDeptMap),
+  );
+  useEffect(() => {
+    if (headerData.purpose_id && purposes && !visiblePurposes.some((p) => p.id === headerData.purpose_id)) {
+      setHeaderData((prev) => ({ ...prev, purpose_id: "", purpose: "" }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [headerData.purpose_id, requesterDeptId, headerData.section, purposes, sectionDeptMap]);
   const selectedPurpose = purposes?.find((p) => p.id === headerData.purpose_id);
 
   // Get allowed category IDs for selected purpose
@@ -1415,7 +1436,7 @@ const IssueRequest = () => {
                       <SelectValue placeholder="เลือกวัตถุประสงค์" />
                     </SelectTrigger>
                     <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-                      {purposes?.map((purpose) => (
+                      {visiblePurposes.map((purpose) => (
                         <SelectItem key={purpose.id} value={purpose.id}>
                           <div className="flex items-center gap-2">
                             <span>{purpose.name}</span>
