@@ -103,7 +103,7 @@ export function validateEquipmentRows(rows: any[], refs: RefLookups, existingCod
     const locationCode = s(row.location_code);
     let locationId: string | null = null;
     let locationAllocations: Array<{ location_id: string; quantity: number }> = [];
-    if (!locationCode) errors.push("location_code ว่าง");
+    if (!locationCode) { if (!s(row.install_billboard_old_code)) errors.push("location_code ว่าง (เว้นได้เมื่อระบุป้าย)"); }
     else {
       const parsed = parseLocationCodes(
         locationCode,
@@ -294,7 +294,7 @@ export function validateMediaPlayerRows(rows: any[], refs: RefLookups, existingS
 
     const locationCode = s(row.location_code);
     let locationId: string | null = null;
-    if (!locationCode) errors.push("location_code ว่าง");
+    if (!locationCode) { if (!s(row.install_billboard_old_code)) errors.push("location_code ว่าง (เว้นได้เมื่อระบุป้าย)"); }
     else {
       const parsed = parseLocationCodes(locationCode, locationByCode, 1);
       if (parsed.errors.length > 0) errors.push(...parsed.errors);
