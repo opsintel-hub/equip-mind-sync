@@ -395,7 +395,9 @@ Deno.serve(async (req) => {
             rows_updated: updated,
             rows_skipped: skipped,
             rows_failed: failed,
-            details: errors.length > 0 ? { errors } : null,
+            details: errors.length > 0 || fallbacks.length > 0
+              ? { errors, equipment_id_fallback_count: fallbacks.length, equipment_id_fallbacks: fallbacks.slice(0, 1000) }
+              : null,
             completed_at: new Date().toISOString(),
           })
           .eq("id", logRow!.id);
