@@ -45,8 +45,6 @@ import { BillboardSummaryCards } from "@/components/billboard/BillboardSummaryCa
 import { DraggableScrollTable } from "@/components/ui/draggable-scroll-table";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { useDeptScope } from "@/hooks/useDeptScope";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Database as DatabaseIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -137,7 +135,6 @@ const Billboards = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { isSuperAdmin } = useIsSuperAdmin();
   const { viewableDepts, deptKey, isSuperAdmin: isSA } = useDeptScope();
-  const activeTab = searchParams.get("tab") === "sync" ? "sync" : "list";
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedBillboard, setSelectedBillboard] = useState<BillboardRecord | null>(null);
