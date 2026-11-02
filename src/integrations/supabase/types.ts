@@ -3968,6 +3968,8 @@ export type Database = {
       issue_purposes: {
         Row: {
           allow_all_categories: boolean
+          allowed_department_ids: string[]
+          allowed_section_ids: string[]
           created_at: string
           created_by: string | null
           description: string | null
@@ -3981,6 +3983,8 @@ export type Database = {
         }
         Insert: {
           allow_all_categories?: boolean
+          allowed_department_ids?: string[]
+          allowed_section_ids?: string[]
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -3994,6 +3998,8 @@ export type Database = {
         }
         Update: {
           allow_all_categories?: boolean
+          allowed_department_ids?: string[]
+          allowed_section_ids?: string[]
           created_at?: string
           created_by?: string | null
           description?: string | null
