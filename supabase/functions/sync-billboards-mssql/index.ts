@@ -319,6 +319,7 @@ Deno.serve(async (req) => {
         }
 
         const upsertRows: any[] = [];
+        const fallbacks: { old_code: string; source_equipment_id: string; used_equipment_id: string; conflict_with: string }[] = [];
         for (const row of finalRows) {
           const existingOldCode = existingByOldCode.get(row.old_code);
 
@@ -351,17 +352,27 @@ Deno.serve(async (req) => {
 
           const occupiedEquipment = existingByEquipmentId.get(row.equipment_id);
           if (occupiedEquipment && occupiedEquipment.old_code !== row.old_code) {
-            failed++;
-            if (errors.length < 20) {
-              errors.push(
-                `${row.old_code}: equipment_id ${row.equipment_id} เป็นของ ${occupiedEquipment.old_code} แล้ว`,
-              );
+            // Fallback: use OldCode as equipment_id (with suffix if still taken)
+            const originalId = row.equipment_id;
+            let candidate = row.old_code;
+            let n = 2;
+            while (
+              existingByEquipmentId.has(candidate) &&
+              existingByEquipmentId.get(candidate)!.old_code !== row.old_code
+            ) {
+              candidate = `${row.old_code}-${n++}`;
             }
-            continue;
+            row.equipment_id = candidate;
+            fallbacks.push({ old_code: row.old_code, source_equipment_id: originalId, used_equipment_id: candidate, conflict_with: occupiedEquipment.old_code });
           }
 
+          // Reserve this equipment_id so later rows in the same run don't collide
+          existingByEquipmentId.set(row.equipment_id, { old_code: row.old_code, equipment_id: row.equipment_id, sync_source: "mssql" });
           inserted++;
           upsertRows.push(row);
+        }
+        if (fallbacks.length > 0) {
+          console.log(`equipment_id fallback applied to ${fallbacks.length} rows`, fallbacks.slice(0, 50));
         }
 
         // Batch upsert (200/batch) using OldCode as conflict key
