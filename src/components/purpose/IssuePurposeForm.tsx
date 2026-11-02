@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Layers } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { PurposeScopePicker } from "./PurposeScopePicker";
 
 interface IssuePurposeFormProps {
   onSuccess: () => void;
@@ -31,6 +32,7 @@ export function IssuePurposeForm({ onSuccess }: IssuePurposeFormProps) {
     allow_all_categories: false,
   });
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [scope, setScope] = useState<{ departmentIds: string[]; sectionIds: string[] }>({ departmentIds: [], sectionIds: [] });
 
   // Fetch categories
   const { data: categories } = useQuery({
@@ -81,6 +83,8 @@ export function IssuePurposeForm({ onSuccess }: IssuePurposeFormProps) {
           requires_return: formData.requires_return,
           is_transfer: (formData as any).is_transfer,
           allow_all_categories: formData.allow_all_categories,
+          allowed_department_ids: scope.departmentIds,
+          allowed_section_ids: scope.sectionIds,
           created_by: userData?.user?.id,
         })
         .select()
@@ -112,6 +116,7 @@ export function IssuePurposeForm({ onSuccess }: IssuePurposeFormProps) {
         allow_all_categories: false,
       });
       setSelectedCategories([]);
+      setScope({ departmentIds: [], sectionIds: [] });
       setOpen(false);
       onSuccess();
     } catch (error: any) {
@@ -253,6 +258,8 @@ export function IssuePurposeForm({ onSuccess }: IssuePurposeFormProps) {
               </div>
             )}
           </div>
+
+          <PurposeScopePicker departmentIds={scope.departmentIds} sectionIds={scope.sectionIds} onChange={setScope} />
 
           <div className="flex justify-end gap-2 pt-4">
             <Button

@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Layers } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { PurposeScopePicker } from "./PurposeScopePicker";
 
 interface IssuePurpose {
   id: string;
@@ -19,6 +20,8 @@ interface IssuePurpose {
   is_transfer?: boolean;
   allow_all_categories: boolean;
   is_active: boolean;
+  allowed_department_ids?: string[] | null;
+  allowed_section_ids?: string[] | null;
 }
 
 interface Category {
@@ -49,6 +52,7 @@ export function IssuePurposeEditDialog({
     allow_all_categories: false,
   });
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [scope, setScope] = useState<{ departmentIds: string[]; sectionIds: string[] }>({ departmentIds: [], sectionIds: [] });
 
   // Fetch categories
   const { data: categories } = useQuery({
@@ -75,6 +79,7 @@ export function IssuePurposeEditDialog({
         is_transfer: !!purpose.is_transfer,
         allow_all_categories: purpose.allow_all_categories,
       });
+      setScope({ departmentIds: purpose.allowed_department_ids || [], sectionIds: purpose.allowed_section_ids || [] });
 
       // Fetch existing category mappings
       const fetchCategoryMappings = async () => {
@@ -128,6 +133,8 @@ export function IssuePurposeEditDialog({
           requires_return: formData.requires_return,
           is_transfer: formData.is_transfer,
           allow_all_categories: formData.allow_all_categories,
+          allowed_department_ids: scope.departmentIds,
+          allowed_section_ids: scope.sectionIds,
           updated_at: new Date().toISOString(),
         })
         .eq("id", purpose.id);
@@ -292,6 +299,8 @@ export function IssuePurposeEditDialog({
               </div>
             )}
           </div>
+
+          <PurposeScopePicker departmentIds={scope.departmentIds} sectionIds={scope.sectionIds} onChange={setScope} />
 
           <div className="flex justify-end gap-2 pt-4">
             <Button
