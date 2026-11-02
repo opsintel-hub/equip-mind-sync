@@ -305,7 +305,7 @@ const menuGroups: MenuGroup[] = [
     label: "ตั้งค่าระบบ",
     items: [
       { title: "ข้อมูลหลัก", url: "/master-data", icon: Database, functionName: "master_data" },
-      { title: "เชื่อมต่อฐานข้อมูลป้ายโฆษณา", url: "/billboards?tab=sync", icon: Database, superAdminOnly: true },
+      { title: "เชื่อมต่อฐานข้อมูลป้ายโฆษณา", url: "/master-data?tab=billboard_sync", icon: Database, superAdminOnly: true },
       { title: "ตั้งค่าแจ้งเตือน", url: "/notification-settings", icon: Bell },
       { title: "ตรวจสอบยอด & สถานะ Stock", url: "/stock-reconciliation", icon: CheckCircle2, functionName: "stock_reconcile" },
       { title: "จัดการผู้ใช้", url: "/admin", icon: Shield, functionName: "admin", superAdminOnly: true },

@@ -1,75 +1,22 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, FileSpreadsheet } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Download } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
-import { useQuery } from "@tanstack/react-query";
 
 interface BillboardExportProps {
-  currentFilters: {
-    region: string;
-    district: string;
-    department: string;
-    mediaType: string;
-    status: string;
-  };
+  /** Fetches every row matching the filters currently shown on screen */
+  fetchRows: () => Promise<any[]>;
+  totalCount?: number;
 }
 
-const BillboardExport = ({ currentFilters }: BillboardExportProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+const BillboardExport = ({ fetchRows, totalCount }: BillboardExportProps) => {
   const [isExporting, setIsExporting] = useState(false);
-  const [exportFilters, setExportFilters] = useState({
-    region: currentFilters.region,
-    department: currentFilters.department,
-    status: currentFilters.status,
-  });
-
-  // Fetch distinct filter values
-  const { data: filterOptions } = useQuery({
-    queryKey: ["billboard-export-options"],
-    queryFn: async () => {
-      const data: { region: string | null; department: string | null; status: string }[] = [];
-      for (let from = 0; ; from += 1000) {
-        const { data: page, error } = await supabase
-          .from("billboards")
-          .select("region, department, status")
-          .order("id")
-          .range(from, from + 999);
-        if (error) throw error;
-        data.push(...((page as any[]) || []));
-        if (!page || page.length < 1000) break;
-      }
-
-      return {
-        regions: [...new Set(data.map(b => b.region).filter(Boolean))].sort(),
-        departments: [...new Set(data.map(b => b.department).filter(Boolean))].sort(),
-        statuses: [...new Set(data.map(b => b.status).filter(Boolean))].sort(),
-      };
-    },
-  });
 
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      const PAGE = 1000;
-      const data: any[] = [];
-      for (let from = 0; ; from += PAGE) {
-        let query = supabase.from("billboards").select("*");
-        if (exportFilters.region) query = query.eq("region", exportFilters.region);
-        if (exportFilters.department) query = query.eq("department", exportFilters.department);
-        if (exportFilters.status) query = query.eq("status", exportFilters.status);
-        const { data: page, error } = await query
-          .order("old_code")
-          .order("id")
-          .range(from, from + PAGE - 1);
-        if (error) throw error;
-        data.push(...(page || []));
-        if (!page || page.length < PAGE) break;
-      }
-
+      const data = await fetchRows();
       if (!data || data.length === 0) {
         toast.error("ไม่พบข้อมูลที่ตรงกับเงื่อนไข");
         return;
@@ -112,19 +59,10 @@ const BillboardExport = ({ currentFilters }: BillboardExportProps) => {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Billboards");
 
-      const filterDesc = [
-        exportFilters.region ? `Region-${exportFilters.region}` : "",
-        exportFilters.department ? `Dept-${exportFilters.department}` : "",
-        exportFilters.status ? `Status-${exportFilters.status}` : "",
-      ]
-        .filter(Boolean)
-        .join("_");
-
-      const filename = `billboards_${filterDesc || "all"}_${new Date().toISOString().split("T")[0]}.xlsx`;
+      const filename = `billboards_${new Date().toISOString().split("T")[0]}.xlsx`;
       XLSX.writeFile(wb, filename);
 
       toast.success(`Export สำเร็จ ${data.length} รายการ`);
-      setIsOpen(false);
     } catch (error: any) {
       toast.error(error.message || "เกิดข้อผิดพลาดในการ Export");
     } finally {
@@ -133,82 +71,10 @@ const BillboardExport = ({ currentFilters }: BillboardExportProps) => {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline">
-          <Download className="w-4 h-4 mr-2" />
-          Export Excel
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5" />
-            Export ข้อมูลป้ายโฆษณา
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 py-4">
-          <p className="text-sm text-muted-foreground">
-            เลือกเงื่อนไขในการ Export (ไฟล์ที่ได้สามารถใช้เป็น Template สำหรับ Import กลับได้)
-          </p>
-          
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <span className="text-sm w-24">Region:</span>
-              <Select value={exportFilters.region || "__all__"} onValueChange={(v) => setExportFilters(p => ({ ...p, region: v === "__all__" ? "" : v }))}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="ทั้งหมด" />
-                </SelectTrigger>
-                <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-                  <SelectItem value="__all__">ทั้งหมด</SelectItem>
-                  {filterOptions?.regions.map((r) => (
-                    <SelectItem key={r} value={r!}>{r}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="text-sm w-24">Department:</span>
-              <Select value={exportFilters.department || "__all__"} onValueChange={(v) => setExportFilters(p => ({ ...p, department: v === "__all__" ? "" : v }))}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="ทั้งหมด" />
-                </SelectTrigger>
-                <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-                  <SelectItem value="__all__">ทั้งหมด</SelectItem>
-                  {filterOptions?.departments.map((d) => (
-                    <SelectItem key={d} value={d!}>{d}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="text-sm w-24">Status:</span>
-              <Select value={exportFilters.status || "__all__"} onValueChange={(v) => setExportFilters(p => ({ ...p, status: v === "__all__" ? "" : v }))}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="ทั้งหมด" />
-                </SelectTrigger>
-                <SelectContent position="popper" sideOffset={4} className="bg-background z-[200] max-h-60 overflow-y-auto">
-                  <SelectItem value="__all__">ทั้งหมด</SelectItem>
-                  {filterOptions?.statuses.map((s) => (
-                    <SelectItem key={s} value={s!}>
-                      {s === "active" ? "ใช้งาน" : s === "maintenance" ? "บำรุงรักษา" : s === "inactive" ? "ไม่ใช้งาน" : s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-        <div className="flex justify-end gap-3">
-          <Button variant="outline" onClick={() => setIsOpen(false)}>ยกเลิก</Button>
-          <Button onClick={handleExport} disabled={isExporting}>
-            {isExporting ? "กำลัง Export..." : "Export"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <Button variant="outline" onClick={handleExport} disabled={isExporting || totalCount === 0}>
+      <Download className="w-4 h-4 mr-2" />
+      {isExporting ? "กำลัง Export..." : `Export Excel${totalCount ? ` (${totalCount.toLocaleString()})` : ""}`}
+    </Button>
   );
 };
 

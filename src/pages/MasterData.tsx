@@ -51,11 +51,15 @@ import { TechnicianForm } from "@/components/tools/TechnicianForm";
 import { TechnicianList } from "@/components/tools/TechnicianList";
 import { SimpleListManager } from "@/components/master-data/SimpleListManager";
 import { RepairActionsManager } from "@/components/master-data/RepairActionsManager";
+import { BillboardDbConnection } from "@/components/master-data/BillboardDbConnection";
+import { useSearchParams } from "react-router-dom";
 
 const MediaPlayerEntry = lazy(() => import("@/pages/MediaPlayerEntry"));
 
 const MasterData = () => {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
   const { isAdmin, isSuperAdmin, loading: permLoading } = useDepartmentPermissions();
   const { hasFunctionAccess, loading: fnLoading } = useFunctionPermissions();
   const canManageTools = isAdmin || isSuperAdmin;
@@ -100,7 +104,7 @@ const MasterData = () => {
         </p>
       </div>
 
-      <Tabs defaultValue={defaultTab} className="w-full">
+      <Tabs key={tabParam ?? "default"} defaultValue={tabParam === "billboard_sync" && isSuperAdmin ? "billboard_sync" : defaultTab} className="w-full">
         <div className="w-full overflow-x-auto pb-2">
           <TabsList className="inline-flex w-max h-10 mb-0">
             {can("md_equipment") && (
@@ -191,6 +195,12 @@ const MasterData = () => {
               <TabsTrigger value="gate_stations" className="gap-1.5 text-xs px-3">
                 <ShieldCheck className="h-3.5 w-3.5" />
                 จุดตรวจ รปภ. (Station PIN)
+              </TabsTrigger>
+            )}
+            {isSuperAdmin && (
+              <TabsTrigger value="billboard_sync" className="gap-1.5 text-xs px-3">
+                <Database className="h-3.5 w-3.5" />
+                เชื่อมต่อ &amp; Sync ป้าย
               </TabsTrigger>
             )}
           </TabsList>
@@ -609,6 +619,12 @@ const MasterData = () => {
           <GateStationManager />
         </TabsContent>
         )}
+        {isSuperAdmin && (
+        <TabsContent value="billboard_sync" className="space-y-4">
+          <BillboardDbConnection />
+        </TabsContent>
+        )}
+
 
 
       </Tabs>
