@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "bun:test";
 import { purposeAllowedFor } from "./purposeScope";
 
 const map = { secBus1: "bus", secBus2: "bus", secBB: "bb" };
