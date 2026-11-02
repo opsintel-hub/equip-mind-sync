@@ -197,12 +197,6 @@ const MasterData = () => {
                 จุดตรวจ รปภ. (Station PIN)
               </TabsTrigger>
             )}
-            {isSuperAdmin && (
-              <TabsTrigger value="billboard_sync" className="gap-1.5 text-xs px-3">
-                <Database className="h-3.5 w-3.5" />
-                เชื่อมต่อ &amp; Sync ป้าย
-              </TabsTrigger>
-            )}
           </TabsList>
 
         </div>
