@@ -46,7 +46,6 @@ import { DraggableScrollTable } from "@/components/ui/draggable-scroll-table";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { useDeptScope } from "@/hooks/useDeptScope";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BillboardDbConnection } from "@/components/master-data/BillboardDbConnection";
 import { Database as DatabaseIcon } from "lucide-react";
 import {
   Select,
@@ -233,74 +232,88 @@ const Billboards = () => {
     setCurrentPage(1);
   };
 
+  // Shared filter logic: used by both the on-screen list and Excel export
+  const getEquipmentIssueIds = async (): Promise<string[] | null> => {
+    if (!filters.equipmentStatus) return null;
+    const selected = filters.equipmentStatus.split(",").filter(Boolean);
+    const today = new Date().toISOString().split("T")[0];
+    const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    const { data: billboardEquipment, error: beError } = await supabase
+      .from("billboard_equipment")
+      .select(`
+        billboard_id,
+        equipment:equipment_id (expiry_date, warranty_expiry_date)
+      `);
+    if (beError) throw beError;
+    const ids = new Set<string>();
+    billboardEquipment?.forEach((be) => {
+      const eq = be.equipment as { expiry_date: string | null; warranty_expiry_date: string | null } | null;
+      if (!eq) return;
+      const matches =
+        (selected.includes("expired") && eq.expiry_date && eq.expiry_date < today) ||
+        (selected.includes("warranty_expired") && eq.warranty_expiry_date && eq.warranty_expiry_date < today) ||
+        (selected.includes("expiring_soon") && eq.expiry_date && eq.expiry_date >= today && eq.expiry_date <= thirtyDaysFromNow) ||
+        (selected.includes("warranty_expiring_soon") && eq.warranty_expiry_date && eq.warranty_expiry_date >= today && eq.warranty_expiry_date <= thirtyDaysFromNow);
+      if (matches) ids.add(be.billboard_id);
+    });
+    return Array.from(ids);
+  };
+
+  const applyFilters = (query: any, issueIds: string[] | null) => {
+    if (searchTerm) {
+      query = query.or(`equipment_id.ilike.%${searchTerm}%,old_code.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,location_name.ilike.%${searchTerm}%`);
+    }
+    if (filters.region) query = query.eq("region", filters.region);
+    if (filters.district) query = query.eq("district", filters.district);
+    if (filters.department) query = query.eq("department", filters.department);
+    if (filters.mediaType) query = query.eq("media_type", filters.mediaType);
+    if (filters.status) query = query.eq("status", filters.status);
+    if (filters.territory) query = query.eq("territory", filters.territory);
+    if (filters.mediaClass) query = query.eq("media_class", filters.mediaClass);
+    if (filters.mediaSegment) query = query.eq("media_segment", filters.mediaSegment);
+    if (filters.locationName) query = query.ilike("location_name", `%${filters.locationName}%`);
+    if (issueIds) query = query.in("id", issueIds);
+    if (!isSA) {
+      const depts = viewableDepts || [];
+      query = query.in("department", depts.length > 0 ? depts : ["__no_dept_permission__"]);
+    }
+    return query;
+  };
+
+  const fetchAllFiltered = async (): Promise<any[]> => {
+    const issueIds = await getEquipmentIssueIds();
+    if (issueIds && issueIds.length === 0) return [];
+    const PAGE = 1000;
+    const rows: any[] = [];
+    for (let from = 0; ; from += PAGE) {
+      const query = applyFilters(supabase.from("billboards").select("*"), issueIds)
+        .order(sortKey as string, { ascending: sortDir === "asc", nullsFirst: false })
+        .order("id")
+        .range(from, from + PAGE - 1);
+      const { data, error } = await query;
+      if (error) throw error;
+      rows.push(...(data || []));
+      if (!data || data.length < PAGE) break;
+    }
+    return rows;
+  };
+
   const { data: paginatedData, isLoading, refetch } = useQuery({
     queryKey: ["billboards", searchTerm, currentPage, pageSize, filters, sortKey, sortDir, deptKey],
     queryFn: async () => {
       const from = (currentPage - 1) * pageSize;
       const to = from + pageSize - 1;
-
-      let billboardIdsWithEquipmentIssues: string[] | null = null;
-
-      if (filters.equipmentStatus) {
-        const selected = filters.equipmentStatus.split(",").filter(Boolean);
-        const today = new Date().toISOString().split("T")[0];
-        const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-
-        const { data: billboardEquipment, error: beError } = await supabase
-          .from("billboard_equipment")
-          .select(`
-            billboard_id,
-            equipment:equipment_id (expiry_date, warranty_expiry_date)
-          `);
-
-        if (beError) throw beError;
-
-        const matchingBillboardIds = new Set<string>();
-        billboardEquipment?.forEach((be) => {
-          const eq = be.equipment as { expiry_date: string | null; warranty_expiry_date: string | null } | null;
-          if (!eq) return;
-          const matches =
-            (selected.includes("expired") && eq.expiry_date && eq.expiry_date < today) ||
-            (selected.includes("warranty_expired") && eq.warranty_expiry_date && eq.warranty_expiry_date < today) ||
-            (selected.includes("expiring_soon") && eq.expiry_date && eq.expiry_date >= today && eq.expiry_date <= thirtyDaysFromNow) ||
-            (selected.includes("warranty_expiring_soon") && eq.warranty_expiry_date && eq.warranty_expiry_date >= today && eq.warranty_expiry_date <= thirtyDaysFromNow);
-          if (matches) matchingBillboardIds.add(be.billboard_id);
-        });
-
-        billboardIdsWithEquipmentIssues = Array.from(matchingBillboardIds);
-        if (billboardIdsWithEquipmentIssues.length === 0) {
-          return { data: [], count: 0 };
-        }
-      }
-
-
-      let query = supabase
-        .from("billboards")
-        .select("*", { count: "exact" })
+      const issueIds = await getEquipmentIssueIds();
+      if (issueIds && issueIds.length === 0) return { data: [], count: 0 };
+      const query = applyFilters(
+        supabase.from("billboards").select("*", { count: "exact" }),
+        issueIds,
+      )
         .order(sortKey as string, { ascending: sortDir === "asc", nullsFirst: false })
         .range(from, to);
-
-      if (searchTerm) {
-        query = query.or(`equipment_id.ilike.%${searchTerm}%,old_code.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,location_name.ilike.%${searchTerm}%`);
-      }
-      if (filters.region) query = query.eq("region", filters.region);
-      if (filters.district) query = query.eq("district", filters.district);
-      if (filters.department) query = query.eq("department", filters.department);
-      if (filters.mediaType) query = query.eq("media_type", filters.mediaType);
-      if (filters.status) query = query.eq("status", filters.status);
-      if (filters.territory) query = query.eq("territory", filters.territory);
-      if (filters.mediaClass) query = query.eq("media_class", filters.mediaClass);
-      if (filters.mediaSegment) query = query.eq("media_segment", filters.mediaSegment);
-      if (filters.locationName) query = query.ilike("location_name", `%${filters.locationName}%`);
-      if (billboardIdsWithEquipmentIssues) query = query.in("id", billboardIdsWithEquipmentIssues);
-      if (!isSA) {
-        const depts = viewableDepts || [];
-        query = query.in("department", depts.length > 0 ? depts : ["__no_dept_permission__"]);
-      }
-
       const { data, error, count } = await query;
       if (error) throw error;
-      return { data, count: count || 0 };
+      return { data: data as BillboardRecord[], count: count || 0 };
     },
   });
 
@@ -550,7 +563,7 @@ const Billboards = () => {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <BillboardExport currentFilters={filters} />
+                <BillboardExport fetchRows={fetchAllFiltered} totalCount={totalCount} />
               </div>
 
             </div>
@@ -600,7 +613,7 @@ const Billboards = () => {
               <div>
                 <p className="font-medium">ไม่พบข้อมูลป้ายโฆษณา</p>
                 <p className="text-sm text-muted-foreground">
-                  ลองล้างตัวกรอง/คำค้นหา หรือกด "Sync ทันที" ในแท็บเชื่อมต่อเพื่อดึงข้อมูลจากระบบภายนอก
+                  ลองล้างตัวกรองหรือคำค้นหา
                 </p>
               </div>
               <div className="flex gap-2">
@@ -733,38 +746,10 @@ const Billboards = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-semibold text-foreground mb-2">ฐานข้อมูลป้ายโฆษณา</h1>
-        <p className="text-muted-foreground">จัดการข้อมูลป้ายโฆษณาและเชื่อมต่อข้อมูลจากระบบภายนอก</p>
+        <p className="text-muted-foreground">ค้นหาและดูข้อมูลป้ายโฆษณา</p>
       </div>
 
-      {isSuperAdmin ? (
-        <Tabs
-          value={activeTab}
-          onValueChange={(v) => {
-            const next = new URLSearchParams(searchParams);
-            if (v === "sync") next.set("tab", "sync");
-            else next.delete("tab");
-            setSearchParams(next, { replace: true });
-          }}
-          className="space-y-4"
-        >
-          <TabsList>
-            <TabsTrigger value="list" className="gap-2">
-              <MapPin className="h-4 w-4" />
-              รายการป้าย
-            </TabsTrigger>
-            <TabsTrigger value="sync" className="gap-2">
-              <DatabaseIcon className="h-4 w-4" />
-              เชื่อมต่อ &amp; Sync
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="list">{billboardsContent}</TabsContent>
-          <TabsContent value="sync">
-            <BillboardDbConnection />
-          </TabsContent>
-        </Tabs>
-      ) : (
-        billboardsContent
-      )}
+      {billboardsContent}
     </div>
   );
 };

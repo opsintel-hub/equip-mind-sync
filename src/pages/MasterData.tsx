@@ -104,7 +104,7 @@ const MasterData = () => {
         </p>
       </div>
 
-      <Tabs defaultValue={tabParam === "billboard_sync" && isSuperAdmin ? "billboard_sync" : defaultTab} className="w-full">
+      <Tabs key={tabParam ?? "default"} defaultValue={tabParam === "billboard_sync" && isSuperAdmin ? "billboard_sync" : defaultTab} className="w-full">
         <div className="w-full overflow-x-auto pb-2">
           <TabsList className="inline-flex w-max h-10 mb-0">
             {can("md_equipment") && (
