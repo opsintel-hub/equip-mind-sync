@@ -60,6 +60,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
 import { useIsSuperAdmin } from "@/hooks/useIsSuperAdmin";
 import { useLocation } from "react-router-dom";
@@ -337,10 +338,9 @@ const menuGroups: MenuGroup[] = [
 
 export function AppSidebar() {
   const { state } = useSidebar();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const { hasFunctionAccess, isAdmin, permissions, loading: permLoading } = useFunctionPermissions();
   const { isSuperAdmin, loading: superLoading } = useIsSuperAdmin();
-  const { user } = useAuth();
   const [isWarehouseStaff, setIsWarehouseStaff] = useState(false);
   useEffect(() => {
     if (!user?.id) { setIsWarehouseStaff(false); return; }
