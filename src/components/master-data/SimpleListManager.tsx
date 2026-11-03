@@ -96,7 +96,7 @@ export function SimpleListManager({
         const { error } = await supabase
           .from(tableName)
           .update({
-            name: formData.name.trim(),
+            name: tableName === "mp_sub_media_types" ? formData.name.trim().toUpperCase() : formData.name.trim(),
             description: formData.description.trim() || null,
           })
           .eq("id", editingItem.id);
@@ -105,7 +105,7 @@ export function SimpleListManager({
       } else {
         const nextSort = (items[items.length - 1]?.sort_order || 0) + 10;
         const { error } = await supabase.from(tableName).insert({
-          name: formData.name.trim(),
+          name: tableName === "mp_sub_media_types" ? formData.name.trim().toUpperCase() : formData.name.trim(),
           description: formData.description.trim() || null,
           sort_order: nextSort,
           is_active: true,

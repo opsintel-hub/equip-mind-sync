@@ -148,6 +148,7 @@ interface ExpandedRow {
 }
 
 export default function MediaPlayerReport() {
+  const subMediaTypes = useSubMediaTypes();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
