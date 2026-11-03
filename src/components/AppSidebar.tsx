@@ -85,6 +85,7 @@ interface MenuItem {
   /** OR-mode: user only needs ONE of these keys to see the item */
   functionNames?: string[];
   superAdminOnly?: boolean;
+  adminOrWarehouseOnly?: boolean;
   subItems?: SubMenuItem[];
 }
 
@@ -449,6 +450,7 @@ export function AppSidebar() {
         // Hide parent if it has subItems but none are visible
         if (item.subItems && item.subItems.length === 0) return false;
         if (item.superAdminOnly && !isSuperAdmin) return false;
+        if (item.adminOrWarehouseOnly) return isSuperAdmin || isAdmin || isWarehouseStaff;
         if (isAdmin) return true;
         // Check parent-level functionNames (OR) then functionName
         if (item.functionNames && item.functionNames.length > 0) {
