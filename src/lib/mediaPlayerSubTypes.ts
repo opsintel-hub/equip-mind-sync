@@ -12,7 +12,16 @@ export const SUB_MEDIA_TYPES = [
   "OPENTYPE_2",
 ] as const;
 
-export type SubMediaType = (typeof SUB_MEDIA_TYPES)[number];
+export type SubMediaType = string;
+
+/** Live list loaded from Master Data (mp_sub_media_types); falls back to presets. */
+let activeSubMediaTypes: string[] = [...SUB_MEDIA_TYPES];
+export function setActiveSubMediaTypes(list: string[]) {
+  if (list.length) activeSubMediaTypes = list;
+}
+export function getSubMediaTypes(): string[] {
+  return activeSubMediaTypes;
+}
 
 export function requiresSubMediaType(department?: string | null): boolean {
   if (!department) return false;
@@ -26,9 +35,9 @@ export function normalizeSubMediaType(
   if (!requiresSubMediaType(department)) return null;
   if (!value) return null;
   const v = String(value).trim().toUpperCase();
-  return (SUB_MEDIA_TYPES as readonly string[]).includes(v) ? (v as SubMediaType) : null;
+  return activeSubMediaTypes.includes(v) ? v : null;
 }
 
 export function isValidSubMediaType(value: string): value is SubMediaType {
-  return (SUB_MEDIA_TYPES as readonly string[]).includes(value);
+  return activeSubMediaTypes.includes(value);
 }

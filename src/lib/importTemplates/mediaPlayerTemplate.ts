@@ -1,6 +1,6 @@
 import * as XLSX from "xlsx";
 import type { RefLookups } from "./refData";
-import { SUB_MEDIA_TYPES, SEVEN_ELEVEN_DEPT_NAME } from "@/lib/mediaPlayerSubTypes";
+import { getSubMediaTypes, SEVEN_ELEVEN_DEPT_NAME } from "@/lib/mediaPlayerSubTypes";
 import { MEDIA_PLAYER_HEADERS as HEADERS, appendTemplateMeta } from "./templateVersion";
 
 export function downloadMediaPlayerTemplate(refs: RefLookups) {
@@ -23,7 +23,7 @@ export function downloadMediaPlayerTemplate(refs: RefLookups) {
     ["activate_windows", "", "Windows activation key/note"],
     ["company_name", "", "ดูชีต _ref_companies"],
     ["department", "", "ดูชีต _ref_departments"],
-    ["sub_media_type", `เฉพาะ ${SEVEN_ELEVEN_DEPT_NAME}`, `ต้องระบุเมื่อ department = "${SEVEN_ELEVEN_DEPT_NAME}" — เลือก 1 ใน 9 ค่า: ${SUB_MEDIA_TYPES.join(", ")}`],
+    ["sub_media_type", `เฉพาะ ${SEVEN_ELEVEN_DEPT_NAME}`, `ต้องระบุเมื่อ department = "${SEVEN_ELEVEN_DEPT_NAME}" — เลือก 1 ค่า: ${getSubMediaTypes().join(", ")}`],
     ["location_code", "✅", "ใช้ code จาก _ref_locations (คลังเริ่มต้น)"],
     ["supplier_code", "", "ใช้ code จาก _ref_suppliers"],
     ["item_condition", "✅", "new / used / refurbished"],
@@ -90,7 +90,7 @@ export function downloadMediaPlayerTemplate(refs: RefLookups) {
   appendRef(wb, "_ref_cms_types", ["name"], refs.cms_types.map((c) => ({ name: c.name })));
   appendRef(wb, "_ref_companies", ["name"], refs.companies.map((c) => ({ name: c.name })));
   appendRef(wb, "_ref_departments", ["name"], refs.departments);
-  appendRef(wb, "_ref_sub_media_types", ["value"], SUB_MEDIA_TYPES.map((v) => ({ value: v })));
+  appendRef(wb, "_ref_sub_media_types", ["value"], getSubMediaTypes().map((v) => ({ value: v })));
   appendRef(wb, "_ref_device_types", ["value", "label"], [
     { value: "MEDIA_PLAYER", label: "Media Player" },
     { value: "MONITOR", label: "จอภาพ (Monitor)" },

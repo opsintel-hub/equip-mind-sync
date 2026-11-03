@@ -1,3 +1,4 @@
+import { useSubMediaTypes } from "@/hooks/useSubMediaTypes";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -705,7 +706,7 @@ export default function MediaPlayerReport() {
               <SelectTrigger className="w-[170px]"><SelectValue placeholder="Sub Media Type" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทุก Sub Media Type</SelectItem>
-                {SUB_MEDIA_TYPES.map((v) => (<SelectItem key={v} value={v}>{v}</SelectItem>))}
+                {subMediaTypes.map((v) => (<SelectItem key={v} value={v}>{v}</SelectItem>))}
               </SelectContent>
             </Select>
             <Select value={companyFilter} onValueChange={setCompanyFilter}>

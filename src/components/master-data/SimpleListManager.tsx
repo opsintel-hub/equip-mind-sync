@@ -21,7 +21,8 @@ export type SimpleListTable =
   | "mp_symptoms"
   | "mp_assessment_results"
   | "mp_swap_reject_reasons"
-  | "mp_claim_results";
+  | "mp_claim_results"
+  | "mp_sub_media_types";
 
 interface SimpleListItem {
   id: string;

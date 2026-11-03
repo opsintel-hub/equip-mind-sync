@@ -1,6 +1,6 @@
 import type { RefLookups } from "./refData";
 import { parseLocationCodes } from "./locationCodes";
-import { SUB_MEDIA_TYPES, requiresSubMediaType, isValidSubMediaType } from "@/lib/mediaPlayerSubTypes";
+import { getSubMediaTypes, requiresSubMediaType, isValidSubMediaType } from "@/lib/mediaPlayerSubTypes";
 
 export interface ValidatedRow {
   rowNumber: number;
@@ -274,7 +274,7 @@ export function validateMediaPlayerRows(rows: any[], refs: RefLookups, existingS
     const subMediaTypeRaw = s(row.sub_media_type).toUpperCase();
     let subMediaType: string | null = null;
     if (requiresSubMediaType(department)) {
-      if (!subMediaTypeRaw) errors.push(`ฝ่าย 7-Eleven Media ต้องระบุ sub_media_type (${SUB_MEDIA_TYPES.join(" / ")})`);
+      if (!subMediaTypeRaw) errors.push(`ฝ่าย 7-Eleven Media ต้องระบุ sub_media_type (${getSubMediaTypes().join(" / ")})`);
       else if (!isValidSubMediaType(subMediaTypeRaw)) errors.push(`sub_media_type "${subMediaTypeRaw}" ไม่ถูกต้อง`);
       else subMediaType = subMediaTypeRaw;
     } else if (subMediaTypeRaw) {
