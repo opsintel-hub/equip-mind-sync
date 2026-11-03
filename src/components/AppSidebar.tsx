@@ -72,6 +72,8 @@ interface SubMenuItem {
   /** OR-mode: user only needs ONE of these keys to see the item */
   functionNames?: string[];
   superAdminOnly?: boolean;
+  /** Visible only to Super Admin, Admin and warehouse staff roles */
+  adminOrWarehouseOnly?: boolean;
 }
 
 interface MenuItem {
@@ -199,9 +201,9 @@ const menuGroups: MenuGroup[] = [
   {
     label: "เข้าพื้นที่คลัง",
     items: [
-      { title: "จองเข้าพื้นที่คลัง", url: "/site-access", icon: Ticket, functionName: "site_access_request" },
-      { title: "จัดการตั๋วเข้าพื้นที่", url: "/site-access-manage", icon: ClipboardCheck, functionName: "site_access_manage" },
-      { title: "จุดตรวจ รปภ.", url: "/site-access-gate", icon: ShieldCheck, functionName: "site_access_gate" },
+      { title: "จองเข้าพื้นที่คลัง", url: "/site-access", icon: Ticket, adminOrWarehouseOnly: true },
+      { title: "จัดการตั๋วเข้าพื้นที่", url: "/site-access-manage", icon: ClipboardCheck, superAdminOnly: true },
+      { title: "จุดตรวจ รปภ.", url: "/site-access-gate", icon: ShieldCheck, superAdminOnly: true },
       { title: "รายงานการขอเข้าพื้นที่", url: "/site-access-report", icon: FileBarChart2 },
     ]
   },
@@ -338,6 +340,13 @@ export function AppSidebar() {
   const { signOut } = useAuth();
   const { hasFunctionAccess, isAdmin, permissions, loading: permLoading } = useFunctionPermissions();
   const { isSuperAdmin, loading: superLoading } = useIsSuperAdmin();
+  const { user } = useAuth();
+  const [isWarehouseStaff, setIsWarehouseStaff] = useState(false);
+  useEffect(() => {
+    if (!user?.id) { setIsWarehouseStaff(false); return; }
+    supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "warehouse_staff").limit(1)
+      .then(({ data }) => setIsWarehouseStaff((data || []).length > 0));
+  }, [user?.id]);
   const hasAnyAccess = isAdmin || isSuperAdmin || permissions.some(p => p.can_access);
   const location = useLocation();
   
@@ -425,6 +434,7 @@ export function AppSidebar() {
         if (item.subItems) {
           const filteredSubItems = item.subItems.filter(sub => {
             if (sub.superAdminOnly && !isSuperAdmin) return false;
+            if (sub.adminOrWarehouseOnly) return isSuperAdmin || isAdmin || isWarehouseStaff;
             if (isAdmin) return true;
             if (sub.functionNames && sub.functionNames.length > 0) {
               return sub.functionNames.some(fn => hasFunctionAccess(fn));
@@ -448,7 +458,7 @@ export function AppSidebar() {
         return hasFunctionAccess(item.functionName);
       })
     })).filter(group => group.items.length > 0);
-  }, [hasFunctionAccess, isAdmin, permLoading, isSuperAdmin, superLoading, hasAnyAccess]);
+  }, [hasFunctionAccess, isAdmin, permLoading, isSuperAdmin, superLoading, hasAnyAccess, isWarehouseStaff]);
 
 
   const handleLogout = () => {
