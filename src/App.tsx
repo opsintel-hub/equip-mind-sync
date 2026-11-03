@@ -1,3 +1,4 @@
+import SuperAdminRoute from "@/components/guards/SuperAdminRoute";
 import React, { Suspense } from "react";
 import { lazyRetry } from "@/lib/lazyRetry";
 import { Toaster } from "@/components/ui/toaster";
@@ -153,8 +154,8 @@ const App = () => (
             <Route path="/admin" element={<Protected><Admin /></Protected>} />
             <Route path="/qr-code" element={<Protected><QRCodePage /></Protected>} />
             <Route path="/site-access" element={<Protected><SiteAccessRequest /></Protected>} />
-            <Route path="/site-access-manage" element={<Protected><SiteAccessManage /></Protected>} />
-            <Route path="/site-access-gate" element={<Protected><SiteAccessGate /></Protected>} />
+            <Route path="/site-access-manage" element={<Protected><SuperAdminRoute><SiteAccessManage /></SuperAdminRoute></Protected>} />
+            <Route path="/site-access-gate" element={<Protected><SuperAdminRoute><SiteAccessGate /></SuperAdminRoute></Protected>} />
             <Route path="/site-access-report" element={<Protected><SiteAccessReport /></Protected>} />
             <Route path="/transfer-history" element={<Protected><TransferHistory /></Protected>} />
             <Route path="/pm-history" element={<Protected><PMHistory /></Protected>} />
