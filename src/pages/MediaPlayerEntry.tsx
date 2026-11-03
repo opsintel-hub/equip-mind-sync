@@ -1,3 +1,4 @@
+import { useSubMediaTypes } from "@/hooks/useSubMediaTypes";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -85,6 +86,7 @@ interface MediaPlayer {
 }
 
 const MediaPlayerEntry = () => {
+  const subMediaTypes = useSubMediaTypes();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [mediaPlayers, setMediaPlayers] = useState<MediaPlayer[]>([]);
@@ -818,7 +820,7 @@ const MediaPlayerEntry = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">ทุก Sub Media Type</SelectItem>
-                        {SUB_MEDIA_TYPES.map((v) => (
+                        {subMediaTypes.map((v) => (
                           <SelectItem key={v} value={v}>{v}</SelectItem>
                         ))}
                       </SelectContent>

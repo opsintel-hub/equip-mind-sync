@@ -1,6 +1,6 @@
+import { useSubMediaTypes } from "@/hooks/useSubMediaTypes";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { SUB_MEDIA_TYPES } from "@/lib/mediaPlayerSubTypes";
 
 interface Props {
   value: string | null | undefined;
@@ -15,6 +15,7 @@ interface Props {
 const NONE = "__none__";
 
 export function SubMediaTypeSelect({ value, onChange, required, disabled, label, hint, id }: Props) {
+  const subMediaTypes = useSubMediaTypes();
   return (
     <div className="space-y-1.5">
       {label !== "" && (
@@ -33,7 +34,7 @@ export function SubMediaTypeSelect({ value, onChange, required, disabled, label,
         </SelectTrigger>
         <SelectContent>
           {!required && <SelectItem value={NONE}>-- ไม่ระบุ --</SelectItem>}
-          {SUB_MEDIA_TYPES.map((v) => (
+          {subMediaTypes.map((v) => (
             <SelectItem key={v} value={v}>{v}</SelectItem>
           ))}
         </SelectContent>

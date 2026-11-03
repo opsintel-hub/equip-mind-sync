@@ -599,6 +599,12 @@ const MasterData = () => {
             itemLabel="ผลการเคลม"
           />
           <RepairActionsManager />
+          <SimpleListManager
+            tableName="mp_sub_media_types"
+            title="ตำแหน่งสื่อย่อย (Sub Media Type) — 7-Eleven Media"
+            description="ตัวเลือกตำแหน่งติดตั้งในร้าน ใช้ตอนรับของ จ่ายของ แก้ไขเครื่อง รายงาน และนำเข้า Excel (ใช้ชื่อตัวพิมพ์ใหญ่ เช่น TOPSHELF_4)"
+            itemLabel="ตำแหน่งสื่อย่อย"
+          />
 
         </TabsContent>
         )}
