@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,6 +17,8 @@ export function DepartmentMultiFilter({ value, onChange, showAll = true }: Depar
   const { getViewableDepartments, isAdmin, loading } = useDepartmentPermissions();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [moreBelow, setMoreBelow] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const viewableDepartments = getViewableDepartments();
 
@@ -40,6 +42,21 @@ export function DepartmentMultiFilter({ value, onChange, showAll = true }: Depar
     () => filterDepartmentOptions(viewableDepartments, query),
     [viewableDepartments, query],
   );
+
+  const refreshScrollHint = () => {
+    const el = listRef.current;
+    if (!el) {
+      setMoreBelow(false);
+      return;
+    }
+    setMoreBelow(el.scrollHeight - el.scrollTop - el.clientHeight > 4);
+  };
+
+  // Recompute the "scroll for more" hint whenever the list content changes
+  useEffect(() => {
+    const id = window.requestAnimationFrame(refreshScrollHint);
+    return () => window.cancelAnimationFrame(id);
+  }, [matches, open]);
 
   const toggle = (dept: string) => {
     if (value.includes(dept)) {
@@ -96,33 +113,48 @@ export function DepartmentMultiFilter({ value, onChange, showAll = true }: Depar
           )}
         </div>
 
-        <div className="max-h-72 overflow-y-auto filter-scrollbar pr-1 space-y-1">
-          {!searching && (showAll || isAdmin) && (
-            <label className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm font-medium">
-              <Checkbox checked={isAllSelected} onCheckedChange={() => selectAll()} />
-              <span>ทุกฝ่าย</span>
-            </label>
-          )}
-          {matches.map(dept => (
-            <label key={dept} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm">
-              <Checkbox
-                checked={isAllSelected || value.includes(dept)}
-                onCheckedChange={() => {
-                  if (isAllSelected) {
-                    // If "all" was selected, clicking a specific one means select only that one
-                    onChange([dept]);
-                  } else {
-                    toggle(dept);
-                  }
-                }}
-              />
-              <span>{dept}</span>
-            </label>
-          ))}
-          {searching && matches.length === 0 && (
-            <p className="px-2 py-3 text-center text-xs text-muted-foreground">
-              ไม่พบฝ่ายที่ตรงกกัน
-            </p>
+        <div className="relative">
+          <div
+            ref={listRef}
+            onScroll={refreshScrollHint}
+            className="max-h-[420px] overflow-y-auto filter-scrollbar pr-1 space-y-1"
+          >
+            {!searching && (showAll || isAdmin) && (
+              <label className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm font-medium">
+                <Checkbox checked={isAllSelected} onCheckedChange={() => selectAll()} />
+                <span>ทุกฝ่าย</span>
+              </label>
+            )}
+            {matches.map(dept => (
+              <label key={dept} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm">
+                <Checkbox
+                  checked={isAllSelected || value.includes(dept)}
+                  onCheckedChange={() => {
+                    if (isAllSelected) {
+                      // If "all" was selected, clicking a specific one means select only that one
+                      onChange([dept]);
+                    } else {
+                      toggle(dept);
+                    }
+                  }}
+                />
+                <span>{dept}</span>
+              </label>
+            ))}
+            {searching && matches.length === 0 && (
+              <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+                ไม่พบฝ่ายที่ตรงกกัน
+              </p>
+            )}
+          </div>
+
+          {moreBelow && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center">
+              <span className="flex items-center gap-1 rounded-full bg-background/95 px-2 py-0.5 text-[11px] text-muted-foreground shadow ring-1 ring-border">
+                <ChevronDown className="h-3 w-3" />
+                เลื่อนลงดูตอไป
+              </span>
+            </div>
           )}
         </div>
 
