@@ -37,3 +37,4 @@
 - [x] Verify split old-part returns: 40 tests; authenticated isolated 10/6/4/2/3/1 save and UI readback; test documents removed, real GI-REQ-000207 unchanged
 - [x] Issue consumables/non-serial equipment in aggregate without per-unit S/N forms; retain serial and Media Player workflows
 - [x] Verify aggregate quantities and billboard installation with 34 passing tests; authenticated GI-REQ-000203 opens 50,000/100,000-unit dialogs and quantity editing without per-unit cards or browser errors; no live stock issued
+- [x] Add search box, taller list and visible scroll affordance to the department filter dropdown; 7 new helper tests, 152 lib tests pass, authenticated dropdown shows all 11 rows and filters "hello" to 3

@@ -1,11 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDepartmentPermissions } from "@/hooks/useDepartmentPermissions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Search, X } from "lucide-react";
+import { filterDepartmentOptions } from "@/lib/departmentFilter";
 
 interface DepartmentMultiFilterProps {
   value: string[];
@@ -15,6 +15,10 @@ interface DepartmentMultiFilterProps {
 
 export function DepartmentMultiFilter({ value, onChange, showAll = true }: DepartmentMultiFilterProps) {
   const { getViewableDepartments, isAdmin, loading } = useDepartmentPermissions();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [moreBelow, setMoreBelow] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const viewableDepartments = getViewableDepartments();
 
@@ -27,7 +31,32 @@ export function DepartmentMultiFilter({ value, onChange, showAll = true }: Depar
     }
   }, [loading, isAdmin, viewableDepartments, value, onChange]);
 
+  // Clear the search box whenever the dropdown closes
+  useEffect(() => {
+    if (!open) setQuery("");
+  }, [open]);
+
   const isSingleDepartment = !isAdmin && viewableDepartments.length === 1;
+  const searching = query.trim().length > 0;
+  const matches = useMemo(
+    () => filterDepartmentOptions(viewableDepartments, query),
+    [viewableDepartments, query],
+  );
+
+  const refreshScrollHint = () => {
+    const el = listRef.current;
+    if (!el) {
+      setMoreBelow(false);
+      return;
+    }
+    setMoreBelow(el.scrollHeight - el.scrollTop - el.clientHeight > 4);
+  };
+
+  // Recompute the "scroll for more" hint whenever the list content changes
+  useEffect(() => {
+    const id = window.requestAnimationFrame(refreshScrollHint);
+    return () => window.cancelAnimationFrame(id);
+  }, [matches, open]);
 
   const toggle = (dept: string) => {
     if (value.includes(dept)) {
@@ -51,7 +80,7 @@ export function DepartmentMultiFilter({ value, onChange, showAll = true }: Depar
     : `${value.length} ฝ่าย`;
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -62,16 +91,41 @@ export function DepartmentMultiFilter({ value, onChange, showAll = true }: Depar
           <ChevronDown className="w-3.5 h-3.5 ml-1 opacity-50 flex-shrink-0" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-2 z-[200]" align="start">
-        <ScrollArea className="max-h-64">
-          <div className="space-y-1">
-            {(showAll || isAdmin) && (
+      <PopoverContent className="w-64 p-2 z-[200]" align="start">
+        <div className="relative mb-2">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          <Input
+            aria-label="ค้นหาฝ่าย"
+            placeholder="ค้นหาฝ่าย..."
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            className="h-8 pl-8 pr-8 text-sm"
+          />
+          {searching && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label="ลางคำค้นหา"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        <div className="relative">
+          <div
+            ref={listRef}
+            onScroll={refreshScrollHint}
+            className="max-h-[420px] overflow-y-auto filter-scrollbar pr-1 space-y-1"
+          >
+            {!searching && (showAll || isAdmin) && (
               <label className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm font-medium">
                 <Checkbox checked={isAllSelected} onCheckedChange={() => selectAll()} />
                 <span>ทุกฝ่าย</span>
               </label>
             )}
-            {viewableDepartments.map(dept => (
+            {matches.map(dept => (
               <label key={dept} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm">
                 <Checkbox
                   checked={isAllSelected || value.includes(dept)}
@@ -87,8 +141,29 @@ export function DepartmentMultiFilter({ value, onChange, showAll = true }: Depar
                 <span>{dept}</span>
               </label>
             ))}
+            {searching && matches.length === 0 && (
+              <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+                ไม่พบฝ่ายที่ตรงกกัน
+              </p>
+            )}
           </div>
-        </ScrollArea>
+
+          {moreBelow && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center">
+              <span className="flex items-center gap-1 rounded-full bg-background/95 px-2 py-0.5 text-[11px] text-muted-foreground shadow ring-1 ring-border">
+                <ChevronDown className="h-3 w-3" />
+                เลื่อนลงดูตอไป
+              </span>
+            </div>
+          )}
+        </div>
+
+        {searching && (
+          <p className="px-1 pt-1 text-[11px] text-muted-foreground">
+            พบ {matches.length} จาก {viewableDepartments.length} ฝ่าย
+          </p>
+        )}
+
         {value.length > 0 && (
           <Button variant="ghost" size="sm" className="w-full mt-1 text-xs" onClick={selectAll}>
             เลือกทุกฝ่าย
