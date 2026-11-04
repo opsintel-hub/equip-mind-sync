@@ -15,30 +15,34 @@ import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { PackageCheck } from "lucide-react";
 import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
+import { useDeptScope } from "@/hooks/useDeptScope";
+import { allRows } from "@/lib/fetchAllRows";
 import { receiptStorageDefault } from "@/lib/receiptStorage";
 
 export function usePendingGoodReturns() {
+  const { deptKey, loading, applyDeptFilter } = useDeptScope();
   return useQuery({
-    queryKey: ["issue-good-returns-pending"],
+    queryKey: ["issue-good-returns-pending",deptKey], enabled: !loading,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await allRows(applyDeptFilter(supabase
         .from("issue_good_returns")
         .select("*")
         .eq("status", "pending")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }).order("id")));
       if (error) throw error;
       return data || [];
     },
   });
 }
 
-export function PendingGoodReturns() {
+export function PendingGoodReturns({ filteredRows }: { filteredRows?: any[] }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const { allowedDepartments } = useAllowedDepartments();
   const defaultRequest = useRef(0);
   const [loadingDefault, setLoadingDefault] = useState(false);
-  const { data: rows = [] } = usePendingGoodReturns();
+  const { data: fetchedRows = [] } = usePendingGoodReturns();
+  const rows = filteredRows ?? fetchedRows;
   useRealtimeInvalidate({ table: "issue_good_returns", queryKeys: [["issue-good-returns-pending"]] });
 
   const { data: canReceive = false } = useQuery({

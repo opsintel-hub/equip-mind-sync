@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
+import { allRows } from "@/lib/fetchAllRows";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Batch = Tables<"warehouse_transfer_batches">;
@@ -24,8 +25,8 @@ export function usePendingWarehouseTransfers() {
     queryKey: ["warehouse-transfer-pending", user?.id, deptKey],
     enabled: !!user && !loading,
     queryFn: async () => {
-      const { data, error } = await supabase.from("warehouse_transfer_batches")
-        .select("*").eq("status", "in_transit").order("dispatched_at", { ascending: false });
+      const { data, error } = await allRows<Batch>(supabase.from("warehouse_transfer_batches")
+        .select("*").eq("status", "in_transit").order("dispatched_at", { ascending: false }).order("id"));
       if (error) throw error;
       const warehouseIds = [...new Set((data || []).map(b => b.destination_warehouse_id))];
       const permitted = await Promise.all(warehouseIds.map(async id => {
@@ -38,10 +39,11 @@ export function usePendingWarehouseTransfers() {
   });
 }
 
-export function PendingWarehouseTransfers() {
+export function PendingWarehouseTransfers({ filteredRows, departmentByPending = {} }: { filteredRows?: Batch[]; departmentByPending?: Record<string,string> }) {
   const qc = useQueryClient();
   const { user } = useAuth();
-  const { data: rows = [], isError } = usePendingWarehouseTransfers();
+  const { data: fetchedRows = [], isError } = usePendingWarehouseTransfers();
+  const rows = filteredRows ?? fetchedRows;
   const [target, setTarget] = useState<Batch | null>(null);
   const [locationId, setLocationId] = useState("");
   const [saving, setSaving] = useState(false);
@@ -100,11 +102,12 @@ export function PendingWarehouseTransfers() {
       <div className="flex items-center gap-2 font-medium"><ArrowRightLeft className="h-4 w-4 text-primary" /> สินค้าโอนย้ายรอรับเข้า ({rows.length})</div>
       <div className="overflow-x-auto rounded-md border">
         <Table>
-          <TableHeader><TableRow><TableHead>เลขที่เอกสาร</TableHead><TableHead>สินค้า</TableHead><TableHead>S/N</TableHead><TableHead>จำนวน</TableHead><TableHead>สถานะ</TableHead><TableHead /></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>เลขที่เอกสาร</TableHead><TableHead>ฝ่ายผู้เบิก</TableHead><TableHead>สินค้า</TableHead><TableHead>S/N</TableHead><TableHead>จำนวน</TableHead><TableHead>สถานะ</TableHead><TableHead /></TableRow></TableHeader>
           <TableBody>
-            {rows.length === 0 ? <TableRow><TableCell colSpan={6} className="py-6 text-center text-muted-foreground">{isError ? "โหลดรายการรับโอนไม่สำเร็จ" : "ไม่มีสินค้าโอนย้ายรอรับเข้า"}</TableCell></TableRow> : rows.map(row => (
+            {rows.length === 0 ? <TableRow><TableCell colSpan={7} className="py-6 text-center text-muted-foreground">{isError ? "โหลดรายการรับโอนไม่สำเร็จ" : "ไม่มีสินค้าโอนย้ายรอรับเข้า"}</TableCell></TableRow> : rows.map(row => (
               <TableRow key={row.id}>
                 <TableCell className="font-medium">{row.document_no}</TableCell>
+                <TableCell>{departmentByPending[row.pending_id] || "ไม่ระบุฝ่าย"}</TableCell>
                 <TableCell>{row.equipment_code} {row.equipment_name}</TableCell>
                 <TableCell className="whitespace-pre-line font-mono text-xs">{row.serial_number || "-"}</TableCell>
                 <TableCell>{transferReceiptQuantity(row.quantity, 0)} {row.unit}</TableCell>

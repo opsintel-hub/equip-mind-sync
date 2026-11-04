@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { lineIssued, lineInstalled, lineLeft, type IssueQuantities } from "@/lib/issueQuantities";
+import { agingBucket, issueAge, matchesFollowUp, type FollowUpFilters } from "@/lib/incompleteIssueReport";
 import { formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
 
 interface UsageLine extends IssueQuantities {
@@ -52,7 +53,7 @@ interface UsageRow {
 
 const displayDate = (value: string | null) => value ? format(new Date(value), "d MMM yyyy HH:mm", { locale: th }) : "-";
 
-export function AwaitingUsageTab() {
+export function AwaitingUsageTab({ sharedFilters }: { sharedFilters?: FollowUpFilters }) {
   const { isSuperAdmin, viewableDepts, deptKey, loading: scopeLoading } = useDeptScope();
   const [search, setSearch] = useState("");
   const [serialSearch, setSerialSearch] = useState("");
@@ -85,7 +86,7 @@ export function AwaitingUsageTab() {
         const ids = headers.slice(start, start + 100).map(header => header.id);
         for (let offset = 0; ; offset += 500) {
           const { data, error } = await supabase.from("goods_issue_pending_items")
-            .select("id, pending_id, equipment_code, equipment_name, serial_number, quantity, issued_quantity, installed_qty, billboard_id, returned_good_qty, returned_defective_qty, swap_returned_defective_qty, written_off_qty, transferred_qty, unit, notes")
+            .select("id, pending_id, equipment_code, equipment_name, serial_number, media_player_id, is_media_player, quantity, issued_quantity, installed_qty, billboard_id, returned_good_qty, returned_defective_qty, swap_returned_defective_qty, written_off_qty, transferred_qty, unit, notes")
             .in("pending_id", ids).order("id").range(offset, offset + 499);
           if (error) throw error;
           for (const line of data || []) {
@@ -126,12 +127,13 @@ export function AwaitingUsageTab() {
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return rows.filter(({ header, line }) =>
+      (!sharedFilters || matchesFollowUp({ id:line.id, documentId:header.id, documentNo:header.document_no, department:header.requester_department || "ไม่ระบุฝ่าย", person:header.requester_name, purpose:header.purpose || "ไม่ระบุวัตถุประสงค์", issuedAt:header.issued_at, days:issueAge(header.issued_at), bucket:agingBucket(issueAge(header.issued_at)), code:line.equipment_code || "", name:line.equipment_name || "", serial:line.serial_number || "", unit:line.unit || "", isMediaPlayer:!!(line as any).media_player_id, billboardQty:0,returnQty:0,receiptQty:0,usageQty:lineLeft(line)},sharedFilters)) &&
       matchesSerialSearch(serialSearch, line.serial_number) &&
       (!term || [header.document_no, header.requester_name, header.requester_department,
         header.companies?.name, header.purpose, line.equipment_code, line.equipment_name]
         .some(value => value?.toLowerCase().includes(term))),
     );
-  }, [rows, search, serialSearch]);
+  }, [rows, search, serialSearch, sharedFilters]);
   const pagination = useTablePagination(filtered, 20);
   const busy = scopeLoading || isLoading;
 
@@ -173,12 +175,12 @@ export function AwaitingUsageTab() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-48">
+        <div className={sharedFilters ? "hidden" : "relative flex-1 min-w-48"}>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input aria-label="ค้นหา S/N หรือ Alias" placeholder="S/N หรือ Alias" className="pl-9" value={serialSearch}
             onChange={event => { setSerialSearch(event.target.value); pagination.handlePageChange(1); }} />
         </div>
-        <div className="relative flex-1 min-w-48">
+        <div className={sharedFilters ? "hidden" : "relative flex-1 min-w-48"}>
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input aria-label="ค้นหาสินค้ารอใช้งาน" placeholder="รหัส, ชื่อสินค้า, เลขเอกสาร, ผู้เบิก, ฝ่าย" className="pl-9" value={search}
             onChange={event => { setSearch(event.target.value); pagination.handlePageChange(1); }} />
