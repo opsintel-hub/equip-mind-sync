@@ -31,6 +31,11 @@ import { SpecialRequestDialog } from "@/components/special-request/SpecialReques
 import { PendingGoodReturns, usePendingGoodReturns } from "@/components/issue/PendingGoodReturns";
 import { PendingWarehouseTransfers, usePendingWarehouseTransfers } from "@/components/issue/PendingWarehouseTransfers";
 import { AwaitingUsageTab } from "@/components/issue/AwaitingUsageTab";
+import { IssueFollowUpFilters } from "@/components/issue/IssueFollowUpFilters";
+import { IssueMeetingReport } from "@/components/issue/IssueMeetingReport";
+import { useIssueFollowUpData } from "@/hooks/useIssueFollowUpData";
+import { agingBucket, issueAge, matchesFollowUp, emptyFollowUpFilters, type FollowUpRow } from "@/lib/incompleteIssueReport";
+import { allRows } from "@/lib/fetchAllRows";
 import { lineIssued, lineInstalled, lineLeft, billboardLeft, returnLeftIndependent } from "@/lib/issueQuantities";
 
 interface IncompleteIssue {
@@ -88,8 +93,9 @@ interface IssuePurpose {
 const IncompleteIssues = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
-  const [searchTerm, setSearchTerm] = useState("");
+  const { isSuperAdmin, viewableDepts, deptKey, loading: scopeLoading } = useDeptScope();
+  const [filters, setFilters] = useState(emptyFollowUpFilters);
+  const followUp = useIssueFollowUpData();
   const [activeTab, setActiveTab] = useState("billboard");
   const [selectedIssue, setSelectedIssue] = useState<IncompleteIssue | null>(null);
   const [selectedItem, setSelectedItem] = useState<PendingItem | null>(null);
@@ -154,6 +160,7 @@ const IncompleteIssues = () => {
   // Fetch incomplete issues (issued but missing billboard or waiting for return)
   const { data: incompleteIssues, isLoading } = useQuery({
     queryKey: ["incomplete-issues", deptKey],
+    enabled: !scopeLoading,
     queryFn: async () => {
       // First get purposes that require billboard or return
       const { data: purposes } = await supabase
@@ -173,7 +180,7 @@ const IncompleteIssues = () => {
         const depts = viewableDepts || [];
         listQ = listQ.in("requester_department", depts.length > 0 ? depts : ["__no_dept_permission__"]);
       }
-      const { data, error } = await listQ;
+      const { data, error } = await allRows(listQ.order("id"));
 
       if (error) throw error;
 
@@ -181,13 +188,14 @@ const IncompleteIssues = () => {
       const ids = (data || []).map((d: any) => d.id);
       const itemsByPending = new Map<string, any[]>();
       if (ids.length > 0) {
-        const { data: itemRows } = await supabase
+        const { data: itemRows, error: itemError } = await allRows(supabase
           .from("goods_issue_pending_items")
           .select("pending_id, billboard_id, status, needs_return, issued_quantity, quantity, installed_qty, returned_good_qty, returned_defective_qty, swap_returned_defective_qty, installation_return_settled_qty, written_off_qty, transferred_qty")
-          .in("pending_id", ids);
+          .in("pending_id", ids).order("id"));
+        if (itemError) throw itemError;
         (itemRows || []).forEach((r: any) => {
           if (!itemsByPending.has(r.pending_id)) itemsByPending.set(r.pending_id, []);
-          itemsByPending.get(r.pending_id)!.push(r);
+          itemsByPending.get(r.pending_id)?.push(r);
         });
       }
 
@@ -238,21 +246,24 @@ const IncompleteIssues = () => {
 
 
   // Fetch defective returns pending warehouse entry
-  const { data: defectiveReturns = [] } = useQuery({
-    queryKey: ["defective-returns-pending"],
+  const { data: defectiveReturns = [], isLoading: defectiveLoading, error: defectiveError } = useQuery({
+    queryKey: ["defective-returns-pending", deptKey],
+    enabled: !scopeLoading,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("defective_returns")
-        .select("*, media_players:media_player_id(device_type)")
+        .select("*, media_players:media_player_id(device_type, code, name, serial_number_1, serial_number_2), equipment:equipment_id(code, name, unit)")
         .eq("status", "pending_warehouse_entry")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }).order("id");
+      if (!isSuperAdmin) query = query.in("reporter_department", viewableDepts?.length ? viewableDepts : ["__no_dept_permission__"]);
+      const { data, error } = await allRows(query);
       if (error) throw error;
       return data || [];
     },
   });
 
-  const { data: pendingGood = [] } = usePendingGoodReturns();
-  const { data: pendingTransfers = [] } = usePendingWarehouseTransfers();
+  const { data: pendingGood = [], isLoading: goodLoading, error: goodError } = usePendingGoodReturns();
+  const { data: pendingTransfers = [], isLoading: transferLoading, error: transferError } = usePendingWarehouseTransfers();
 
   // Fetch items for all incomplete issues
   const issueIds = useMemo(() => (incompleteIssues?.issues || []).map(i => i.id), [incompleteIssues]);
@@ -262,11 +273,11 @@ const IncompleteIssues = () => {
     queryFn: async () => {
       if (issueIds.length === 0) return [];
       
-      const { data, error } = await supabase
+      const { data, error } = await allRows(supabase
         .from("goods_issue_pending_items")
         .select("*")
         .in("pending_id", issueIds)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }).order("id"));
 
       if (error) throw error;
       return data as PendingItem[];
@@ -281,7 +292,7 @@ const IncompleteIssues = () => {
       if (!map.has(item.pending_id)) {
         map.set(item.pending_id, []);
       }
-      map.get(item.pending_id)!.push(item);
+      map.get(item.pending_id)?.push(item);
     });
     return map;
   }, [allItems]);
@@ -604,21 +615,40 @@ const IncompleteIssues = () => {
     return items.filter(item => item.status === "issued" && (both ? billboardLeft(item) : lineLeft(item)) > 0);
   };
 
-  const filteredIssues = incompleteIssues?.issues.filter(
-    (issue) => {
-      const term = searchTerm.toLowerCase();
-      if (!term) return true;
-      if (issue.document_no?.toLowerCase().includes(term) ||
-          issue.equipment_code?.toLowerCase().includes(term) ||
-          issue.equipment_name?.toLowerCase().includes(term) ||
-          issue.requester_name?.toLowerCase().includes(term)) return true;
-      const items = itemsByIssue.get(issue.id) || [];
-      return items.some((item: any) => item.serial_number?.toLowerCase().includes(term));
-    }
-  ) || [];
-
+  const headerMap = new Map((followUp.data?.headers || []).map(h => [h.id, h]));
+  const headerByDoc = new Map((followUp.data?.headers || []).map(h => [h.document_no, h]));
+  const receiptRow = (r: any, kind: "good" | "defective" | "transfer"): FollowUpRow => {
+    const header = headerMap.get(r.pending_id) || headerByDoc.get(r.source_document || r.document_no);
+    const issuedAt = header?.issued_at || (kind === "transfer" ? r.dispatched_at : null);
+    const days = issueAge(issuedAt);
+    return { id: `${kind}:${r.id}`, documentId: header?.id || r.source_document || r.document_no || r.id,
+      documentNo: header?.document_no || r.document_no || "—", department: kind === "defective" ? r.reporter_department || "ไม่ระบุฝ่าย" : kind === "good" ? r.department || "ไม่ระบุฝ่าย" : header?.requester_department || "ไม่ระบุฝ่าย",
+      person: kind === "defective" ? r.reporter_name || "ไม่ระบุผู้ส่งคืน" : kind === "good" ? r.submitted_by_name || "ไม่ระบุผู้ส่งคืน" : header?.requester_name || "คลังปลายทาง",
+      purpose: header?.purpose || "ไม่ระบุวัตถุประสงค์", issuedAt, days, bucket: agingBucket(days),
+      code: r.equipment_code || r.equipment?.code || r.media_players?.code || "—", name: r.equipment_name || r.equipment?.name || r.media_players?.name || (kind === "defective" ? "ของเสียรอรับเข้า" : "—"), serial: r.serial_number || [r.media_players?.serial_number_1,r.media_players?.serial_number_2].filter(Boolean).join("\n"), unit: r.unit || r.equipment?.unit || (r.is_media_player ? "เครื่อง" : "ไม่ระบุหน่วย"),
+      isMediaPlayer: !!(r.is_media_player || r.media_player_id), billboardQty:0, returnQty:0, usageQty:0, receiptQty:Number(r.quantity || 0), receiptKind:kind };
+  };
+  const goodRows = pendingGood.map(r => receiptRow(r,"good"));
+  const transferRows = pendingTransfers.map(r => receiptRow(r,"transfer"));
+  const defectiveRows = defectiveReturns.map(r => receiptRow(r,"defective"));
+  const reportRows = [...(followUp.data?.rows || []), ...goodRows, ...transferRows, ...defectiveRows].filter(r => matchesFollowUp(r,filters));
+  const filteredGood = pendingGood.filter((r,i) => matchesFollowUp(goodRows[i],filters));
+  const filteredTransfers = pendingTransfers.filter((r,i) => matchesFollowUp(transferRows[i],filters));
+  const filteredDefective = defectiveReturns.filter((r,i) => matchesFollowUp(defectiveRows[i],filters));
+  const visibleIds = new Set(reportRows.filter(r => !r.receiptKind).map(r=>r.documentId));
+  const filteredIssues = (incompleteIssues?.issues || []).filter(issue => visibleIds.has(issue.id));
   const billboardIssues = filteredIssues.filter(needsBillboard);
   const returnIssues = filteredIssues.filter(needsReturn);
+  const filterPurposes = [...new Set([...(followUp.data?.rows || []).map(r=>r.purpose), ...goodRows.map(r=>r.purpose), ...transferRows.map(r=>r.purpose), ...defectiveRows.map(r=>r.purpose)])].sort();
+  const reportAction = (row: FollowUpRow, stage: string) => {
+    setActiveTab(stage);
+    setFilters({ ...emptyFollowUpFilters(), departments: row.department === "ไม่ระบุฝ่าย" ? [] : [row.department], search: row.documentNo });
+    setExpandedRequests(new Set([row.documentId]));
+    const issue = incompleteIssues?.issues.find(i=>i.id===row.documentId);
+    const item = allItems.find(i=>i.id===row.id);
+    if (issue && item && stage === "billboard") handleAssignBillboardToItem(issue,item);
+    if (issue && item && stage === "return") { setReturnTarget({issue,item:item as unknown as ReturnItemLine}); setItemReturnOpen(true); }
+  };
 
   const getItemStatusBadge = (item: PendingItem) => {
     const installStatus = (item as any).install_status as string | undefined;
@@ -666,34 +696,18 @@ const IncompleteIssues = () => {
                 รอส่งคืน: {returnIssues.length}
               </Badge>
             )}
-            {defectiveReturns.length > 0 && (
+            {filteredDefective.length > 0 && (
               <Badge variant="secondary" className="text-lg px-4 py-2">
                 <Warehouse className="w-4 h-4 mr-1" />
-                รอเข้าคลัง: {defectiveReturns.length}
+                รอเข้าคลัง: {filteredDefective.length + filteredGood.length + filteredTransfers.length}
               </Badge>
             )}
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>รายการที่ต้องดำเนินการ</CardTitle>
-            <CardDescription>อัปเดตข้อมูลเพื่อปิดการเบิกให้สมบูรณ์</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <section className="space-y-4">
+          <IssueFollowUpFilters value={filters} onChange={setFilters} purposes={filterPurposes} />
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className={activeTab === "awaiting-usage" ? "hidden" : "flex items-center gap-2 mb-4"}>
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="ค้นหาเลขที่เอกสาร, รหัส, ชื่อสินค้า, S/N..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
               <div className="mb-4 max-w-full overflow-x-auto">
               <TabsList className="w-max whitespace-nowrap">
                 <TabsTrigger value="billboard" className="gap-2">
@@ -706,16 +720,18 @@ const IncompleteIssues = () => {
                 </TabsTrigger>
                 <TabsTrigger value="warehouse" className="gap-2">
                   <Warehouse className="w-4 h-4" />
-                  รอเข้าคลัง ({defectiveReturns.length + pendingGood.length + pendingTransfers.length})
+                  รอเข้าคลัง ({filteredDefective.length + filteredGood.length + filteredTransfers.length})
                 </TabsTrigger>
                 <TabsTrigger value="awaiting-usage" className="gap-2">
                   <Package className="w-4 h-4" />
                   สินค้ารอใช้งาน
                 </TabsTrigger>
+                <TabsTrigger value="report" className="gap-2"><Clock className="h-4 w-4" />รายงานประชุมติดตามงาน</TabsTrigger>
               </TabsList>
               </div>
 
-              <TabsContent value="awaiting-usage"><AwaitingUsageTab /></TabsContent>
+              <TabsContent value="awaiting-usage"><AwaitingUsageTab sharedFilters={filters} followUpRows={followUp.data?.rows} /></TabsContent>
+              <TabsContent value="report"><IssueMeetingReport rows={reportRows} loading={followUp.isLoading || isLoading || scopeLoading || defectiveLoading || goodLoading || transferLoading} error={!!(followUp.error || defectiveError || goodError || transferError)} refreshedAt={followUp.data?.refreshedAt} onAction={reportAction} onRetry={() => { void followUp.refetch(); queryClient.invalidateQueries({queryKey:["defective-returns-pending"]}); queryClient.invalidateQueries({queryKey:["issue-good-returns-pending"]}); queryClient.invalidateQueries({queryKey:["warehouse-transfer-pending"]}); }} /></TabsContent>
 
               <TabsContent value="billboard">
                 <div className="space-y-2">
@@ -735,7 +751,7 @@ const IncompleteIssues = () => {
                           <div className="border rounded-lg bg-blue-50/50 border-blue-200">
                             {/* Header Row */}
                             <CollapsibleTrigger asChild>
-                              <div className="flex items-center gap-4 p-4 hover:bg-muted/50 cursor-pointer">
+                              <div className="flex flex-wrap items-center gap-4 p-4 hover:bg-muted/50 cursor-pointer">
                                 <div className="flex items-center gap-2">
                                   {hasItems ? (
                                     isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />
@@ -760,6 +776,7 @@ const IncompleteIssues = () => {
                                 
                                 <div className="text-sm text-muted-foreground">
                                   {issue.requester_name}
+                                  <div className="mt-1"><Badge variant="secondary">{issue.requester_department || "ไม่ระบุฝ่าย"}</Badge></div>
                                 </div>
 
                                 <div className="text-sm text-muted-foreground">
@@ -861,7 +878,7 @@ const IncompleteIssues = () => {
                       const isExpanded = expandedRequests.has(issue.id);
                       const issuedQty = issue.issued_quantity || issue.quantity;
                       const returnedQty = issue.return_quantity || 0;
-                      const remainingQty = Math.max(0, issuedQty - returnedQty);
+                      const remainingQty = items.length ? items.filter(it => it.status === "issued" && it.needs_return !== false).reduce((sum,it)=>sum+returnLeftFor(issue,it),0) : Math.max(0, issuedQty - returnedQty);
                       return (
                         <Collapsible key={issue.id} open={isExpanded} onOpenChange={() => toggleExpand(issue.id)}>
                           <div className="border rounded-lg bg-amber-50/40 border-amber-200">
@@ -877,10 +894,9 @@ const IncompleteIssues = () => {
                                   {issue.issued_at ? format(new Date(issue.issued_at), "d MMM yy", { locale: th }) : "-"}
                                 </span>
                                 <span className="text-sm">{issue.companies?.name || "-"}</span>
-                                <span className="text-sm text-muted-foreground">{issue.requester_name}</span>
+                                <span className="text-sm text-muted-foreground">{issue.requester_name}<div className="mt-1"><Badge variant="secondary">{issue.requester_department || "ไม่ระบุฝ่าย"}</Badge></div></span>
                                 <span className="text-sm">
-                                  เบิก {issuedQty} · <span className="text-success">คืนแล้ว {returnedQty}</span> ·{" "}
-                                  <span className="text-warning font-medium">ค้าง {remainingQty}</span>
+                                  {items.length ? `${items.length} รายการสินค้า` : `เบิก ${issuedQty} · คืนแล้ว ${returnedQty} · ค้าง ${remainingQty}`}
                                 </span>
                                 <div className="ml-auto flex items-center gap-2">
                                   <Badge variant="outline" className="bg-amber-100 text-amber-800">
@@ -985,9 +1001,9 @@ const IncompleteIssues = () => {
 
 
               <TabsContent value="warehouse" className="space-y-4">
-                <PendingWarehouseTransfers />
-                <PendingGoodReturns />
-                <div className="font-medium">ของเสียรอคลังรับเข้า ({defectiveReturns.length})</div>
+                <PendingWarehouseTransfers filteredRows={filteredTransfers} departmentByPending={Object.fromEntries((followUp.data?.headers || []).map(h=>[h.id,h.requester_department || "ไม่ระบุฝ่าย"]))} />
+                <PendingGoodReturns filteredRows={filteredGood} />
+                <div className="font-medium">ของเสียรอคลังรับเข้า ({filteredDefective.length})</div>
                 <div className="rounded-md border overflow-x-auto">
                   <Table>
                     <TableHeader>
@@ -996,20 +1012,21 @@ const IncompleteIssues = () => {
                         <TableHead>ประเภท</TableHead>
                         <TableHead>สถานะ</TableHead>
                         <TableHead>จำนวน</TableHead>
+                        <TableHead>ผู้ส่งคืน / ฝ่าย</TableHead>
                         <TableHead>แหล่งที่มา</TableHead>
                         <TableHead>สาเหตุ</TableHead>
                         <TableHead>วันที่บันทึก</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {defectiveReturns.length === 0 ? (
+                      {filteredDefective.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                             ไม่มีรายการรอเข้าคลัง
                           </TableCell>
                         </TableRow>
                       ) : (
-                        defectiveReturns.map((dr: any) => (
+                        filteredDefective.map((dr: any) => (
                           <TableRow key={dr.id}>
                             <TableCell className="font-medium">{dr.document_no}</TableCell>
                             <TableCell>
@@ -1025,6 +1042,7 @@ const IncompleteIssues = () => {
                               </Badge>
                             </TableCell>
                             <TableCell>{dr.quantity}</TableCell>
+                            <TableCell>{dr.reporter_name || "—"}<div><Badge variant="secondary">{dr.reporter_department || "ไม่ระบุฝ่าย"}</Badge></div></TableCell>
                             <TableCell>
                               {dr.source_type === "billboard" ? (
                                 <Badge variant="outline" className="text-xs">
@@ -1056,8 +1074,7 @@ const IncompleteIssues = () => {
                 </div>
               </TabsContent>
             </Tabs>
-          </CardContent>
-        </Card>
+        </section>
       </div>
 
       {/* Billboard Assignment Dialog */}
