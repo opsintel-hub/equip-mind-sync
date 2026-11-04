@@ -17,7 +17,7 @@ export type SubMediaType = string;
 /** Live list loaded from Master Data (mp_sub_media_types); falls back to presets. */
 let activeSubMediaTypes: string[] = [...SUB_MEDIA_TYPES];
 export function setActiveSubMediaTypes(list: string[]) {
-  if (list.length) activeSubMediaTypes = list;
+  activeSubMediaTypes = list;
 }
 export function getSubMediaTypes(): string[] {
   return activeSubMediaTypes;

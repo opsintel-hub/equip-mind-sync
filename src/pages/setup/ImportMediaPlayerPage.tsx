@@ -23,7 +23,7 @@ export default function ImportMediaPlayerPage() {
       description="สร้าง Media Player 1 บรรทัด = 1 เครื่อง พร้อมรับเข้าคลัง และผูกป้ายโฆษณา (ถ้าระบุ)"
       sheetName="MediaPlayer"
       templateKind="media_player"
-      templateDownloader={async () => { await refreshSubMediaTypes(); return downloadMediaPlayerTemplate(); }}
+      templateDownloader={(r) => { void refreshSubMediaTypes().then(() => downloadMediaPlayerTemplate(r)); }}
       rpcName="import_media_player_row"
       columnHints={["code", "name", "serial_number_1", "serial_number_2", "unit_price", "date_of_receipt", "billboard_id", "install_date"]}
       validator={async (rows, refs) => {
