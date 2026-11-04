@@ -6,7 +6,7 @@ import { outstandingToolLoan, PM_STATES, type ToolMeetingRow } from "@/lib/toolM
 
 export function ToolMeetingDetail({ tool, onClose }: { tool: ToolMeetingRow | null; onClose: () => void }) {
   return <Sheet open={!!tool} onOpenChange={open => { if (!open) onClose(); }}><SheetContent className="w-full sm:max-w-xl overflow-y-auto">
-    {tool && <><SheetHeader><SheetTitle>{tool.code} · {tool.name}</SheetTitle><SheetDescription>{tool.departmentName} · {tool.category}</SheetDescription></SheetHeader>
+    {tool && <><SheetHeader className="pr-6"><SheetTitle>{tool.code} · {tool.name}</SheetTitle><SheetDescription>{tool.departmentName} · {tool.category}</SheetDescription></SheetHeader>
       <div className="space-y-6 py-6">
         <div className="flex flex-wrap gap-2"><ToolImageViewer toolId={tool.id} toolName={tool.name} variant="button"/><ToolDocumentViewer toolId={tool.id} toolName={tool.name} toolCode={tool.code}/></div>
         <dl className="grid grid-cols-2 gap-4 text-sm">{[
