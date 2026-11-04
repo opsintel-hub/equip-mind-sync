@@ -246,7 +246,7 @@ const IncompleteIssues = () => {
 
 
   // Fetch defective returns pending warehouse entry
-  const { data: defectiveReturns = [] } = useQuery({
+  const { data: defectiveReturns = [], isLoading: defectiveLoading, error: defectiveError } = useQuery({
     queryKey: ["defective-returns-pending", deptKey],
     enabled: !scopeLoading,
     queryFn: async () => {
@@ -262,8 +262,8 @@ const IncompleteIssues = () => {
     },
   });
 
-  const { data: pendingGood = [] } = usePendingGoodReturns();
-  const { data: pendingTransfers = [] } = usePendingWarehouseTransfers();
+  const { data: pendingGood = [], isLoading: goodLoading, error: goodError } = usePendingGoodReturns();
+  const { data: pendingTransfers = [], isLoading: transferLoading, error: transferError } = usePendingWarehouseTransfers();
 
   // Fetch items for all incomplete issues
   const issueIds = useMemo(() => (incompleteIssues?.issues || []).map(i => i.id), [incompleteIssues]);
@@ -699,7 +699,7 @@ const IncompleteIssues = () => {
             {filteredDefective.length > 0 && (
               <Badge variant="secondary" className="text-lg px-4 py-2">
                 <Warehouse className="w-4 h-4 mr-1" />
-                รอเข้าคลัง: {filteredDefective.length}
+                รอเข้าคลัง: {filteredDefective.length + filteredGood.length + filteredTransfers.length}
               </Badge>
             )}
           </div>
@@ -730,8 +730,8 @@ const IncompleteIssues = () => {
               </TabsList>
               </div>
 
-              <TabsContent value="awaiting-usage"><AwaitingUsageTab sharedFilters={filters} /></TabsContent>
-              <TabsContent value="report"><IssueMeetingReport rows={reportRows} loading={followUp.isLoading || isLoading || scopeLoading} error={!!followUp.error} refreshedAt={followUp.data?.refreshedAt} onAction={reportAction} onRetry={() => void followUp.refetch()} /></TabsContent>
+              <TabsContent value="awaiting-usage"><AwaitingUsageTab sharedFilters={filters} followUpRows={followUp.data?.rows} /></TabsContent>
+              <TabsContent value="report"><IssueMeetingReport rows={reportRows} loading={followUp.isLoading || isLoading || scopeLoading || defectiveLoading || goodLoading || transferLoading} error={!!(followUp.error || defectiveError || goodError || transferError)} refreshedAt={followUp.data?.refreshedAt} onAction={reportAction} onRetry={() => { void followUp.refetch(); queryClient.invalidateQueries({queryKey:["defective-returns-pending"]}); queryClient.invalidateQueries({queryKey:["issue-good-returns-pending"]}); queryClient.invalidateQueries({queryKey:["warehouse-transfer-pending"]}); }} /></TabsContent>
 
               <TabsContent value="billboard">
                 <div className="space-y-2">
@@ -896,8 +896,7 @@ const IncompleteIssues = () => {
                                 <span className="text-sm">{issue.companies?.name || "-"}</span>
                                 <span className="text-sm text-muted-foreground">{issue.requester_name}<div className="mt-1"><Badge variant="secondary">{issue.requester_department || "ไม่ระบุฝ่าย"}</Badge></div></span>
                                 <span className="text-sm">
-                                  เบิก {issuedQty} · <span className="text-success">คืนแล้ว {returnedQty}</span> ·{" "}
-                                  <span className="text-warning font-medium">ค้าง {remainingQty}</span>
+                                  {items.length ? `${items.length} รายการสินค้า` : `เบิก ${issuedQty} · คืนแล้ว ${returnedQty} · ค้าง ${remainingQty}`}
                                 </span>
                                 <div className="ml-auto flex items-center gap-2">
                                   <Badge variant="outline" className="bg-amber-100 text-amber-800">

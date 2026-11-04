@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { lineIssued, lineInstalled, lineLeft, type IssueQuantities } from "@/lib/issueQuantities";
-import { agingBucket, issueAge, matchesFollowUp, type FollowUpFilters } from "@/lib/incompleteIssueReport";
+import { agingBucket, issueAge, matchesFollowUp, type FollowUpFilters, type FollowUpRow } from "@/lib/incompleteIssueReport";
 import { formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
 
 interface UsageLine extends IssueQuantities {
@@ -53,7 +53,7 @@ interface UsageRow {
 
 const displayDate = (value: string | null) => value ? format(new Date(value), "d MMM yyyy HH:mm", { locale: th }) : "-";
 
-export function AwaitingUsageTab({ sharedFilters }: { sharedFilters?: FollowUpFilters }) {
+export function AwaitingUsageTab({ sharedFilters, followUpRows }: { sharedFilters?: FollowUpFilters; followUpRows?: FollowUpRow[] }) {
   const { isSuperAdmin, viewableDepts, deptKey, loading: scopeLoading } = useDeptScope();
   const [search, setSearch] = useState("");
   const [serialSearch, setSerialSearch] = useState("");
@@ -127,13 +127,13 @@ export function AwaitingUsageTab({ sharedFilters }: { sharedFilters?: FollowUpFi
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return rows.filter(({ header, line }) =>
-      (!sharedFilters || matchesFollowUp({ id:line.id, documentId:header.id, documentNo:header.document_no, department:header.requester_department || "ไม่ระบุฝ่าย", person:header.requester_name, purpose:header.purpose || "ไม่ระบุวัตถุประสงค์", issuedAt:header.issued_at, days:issueAge(header.issued_at), bucket:agingBucket(issueAge(header.issued_at)), code:line.equipment_code || "", name:line.equipment_name || "", serial:line.serial_number || "", unit:line.unit || "", isMediaPlayer:!!(line as any).media_player_id, billboardQty:0,returnQty:0,receiptQty:0,usageQty:lineLeft(line)},sharedFilters)) &&
+      (!sharedFilters || matchesFollowUp(followUpRows?.find(r=>r.id===line.id) || { id:line.id, documentId:header.id, documentNo:header.document_no, department:header.requester_department || "ไม่ระบุฝ่าย", person:header.requester_name, purpose:header.purpose || "ไม่ระบุวัตถุประสงค์", issuedAt:header.issued_at, days:issueAge(header.issued_at), bucket:agingBucket(issueAge(header.issued_at)), code:line.equipment_code || "", name:line.equipment_name || "", serial:line.serial_number || "", unit:line.unit || "", isMediaPlayer:!!(line as any).media_player_id, billboardQty:0,returnQty:0,receiptQty:0,usageQty:lineLeft(line)},sharedFilters)) &&
       matchesSerialSearch(serialSearch, line.serial_number) &&
       (!term || [header.document_no, header.requester_name, header.requester_department,
         header.companies?.name, header.purpose, line.equipment_code, line.equipment_name]
         .some(value => value?.toLowerCase().includes(term))),
     );
-  }, [rows, search, serialSearch, sharedFilters]);
+  }, [rows, search, serialSearch, sharedFilters, followUpRows]);
   const pagination = useTablePagination(filtered, 20);
   const busy = scopeLoading || isLoading;
 
