@@ -251,7 +251,7 @@ export default function StockCard() {
         mpQ = mpQ.in("department", scopeDepts);
         toolQ = toolQ.in("department", scopeDepts);
       }
-      const [eqRes, mpRes, toolRes] = await Promise.all([eqQ, mpQ, toolQ]);
+      const [eqRes, mpRes, toolRes] = await Promise.all([allRows(eqQ.order("id")), allRows(mpQ.order("id")), allRows(toolQ.order("id"))]);
 
       eqRes.data?.forEach(e => items.push({
         id: e.id, code: e.code, name: e.name, serial_number: formatMergedSerials(e.serial_number, equipmentAliasMap[e.id]) || null,

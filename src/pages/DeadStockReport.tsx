@@ -1,3 +1,4 @@
+import { allRows } from "@/lib/fetchAllRows";
 import { useState, useEffect, useMemo } from "react";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
@@ -116,7 +117,7 @@ const DeadStockReport = () => {
     }
 
     const [equipmentRes, locationsRes, deptRes, catRes] = await Promise.all([
-      equipmentQuery,
+      allRows(equipmentQuery.order("id")),
       supabase
         .from("locations")
         .select("id, name")
