@@ -1,3 +1,4 @@
+import { allRows } from "@/lib/fetchAllRows";
 import { useSubMediaTypes } from "@/hooks/useSubMediaTypes";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -192,7 +193,7 @@ export default function MediaPlayerReport() {
         query = query.in("department", depts.length > 0 ? depts : ["__no_dept_permission__"]);
       }
       query = applyMediaPlayerScope(query as any) as any;
-      const { data, error } = await query;
+      const { data, error } = await allRows(query);
       if (error) throw error;
       return (data || []) as unknown as MediaPlayerMaster[];
     },
@@ -204,12 +205,12 @@ export default function MediaPlayerReport() {
   const { data: receiptRows = [] } = useQuery({
     queryKey: ["media-player-report-receipts"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await allRows(supabase
         .from("goods_receipt_pending")
         .select("media_player_id, serial_number, unit_price, po_number, lot_number, lot_number_2, order_for_project, received_at, created_at, media_player_image_url, po_item_no, warranty_years, asset_caretaker")
         .eq("status", "received")
         .eq("is_media_player", true)
-        .not("media_player_id", "is", null);
+        .not("media_player_id", "is", null).order("id"));
       if (error) throw error;
       return data || [];
     },
@@ -219,7 +220,7 @@ export default function MediaPlayerReport() {
   const { data: departments = [] } = useQuery({
     queryKey: ["departments-list"],
     queryFn: async () => {
-      const { data } = await supabase.from("departments").select("name").eq("is_active", true).order("name");
+      const { data } = await allRows(supabase.from("departments").select("name").eq("is_active", true).order("name"));
       return (data || []).map((d: any) => d.name);
     },
   });
@@ -259,10 +260,10 @@ export default function MediaPlayerReport() {
   const { data: imageRows = [] } = useQuery({
     queryKey: ["media-player-report-images"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await allRows(supabase
         .from("media_player_images" as any)
         .select("media_player_id, image_url, display_order")
-        .order("display_order", { ascending: true });
+        .order("display_order", { ascending: true }));
       if (error) throw error;
       return (data || []) as unknown as Array<{ media_player_id: string; image_url: string; display_order: number | null }>;
     },
@@ -1060,15 +1061,15 @@ function MediaPlayerProfileDialog({
     }
 
     // Journey (history + current + fallback from media_players)
-    const { data: history } = await supabase
+    const { data: history } = await allRows(supabase
       .from("billboard_equipment_history")
       .select("billboard_id, installation_date, uninstall_date, uninstall_reason, quantity")
-      .or(`equipment_id.eq.${playerId}`);
+      .or(`equipment_id.eq.${playerId}`).order("id"));
 
-    const { data: currentInstalls } = await supabase
+    const { data: currentInstalls } = await allRows(supabase
       .from("billboard_equipment")
       .select("billboard_id, installation_date, quantity")
-      .eq("equipment_id", playerId);
+      .eq("equipment_id", playerId).order("id"));
 
     const journeyData: BillboardJourney[] = [];
     const allBbIds = new Set<string>();
@@ -1078,10 +1079,10 @@ function MediaPlayerProfileDialog({
 
     let bbMap = new Map<string, any>();
     if (allBbIds.size > 0) {
-      const { data: billboards } = await supabase
+      const { data: billboards } = await allRows(supabase
         .from("billboards")
         .select("id, equipment_id, old_code, location_name")
-        .in("id", [...allBbIds]);
+        .in("id", [...allBbIds]).order("id"));
       bbMap = new Map((billboards || []).map((b: any) => [b.id, b]));
     }
 

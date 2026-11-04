@@ -1,3 +1,4 @@
+import { allRows } from "@/lib/fetchAllRows";
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ProcessTracker, ProcessStep } from "@/components/ProcessTracker";
@@ -208,12 +209,12 @@ export default function StockCard() {
   const { data: receivedSerialAliases = [] } = useQuery({
     queryKey: ["stock-card-received-serial-aliases"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await allRows(supabase
         .from("goods_receipt_pending")
         .select("equipment_id, media_player_id, serial_number, received_at, created_at")
         .eq("status", "received")
         .not("serial_number", "is", null)
-        .neq("serial_number", "");
+        .neq("serial_number", "").order("id"));
 
       if (error) throw error;
       return data || [];
@@ -250,7 +251,7 @@ export default function StockCard() {
         mpQ = mpQ.in("department", scopeDepts);
         toolQ = toolQ.in("department", scopeDepts);
       }
-      const [eqRes, mpRes, toolRes] = await Promise.all([eqQ, mpQ, toolQ]);
+      const [eqRes, mpRes, toolRes] = await Promise.all([allRows(eqQ.order("id")), allRows(mpQ.order("id")), allRows(toolQ.order("id"))]);
 
       eqRes.data?.forEach(e => items.push({
         id: e.id, code: e.code, name: e.name, serial_number: formatMergedSerials(e.serial_number, equipmentAliasMap[e.id]) || null,
@@ -326,12 +327,12 @@ export default function StockCard() {
     queryFn: async () => {
       if (!selectedItemId) return [];
       const col = selectedItemType === "media_player" ? "media_player_id" : "equipment_id";
-      const { data, error } = await supabase
+      const { data, error } = await allRows(supabase
         .from("goods_issue_pending_items")
         .select("issued_quantity, quantity, billboard_id, install_status, status, goods_issue_pending:pending_id(document_no)")
         .eq(col, selectedItemId)
         .eq("status", "issued")
-        .in("install_status", ["pending_confirmation", "cancelled"]);
+        .in("install_status", ["pending_confirmation", "cancelled"]).order("id"));
       if (error) { console.error(error); return []; }
       return data || [];
     },
@@ -374,7 +375,7 @@ export default function StockCard() {
       if (dateRange?.from) query = query.gte("created_at", dateRange.from.toISOString());
       if (dateRange?.to) query = query.lte("created_at", dateRange.to.toISOString());
 
-      const { data } = await query;
+      const { data } = await allRows(query);
       return data || [];
     },
   });
@@ -386,10 +387,10 @@ export default function StockCard() {
     enabled: !!selectedItemId,
     queryFn: async () => {
       if (!selectedItemId) return [];
-      const { data } = await supabase.from("billboard_equipment_history")
+      const { data } = await allRows(supabase.from("billboard_equipment_history")
         .select("*, billboards(equipment_id, old_code, location_name, description)")
         .eq("equipment_id", selectedItemId)
-        .order("uninstall_date", { ascending: false });
+        .order("uninstall_date", { ascending: false }));
       return data || [];
     },
   });
@@ -411,16 +412,16 @@ export default function StockCard() {
           .maybeSingle();
         const currentBbId = (mpRow as any)?.billboard_id;
         if (!currentBbId) return [];
-        const { data } = await supabase.from("media_player_billboard_history")
+        const { data } = await allRows(supabase.from("media_player_billboard_history")
           .select("*, billboards(equipment_id, old_code, location_name, description)")
           .eq("media_player_id", selectedItemId)
           .eq("billboard_id", currentBbId)
-          .is("uninstall_date", null);
+          .is("uninstall_date", null).order("id"));
         return (data || []).map((r: any) => ({ ...r, billboards: r.billboards }));
       }
-      const { data } = await supabase.from("billboard_equipment")
+      const { data } = await allRows(supabase.from("billboard_equipment")
         .select("*, billboards(equipment_id, old_code, location_name, description)")
-        .eq("equipment_id", selectedItemId);
+        .eq("equipment_id", selectedItemId).order("id"));
       return data || [];
     },
   });
@@ -441,11 +442,11 @@ export default function StockCard() {
     enabled: !!selectedItemId && selectedItemType === "media_player",
     queryFn: async () => {
       if (!selectedItemId) return [];
-      const { data } = await supabase.from("media_player_billboard_history")
+      const { data } = await allRows(supabase.from("media_player_billboard_history")
         .select("*, billboards(equipment_id, old_code, location_name, description)")
         .eq("media_player_id", selectedItemId)
         .not("uninstall_date", "is", null)
-        .order("uninstall_date", { ascending: false });
+        .order("uninstall_date", { ascending: false }));
       return data || [];
     },
   });
@@ -467,9 +468,9 @@ export default function StockCard() {
     enabled: !!selectedItemId && issueDocNos.length > 0,
     queryFn: async () => {
       // Join via goods_issue_pending to map DC document → GI-REQ document
-      const { data } = await supabase.from("delivery_confirmations")
+      const { data } = await allRows(supabase.from("delivery_confirmations")
         .select("document_no, status, confirmed_at, goods_issue_pending:goods_issue_pending_id!inner(document_no)")
-        .in("goods_issue_pending.document_no", issueDocNos);
+        .in("goods_issue_pending.document_no", issueDocNos).order("id"));
       return data || [];
     },
   });
@@ -506,9 +507,9 @@ export default function StockCard() {
     staleTime: 2 * 60 * 1000,
     enabled: swapMovementIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase.from("swap_requests")
+      const { data } = await allRows(supabase.from("swap_requests")
         .select("id, billboard:billboards(equipment_id, old_code, location_name)")
-        .in("id", swapMovementIds);
+        .in("id", swapMovementIds).order("id"));
       const map = new Map<string, any>();
       (data || []).forEach((r: any) => map.set(r.id, r.billboard));
       return map;
@@ -729,11 +730,11 @@ export default function StockCard() {
   const { data: movAllCompanies } = useQuery({
     queryKey: ["stock-card-mov-companies"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await allRows(supabase
         .from("companies")
         .select("id, name, departments:department_id(name)")
         .eq("is_active", true)
-        .order("name");
+        .order("name"));
       return data || [];
     },
   });
@@ -767,7 +768,7 @@ export default function StockCard() {
         query = query.eq("movement_type", movTypeFilter);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await allRows(query);
       if (error) throw error;
       return data;
     },
