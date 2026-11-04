@@ -1,4 +1,4 @@
-- [ ] Open site-access management to Super Admin or explicitly granted site_access_manage users; verify sidebar, direct URL and server permission boundaries
+- [x] Open site-access management to Super Admin or explicitly granted site_access_manage users; 8 permission tests passed, authenticated Super Admin sidebar/direct URL and 26-ticket readback verified, server denies unassigned Admins; no individual grants added
 - [x] Reproduce issue request failure as requester
 - [x] Simplify both meeting reports with department-first agendas, compact filters and clear requester/warehouse follow-up; 52 tests pass, authenticated department drill-down/Excel/fullscreen verified, 946px and mobile have no overflow
 - [x] Add interactive tool executive meeting report: distribution, loans, warranty/expiry, PM, readiness, detail and six-sheet Excel
