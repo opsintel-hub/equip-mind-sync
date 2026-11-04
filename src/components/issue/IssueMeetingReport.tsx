@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import * as XLSX from "xlsx";
@@ -17,6 +17,11 @@ export function IssueMeetingReport({ rows, loading, error, refreshedAt, onAction
 }) {
   const container = useRef<HTMLDivElement>(null);
   const [meeting, setMeeting] = useState(false);
+  useEffect(() => {
+    const changed = () => setMeeting(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange",changed);
+    return () => document.removeEventListener("fullscreenchange",changed);
+  }, []);
   const [department, setDepartment] = useState<string | null>(null);
   const [bucket, setBucket] = useState<string | null>(null);
   const [person, setPerson] = useState<string | null>(null);
@@ -61,7 +66,7 @@ export function IssueMeetingReport({ rows, loading, error, refreshedAt, onAction
     if (document.fullscreenElement) { await document.exitFullscreen(); setMeeting(false); }
     else { try { await container.current?.requestFullscreen(); setMeeting(true); } catch { setMeeting(v=>!v); } }
   };
-  return <div ref={container} onFullscreenChange={() => setMeeting(!!document.fullscreenElement)} className={`space-y-7 bg-background ${meeting ? "fixed inset-0 z-50 overflow-auto p-6 md:p-10" : "py-3"}`}>
+  return <div ref={container} className={`space-y-7 bg-background ${meeting ? "fixed inset-0 z-50 overflow-auto p-6 md:p-10" : "py-3"}`}>
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div><div className="mb-1 text-sm font-medium text-primary">การประชุมติดตามงานข้ามฝ่าย</div><h2 className="text-2xl font-semibold">ภาพรวมงานค้างและผู้รับผิดชอบ</h2><p className="mt-2 text-sm text-muted-foreground">ณ {format(new Date(),"d MMMM yyyy",{locale:th})} · นับวันค้างจากวันที่จ่ายสินค้า{refreshedAt ? ` · อัปเดต ${format(new Date(refreshedAt),"HH:mm")}` : ""}</p></div>
       <div className="flex gap-2"><Button variant="outline" onClick={()=>void toggleMeeting()} title={meeting ? "ออกจากมุมมองประชุม" : "มุมมองประชุมเต็มจอ"}>{meeting ? <Minimize className="mr-2 h-4 w-4"/> : <Maximize className="mr-2 h-4 w-4"/>}มุมมองประชุม</Button><Button onClick={()=>exportExcel()} disabled={loading||error||!selected.length}><Download className="mr-2 h-4 w-4"/>Export Excel</Button></div>

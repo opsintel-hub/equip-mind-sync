@@ -20,15 +20,17 @@ import { allRows } from "@/lib/fetchAllRows";
 import { receiptStorageDefault } from "@/lib/receiptStorage";
 
 export function usePendingGoodReturns() {
-  const { deptKey, loading, applyDeptFilter } = useDeptScope();
+  const { deptKey, loading, isSuperAdmin, viewableDepts } = useDeptScope();
   return useQuery({
     queryKey: ["issue-good-returns-pending",deptKey], enabled: !loading,
     queryFn: async () => {
-      const { data, error } = await allRows(applyDeptFilter(supabase
+      let query = supabase
         .from("issue_good_returns")
         .select("*")
         .eq("status", "pending")
-        .order("created_at", { ascending: false }).order("id")));
+        .order("created_at", { ascending: false }).order("id");
+      if (!isSuperAdmin) query = query.in("department",viewableDepts?.length ? viewableDepts : ["__no_dept_permission__"]);
+      const { data, error } = await allRows(query);
       if (error) throw error;
       return data || [];
     },

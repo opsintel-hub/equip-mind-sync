@@ -8,7 +8,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Header = Tables<"goods_issue_pending">;
 export function useIssueFollowUpData() {
-  const { deptKey, loading, applyDeptFilter } = useDeptScope();
+  const { deptKey, loading, isSuperAdmin, viewableDepts } = useDeptScope();
   useRealtimeInvalidate({ table: "goods_issue_pending", queryKeys: [["issue-follow-up"]] });
   useRealtimeInvalidate({ table: "goods_issue_pending_items", queryKeys: [["issue-follow-up"]] });
   useRealtimeInvalidate({ table: "special_requests", queryKeys: [["issue-follow-up"]] });
@@ -16,9 +16,13 @@ export function useIssueFollowUpData() {
     queryKey: ["issue-follow-up", deptKey], enabled: !loading, placeholderData: prev => prev,
     queryFn: async () => {
       const [headers, purposes, closed] = await Promise.all([
-        fetchAllRows<Header>(() => applyDeptFilter(supabase.from("goods_issue_pending").select("*")
-          .in("status", ["issued", "partial_return", "partially_issued", "returned"])
-          .order("issued_at", { ascending: false, nullsFirst: false }).order("id"), "requester_department")),
+        fetchAllRows<Header>(() => {
+          let query = supabase.from("goods_issue_pending").select("*")
+            .in("status", ["issued", "partial_return", "partially_issued", "returned"])
+            .order("issued_at", { ascending: false, nullsFirst: false }).order("id");
+          if (!isSuperAdmin) query = query.in("requester_department",viewableDepts?.length ? viewableDepts : ["__no_dept_permission__"]);
+          return query;
+        }),
         fetchAllRows<Tables<"issue_purposes">>(() => supabase.from("issue_purposes").select("*").order("id")),
         fetchAllRows<{ target_doc_number: string | null }>(() => supabase.from("special_requests").select("target_doc_number")
           .in("status", ["approved", "done"]).in("request_type", ["force_close_issue_item", "cancel_return_to_stock"]).order("id")),
