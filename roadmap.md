@@ -1,7 +1,7 @@
 - [x] Reproduce issue request failure as requester
-- [ ] Add department labels and shared multiselect filters to every incomplete-issue tab
-- [ ] Add meeting report with department aging matrix, responsible persons, action detail and filtered Excel
-- [ ] Test age/quantity rules and verify authenticated desktop/mobile report and export
+- [x] Add department labels and shared multiselect filters to every incomplete-issue tab
+- [x] Add meeting report with department aging matrix, responsible persons, action detail and filtered Excel
+- [x] Test age/quantity rules (43 passing tests) and verify authenticated desktop/mobile report, multiselect ages, department drill-down, fullscreen and 196-row four-sheet Excel export
 - [x] Audit requester and warehouse-staff permissions end to end
 - [x] Fix the confirmed root cause
 - [x] Verify document creation and stock behavior
