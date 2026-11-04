@@ -7730,6 +7730,10 @@ export type Database = {
       }
       import_equipment_row: { Args: { p: Json }; Returns: Json }
       import_media_player_row: { Args: { p: Json }; Returns: Json }
+      import_rows_batch: {
+        Args: { p_rows: Json; p_rpc: string }
+        Returns: Json
+      }
       import_tool_row: { Args: { p: Json }; Returns: Json }
       is_approved_user: { Args: { _user_id: string }; Returns: boolean }
       issue_old_part_candidates: { Args: { _item_id: string }; Returns: Json }

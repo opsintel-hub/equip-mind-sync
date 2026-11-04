@@ -159,14 +159,31 @@ export default function ImportPageShell({
     setImporting(true);
     setProgress({ done: 0, total: rows.length });
     const out: typeof results = [];
-    for (let i = 0; i < rows.length; i++) {
-      const r = rows[i];
-      const { data, error } = await (supabase.rpc as any)(rpcName, { p: r.payload });
-      if (error) {
-        out.push({ rowNumber: r.rowNumber, success: false, error: error.message });
-      } else if (data && data.success === false) {
-        out.push({ rowNumber: r.rowNumber, success: false, error: data.error || "unknown" });
-      } else {
+    const BATCH = 200;
+    for (let start = 0; start < rows.length; start += BATCH) {
+      const chunk = rows.slice(start, start + BATCH);
+      let batchData: any[] | null = null;
+      let batchErr: string | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data, error } = await (supabase.rpc as any)("import_rows_batch", {
+          p_rpc: rpcName,
+          p_rows: chunk.map((c) => c.payload),
+        });
+        if (!error && Array.isArray(data)) { batchData = data; batchErr = null; break; }
+        batchErr = error?.message || "ไม่ได้รับผลลัพธ์จากระบบ";
+        await new Promise((res) => setTimeout(res, 1500 * (attempt + 1)));
+      }
+      for (let j = 0; j < chunk.length; j++) {
+        const r = chunk[j];
+        const data = batchData?.[j];
+        if (!batchData) {
+          out.push({ rowNumber: r.rowNumber, success: false, error: "ส่งข้อมูลชุดนี้ไม่สำเร็จ: " + batchErr });
+          continue;
+        }
+        if (!data || data.success === false) {
+          out.push({ rowNumber: r.rowNumber, success: false, error: data?.error || "unknown" });
+          continue;
+        }
         // Multi-slot storage: record per-location quantities when the file listed more than one slot
         const allocs = (r.payload.location_allocations || []) as Array<{ location_id: string; quantity: number }>;
         const valid = allocs.filter((a) => a.location_id && Number(a.quantity) > 0);
@@ -184,15 +201,13 @@ export default function ImportPageShell({
           const { error: allocError } = await (supabase as any).from("stock_location_allocations").insert(allocRows);
           if (allocError) {
             out.push({ rowNumber: r.rowNumber, success: true, error: "บันทึกช่องจัดเก็บหลายช่องไม่สำเร็จ: " + allocError.message });
-            setProgress({ done: i + 1, total: rows.length });
-            setResults([...out]);
             continue;
           }
         }
         out.push({ rowNumber: r.rowNumber, success: true });
       }
-      setProgress({ done: i + 1, total: rows.length });
-      await new Promise((res) => setTimeout(res, 0));
+      setProgress({ done: Math.min(start + BATCH, rows.length), total: rows.length });
+      setResults([...out]);
     }
     setResults(out);
     setImporting(false);
