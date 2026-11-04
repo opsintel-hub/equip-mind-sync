@@ -1,5 +1,5 @@
 - [x] Reproduce issue request failure as requester
-- [ ] Simplify both meeting reports with department-first agendas, compact filters and clear requester/warehouse follow-up; verify authenticated navigation and Excel
+- [x] Simplify both meeting reports with department-first agendas, compact filters and clear requester/warehouse follow-up; 52 tests pass, authenticated department drill-down/Excel/fullscreen verified, 946px and mobile have no overflow
 - [x] Add interactive tool executive meeting report: distribution, loans, warranty/expiry, PM, readiness, detail and six-sheet Excel
 - [x] Verify 30 tests, authenticated 97-tool report, seven-drill drill-down/Excel, PM multiselect, fullscreen filters/details/media and mobile without overflow; live loan and PM history are empty, nonempty calculations covered by unit tests
 - [x] Add department labels and shared multiselect filters to every incomplete-issue tab
