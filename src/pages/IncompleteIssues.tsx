@@ -252,7 +252,7 @@ const IncompleteIssues = () => {
     queryFn: async () => {
       let query = supabase
         .from("defective_returns")
-        .select("*, media_players:media_player_id(device_type)")
+        .select("*, media_players:media_player_id(device_type, code, name, serial_number), equipment:equipment_id(code, name, unit)")
         .eq("status", "pending_warehouse_entry")
         .order("created_at", { ascending: false }).order("id");
       if (!isSuperAdmin) query = query.in("reporter_department", viewableDepts?.length ? viewableDepts : ["__no_dept_permission__"]);
@@ -625,7 +625,7 @@ const IncompleteIssues = () => {
       documentNo: header?.document_no || r.document_no || "—", department: kind === "defective" ? r.reporter_department || "ไม่ระบุฝ่าย" : kind === "good" ? r.department || "ไม่ระบุฝ่าย" : header?.requester_department || "ไม่ระบุฝ่าย",
       person: kind === "defective" ? r.reporter_name || "ไม่ระบุผู้ส่งคืน" : kind === "good" ? r.submitted_by_name || "ไม่ระบุผู้ส่งคืน" : header?.requester_name || "คลังปลายทาง",
       purpose: header?.purpose || "ไม่ระบุวัตถุประสงค์", issuedAt, days, bucket: agingBucket(days),
-      code: r.equipment_code || "—", name: r.equipment_name || (kind === "defective" ? "ของเสียรอรับเข้า" : "—"), serial: r.serial_number || "", unit: r.unit || "ไม่ระบุหน่วย",
+      code: r.equipment_code || r.equipment?.code || r.media_players?.code || "—", name: r.equipment_name || r.equipment?.name || r.media_players?.name || (kind === "defective" ? "ของเสียรอรับเข้า" : "—"), serial: r.serial_number || r.media_players?.serial_number || "", unit: r.unit || r.equipment?.unit || (r.is_media_player ? "เครื่อง" : "ไม่ระบุหน่วย"),
       isMediaPlayer: !!(r.is_media_player || r.media_player_id), billboardQty:0, returnQty:0, usageQty:0, receiptQty:Number(r.quantity || 0), receiptKind:kind };
   };
   const goodRows = pendingGood.map(r => receiptRow(r,"good"));

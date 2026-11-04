@@ -57,6 +57,7 @@ export function useIssueFollowUpData() {
         for (const line of lines) {
           if (Number(line.issued_quantity || 0) <= 0) continue;
           const quantities = followUpQuantities(line, purposeMap.get(h.purpose_id || ""));
+          if (items?.length && line.status !== "issued") { quantities.billboardQty = 0; quantities.returnQty = 0; }
           if (closedDocs.has(h.document_no)) { quantities.billboardQty = 0; quantities.returnQty = 0; }
           if (!quantities.billboardQty && !quantities.returnQty && !quantities.usageQty) continue;
           rows.push({ id: line.id, documentId: h.id, documentNo: h.document_no,
