@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wrench } from "lucide-react";
 import { ToolList } from "@/components/tools/ToolList";
+import { ToolMeetingReport } from "@/components/tools/ToolMeetingReport";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const ToolManagement = () => {
   const [refreshKey] = useState(0);
@@ -22,7 +24,13 @@ const ToolManagement = () => {
         </div>
       </div>
 
-      <Card>
+      <Tabs defaultValue="list">
+        <TabsList className="flex flex-wrap justify-start h-auto gap-1">
+          <TabsTrigger value="list">รายการเครื่องมือ</TabsTrigger>
+          <TabsTrigger value="meeting">รายงานที่ประชุม</TabsTrigger>
+        </TabsList>
+        <TabsContent value="meeting"><ToolMeetingReport /></TabsContent>
+        <TabsContent value="list"><Card>
         <CardHeader className="px-4 sm:px-6">
           <div>
             <CardTitle className="text-base sm:text-lg">รายการเครื่องมือ</CardTitle>
@@ -38,7 +46,8 @@ const ToolManagement = () => {
         <CardContent className="px-4 sm:px-6">
           <ToolList refreshKey={refreshKey} readOnly showSummary />
         </CardContent>
-      </Card>
+      </Card></TabsContent>
+      </Tabs>
     </div>
   );
 };
