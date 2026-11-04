@@ -5,6 +5,7 @@ import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 import { fetchAllRows } from "@/lib/fetchAllRows";
 import { agingBucket, followUpQuantities, issueAge, type FollowUpRow } from "@/lib/incompleteIssueReport";
 import type { Tables } from "@/integrations/supabase/types";
+import { buildReceivedSerialAliasMap } from "@/lib/serialSearch";
 
 type Header = Tables<"goods_issue_pending">;
 export function useIssueFollowUpData() {
@@ -30,10 +31,21 @@ export function useIssueFollowUpData() {
       const purposeMap = new Map(purposes.map(p => [p.id, p]));
       const closedDocs = new Set(closed.map(r => r.target_doc_number));
       const grouped = new Map<string, Tables<"goods_issue_pending_items">[]>();
+      const aliases = new Map<string, string[]>();
       for (let start = 0; start < headers.length; start += 100) {
         const ids = headers.slice(start, start + 100).map(h => h.id);
         const lines = await fetchAllRows<Tables<"goods_issue_pending_items">>(() => supabase.from("goods_issue_pending_items").select("*").in("pending_id", ids).order("id"));
         for (const line of lines) grouped.set(line.pending_id, [...(grouped.get(line.pending_id) || []), line]);
+        for (const key of ["equipment_id", "media_player_id"] as const) {
+          const itemIds = [...new Set(lines.map(line => line[key]).filter((id): id is string => !!id))];
+          for (let i=0; i<itemIds.length; i+=100) {
+            const receiptRows = await fetchAllRows(() => supabase.from("goods_receipt_pending")
+              .select("equipment_id, media_player_id, serial_number, received_at, created_at")
+              .eq("status","received").in(key,itemIds.slice(i,i+100)).order("id"));
+            const map = buildReceivedSerialAliasMap(receiptRows,key);
+            for (const line of lines) { const id = line[key]; if (id && map[id]) aliases.set(line.id,map[id]); }
+          }
+        }
       }
       const now = new Date();
       const rows: FollowUpRow[] = [];
@@ -50,7 +62,7 @@ export function useIssueFollowUpData() {
           rows.push({ id: line.id, documentId: h.id, documentNo: h.document_no,
             department: h.requester_department || "ไม่ระบุฝ่าย", person: h.requester_name,
             purpose: h.purpose || "ไม่ระบุวัตถุประสงค์", issuedAt: h.issued_at, days, bucket: agingBucket(days),
-            code: line.equipment_code || "—", name: line.equipment_name || "—", serial: line.serial_number || "",
+            code: line.equipment_code || "—", name: line.equipment_name || "—", serial: line.serial_number || "", aliases: aliases.get(line.id),
             unit: line.unit || "ไม่ระบุหน่วย", isMediaPlayer: !!(line.is_media_player || line.media_player_id), ...quantities });
         }
       }
