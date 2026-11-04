@@ -11,7 +11,7 @@ const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
 >(({ className, align = "center", sideOffset = 4, onWheel, onTouchMove, ...props }, ref) => (
-  <PopoverPrimitive.Portal>
+  <PopoverPrimitive.Portal container={typeof document !== "undefined" ? document.fullscreenElement : undefined}>
     <PopoverPrimitive.Content
       ref={ref}
       align={align}
