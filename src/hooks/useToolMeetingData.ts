@@ -15,7 +15,10 @@ export function useToolMeetingData() {
     queryKey: ["tool-meeting", user?.id, dept.deptKey, section.scopeKey], enabled, staleTime: 60_000,
     refetchInterval: 60_000, refetchOnWindowFocus: false,
     queryFn: async (): Promise<ToolMeetingData> => {
-      const tools = await fetchAllRows<MeetingTool>(() => section.applyToolScope(dept.applyDeptFilter(supabase.from("tools").select("*, tool_category:tool_categories(name), tool_subcategory:tool_subcategories(name), company:companies(name), location:locations(name,code,warehouse:warehouses(name,code))").eq("is_active", true).order("created_at", { ascending: false }).order("id"))));
+      const tools = await fetchAllRows<MeetingTool>(() => {
+        const base = supabase.from("tools").select("*, tool_category:tool_categories(name), tool_subcategory:tool_subcategories(name), company:companies(name), location:locations(name,code,warehouse:warehouses(name,code))").eq("is_active", true).order("created_at", { ascending: false }).order("id");
+        return section.applyToolScope(dept.applyDeptFilter(base as any));
+      });
       if (!tools.length) return emptyToolData;
       // Child reads are restricted to the visible tool IDs and paginated independently.
       const data: ToolMeetingData = { tools, loans: [], tasks: [], history: [], assignments: [] };
