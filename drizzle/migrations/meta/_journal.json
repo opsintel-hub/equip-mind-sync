@@ -253,6 +253,13 @@
       "when": 1793688788387,
       "tag": "0035_mp_sub_media_types",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793756527337,
+      "tag": "0036_migration",
+      "breakpoints": true
     }
   ]
 }
