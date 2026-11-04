@@ -1,3 +1,4 @@
+import { allRows } from "@/lib/fetchAllRows";
 import React, { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -136,7 +137,7 @@ function BillboardViewTab() {
       if (!isAdminDept) {
         q = q.in("department", allowedDeptNames.length > 0 ? allowedDeptNames : ["__no_dept_permission__"]);
       }
-      const { data, error } = await q;
+      const { data, error } = await allRows(q);
       if (error) throw error;
       return data || [];
     },
@@ -145,9 +146,9 @@ function BillboardViewTab() {
   const { data: billboardEquipment, isLoading: loadingEquipment } = useQuery({
     queryKey: ["billboard-tracking-equipment"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await allRows(supabase
         .from("billboard_equipment")
-        .select("id, billboard_id, equipment_id, quantity, installation_date, equipment:equipment_id(id, name, code, expiry_date, warranty_expiry_date, category, brand, serial_number)");
+        .select("id, billboard_id, equipment_id, quantity, installation_date, equipment:equipment_id(id, name, code, expiry_date, warranty_expiry_date, category, brand, serial_number)").order("id"));
       if (error) throw error;
       return data || [];
     },
@@ -163,7 +164,7 @@ function BillboardViewTab() {
       if (!isAdminDept) {
         q = q.in("department", allowedDeptNames.length > 0 ? allowedDeptNames : ["__no_dept_permission__"]);
       }
-      const { data, error } = await q;
+      const { data, error } = await allRows(q);
       if (error) throw error;
       return data || [];
     },
@@ -172,12 +173,12 @@ function BillboardViewTab() {
   const { data: billboardReceivedSerials = [] } = useQuery({
     queryKey: ["billboard-tracking-received-serials"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await allRows(supabase
         .from("goods_receipt_pending")
         .select("equipment_id, media_player_id, is_media_player, serial_number, received_at, created_at")
         .eq("status", "received")
         .not("serial_number", "is", null)
-        .neq("serial_number", "");
+        .neq("serial_number", "").order("id"));
       if (error) throw error;
       return data || [];
     },
@@ -621,7 +622,7 @@ function EquipmentViewTab() {
       if (!eqIsAdminDept) {
         q = q.in("department", eqAllowedNames.length > 0 ? eqAllowedNames : ["__no_dept_permission__"]);
       }
-      const { data, error } = await q;
+      const { data, error } = await allRows(q);
       if (error) throw error;
       return data || [];
     },
@@ -631,10 +632,10 @@ function EquipmentViewTab() {
   const { data: equipmentSNs } = useQuery({
     queryKey: ["eq-tracking-equipment-sns"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await allRows(supabase
         .from("equipment_serial_numbers")
         .select("equipment_id, serial_number, status")
-        .order("created_at");
+        .order("created_at"));
       if (error) throw error;
       return data || [];
     },
@@ -665,7 +666,7 @@ function EquipmentViewTab() {
       if (!eqIsAdminDept) {
         q = q.in("department", eqAllowedNames.length > 0 ? eqAllowedNames : ["__no_dept_permission__"]);
       }
-      const { data, error } = await q;
+      const { data, error } = await allRows(q);
       if (error) throw error;
       return data || [];
     },
@@ -675,9 +676,9 @@ function EquipmentViewTab() {
   const { data: billboardEquipment } = useQuery({
     queryKey: ["eq-tracking-bb-equip"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await allRows(supabase
         .from("billboard_equipment")
-        .select("equipment_id, billboard_id, quantity, installation_date, billboard:billboard_id(old_code, location_name, equipment_id)");
+        .select("equipment_id, billboard_id, quantity, installation_date, billboard:billboard_id(old_code, location_name, equipment_id)").order("id"));
       if (error) throw error;
       return data || [];
     },
@@ -687,7 +688,7 @@ function EquipmentViewTab() {
   const { data: billboards } = useQuery({
     queryKey: ["eq-tracking-bb-lookup"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("billboards").select("id, old_code, location_name, equipment_id");
+      const { data, error } = await allRows(supabase.from("billboards").select("id, old_code, location_name, equipment_id").order("id"));
       if (error) throw error;
       return data || [];
     },
@@ -698,11 +699,11 @@ function EquipmentViewTab() {
   const { data: pendingIssuedItems = [] } = useQuery({
     queryKey: ["eq-tracking-pending-issued"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await allRows(supabase
         .from("goods_issue_pending_items")
         .select("equipment_id, media_player_id, is_media_player, issued_quantity, quantity, billboard_id, install_status, status, pending_id, goods_issue_pending:pending_id(document_no)")
         .eq("status", "issued")
-        .or("install_status.in.(pending_confirmation,cancelled),and(billboard_id.is.null,install_status.eq.not_required)");
+        .or("install_status.in.(pending_confirmation,cancelled),and(billboard_id.is.null,install_status.eq.not_required)").order("id"));
       if (error) { console.error(error); return []; }
       return data || [];
     },
@@ -1046,11 +1047,11 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
     queryKey: ["eq-detail-history", item.id, item.itemType],
     queryFn: async () => {
       if (item.itemType === "equipment") {
-        const { data, error } = await supabase
+        const { data, error } = await allRows(supabase
           .from("billboard_equipment_history")
           .select("*")
           .eq("equipment_id", item.id)
-          .order("uninstall_date", { ascending: false });
+          .order("uninstall_date", { ascending: false }));
         if (error) throw error;
         return data || [];
       }
@@ -1092,10 +1093,10 @@ function EquipmentDetailDialog({ item, onClose, bbLookup }: { item: any; onClose
     queryKey: ["eq-detail-current", item.id, item.itemType],
     queryFn: async () => {
       if (item.itemType === "equipment") {
-        const { data, error } = await supabase
+        const { data, error } = await allRows(supabase
           .from("billboard_equipment")
           .select("*, billboard:billboard_id(old_code, location_name, equipment_id)")
-          .eq("equipment_id", item.id);
+          .eq("equipment_id", item.id).order("id"));
         if (error) throw error;
         return data || [];
       }

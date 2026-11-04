@@ -1,3 +1,4 @@
+import { allRows } from "@/lib/fetchAllRows";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -122,9 +123,9 @@ export default function InventoryReport() {
   const { data: compatMap = {} } = useQuery({
     queryKey: ["equipment-compat-map"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await allRows(supabase
         .from("equipment_billboard_compatibility")
-        .select("equipment_id, billboard_id");
+        .select("equipment_id, billboard_id").order("id"));
       if (error) throw error;
       const map: Record<string, Set<string>> = {};
       (data || []).forEach((row: any) => {
@@ -140,9 +141,9 @@ export default function InventoryReport() {
   const { data: categories = [] } = useQuery({
     queryKey: ["categories-map"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await allRows(supabase
         .from("categories")
-        .select("id, name");
+        .select("id, name").order("id"));
       if (error) throw error;
       return data;
     },
@@ -211,7 +212,7 @@ export default function InventoryReport() {
       if (scopeDepts) query = query.in("department", scopeDepts);
       query = applyEquipmentScope(query as any) as any;
 
-      const { data, error } = await query;
+      const { data, error } = await allRows(query);
       if (error) throw error;
       
       // Transform to unified format
@@ -271,7 +272,7 @@ export default function InventoryReport() {
       if (scopeDepts) query = query.in("department", scopeDepts);
       query = applyToolScope(query as any) as any;
 
-      const { data, error } = await query;
+      const { data, error } = await allRows(query);
       if (error) throw error;
       
       // Transform to unified format
@@ -346,7 +347,7 @@ export default function InventoryReport() {
       if (scopeDepts) query = query.in("department", scopeDepts);
       query = applyMediaPlayerScope(query as any) as any;
 
-      const { data, error } = await query;
+      const { data, error } = await allRows(query);
       if (error) throw error;
 
       // Transform to unified format
@@ -387,10 +388,10 @@ export default function InventoryReport() {
   const { data: allEquipmentSNs = [] } = useQuery({
     queryKey: ["inventory-equipment-sns"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await allRows(supabase
         .from("equipment_serial_numbers")
         .select("equipment_id, serial_number, status")
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true }));
       if (error) throw error;
       return data || [];
     },
@@ -423,12 +424,12 @@ export default function InventoryReport() {
   const { data: receivedSerials = [] } = useQuery({
     queryKey: ["inventory-received-serials"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await allRows(supabase
         .from("goods_receipt_pending")
         .select("equipment_id, media_player_id, is_media_player, serial_number, received_at, created_at")
         .eq("status", "received")
         .not("serial_number", "is", null)
-        .neq("serial_number", "");
+        .neq("serial_number", "").order("id"));
 
       if (error) throw error;
       return (data || []) as ReceivedSerialItem[];
@@ -452,9 +453,9 @@ export default function InventoryReport() {
   const { data: allocationRows = [] } = useQuery({
     queryKey: ["inventory-location-allocations"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await allRows(supabase
         .from("stock_location_allocations")
-        .select("equipment_id, media_player_id, tool_id, location_id, quantity, locations:location_id(code, name, warehouse_id, warehouses:warehouse_id(id, code, name))");
+        .select("equipment_id, media_player_id, tool_id, location_id, quantity, locations:location_id(code, name, warehouse_id, warehouses:warehouse_id(id, code, name))").order("id"));
       if (error) throw error;
       return data || [];
     },
@@ -467,10 +468,10 @@ export default function InventoryReport() {
   const { data: receiptPrices = [] } = useQuery({
     queryKey: ["inventory-receipt-prices"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await allRows(supabase
         .from("goods_receipt_pending")
         .select("equipment_id, media_player_id, is_media_player, unit_price, order_for_project, received_at")
-        .eq("status", "received");
+        .eq("status", "received").order("id"));
       if (error) throw error;
       return data || [];
     },
@@ -506,7 +507,7 @@ export default function InventoryReport() {
   const { data: issueData = [] } = useQuery({
     queryKey: ["inventory-issue-data"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await allRows(supabase
         .from("goods_issue_pending")
         .select(`
           id,
@@ -519,7 +520,7 @@ export default function InventoryReport() {
           issued_quantity,
           quantity
         `)
-        .in("status", ["issued", "approved", "partial", "waiting_stock"]);
+        .in("status", ["issued", "approved", "partial", "waiting_stock"]).order("id"));
 
       if (error) throw error;
       return data || [];
@@ -530,9 +531,9 @@ export default function InventoryReport() {
   const { data: billboards = [] } = useQuery({
     queryKey: ["billboards-map"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await allRows(supabase
         .from("billboards")
-        .select("id, equipment_id");
+        .select("id, equipment_id").order("id"));
       if (error) throw error;
       return data || [];
     },

@@ -1,3 +1,4 @@
+import { allRows } from "@/lib/fetchAllRows";
 import { useState, useEffect } from "react";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
@@ -73,7 +74,7 @@ const BillboardIssueReport = () => {
     setIsLoading(true);
 
     // Fetch billboard equipment with details
-    const { data: beData } = await supabase
+    const { data: beData } = await allRows(supabase
       .from("billboard_equipment")
       .select(`
         id,
@@ -84,7 +85,7 @@ const BillboardIssueReport = () => {
         equipment:equipment_id (code, name, unit, unit_price, category, serial_number, department),
         billboard:billboard_id (equipment_id, old_code, location_name, region, department)
       `)
-      .order("installation_date", { ascending: false });
+      .order("installation_date", { ascending: false }));
 
     // Fetch all billboards
     let bbQuery = supabase
