@@ -1,6 +1,6 @@
 - [x] Reproduce issue request failure as requester
-- [ ] Add interactive tool executive meeting report: distribution, loans, warranty/expiry, PM, readiness, detail and Excel
-- [ ] Test tool report calculations and verify authenticated report, filters, drill-down, export and mobile layout
+- [x] Add interactive tool executive meeting report: distribution, loans, warranty/expiry, PM, readiness, detail and six-sheet Excel
+- [x] Verify 30 tests, authenticated 97-tool report, seven-drill drill-down/Excel, PM multiselect, fullscreen filters/details/media and mobile without overflow; live loan and PM history are empty, nonempty calculations covered by unit tests
 - [x] Add department labels and shared multiselect filters to every incomplete-issue tab
 - [x] Add meeting report with department aging matrix, responsible persons, action detail and filtered Excel
 - [x] Test age/quantity rules (43 passing tests) and verify authenticated desktop/mobile report, multiselect ages, department drill-down, fullscreen and 196-row four-sheet Excel export
