@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { canAccessFunction } from "@/lib/functionAccess";
 
 export interface FunctionPermission {
   function_name: string;
@@ -111,6 +112,7 @@ export const FUNCTION_GROUP_ORDER: string[] = [
   "ป้ายโฆษณา",
   "ภาพโฆษณา",
   "เครื่องมือ",
+  "เข้าพื้นที่คลัง",
   "Swap & ซ่อมบำรุง",
   "รายงาน",
   "ตั้งค่าระบบ",
@@ -135,7 +137,7 @@ export const SUPER_ADMIN_ONLY_FNS: string[] = [
 /** สิทธิ์ที่ Admin ได้อัตโนมัติทั้งหมด (ทุกเมนูงาน ยกเว้นที่สงวนไว้) */
 export const ADMIN_FNS: string[] = SYSTEM_FUNCTIONS
   .map((f) => f.name)
-  .filter((n) => !SUPER_ADMIN_ONLY_FNS.includes(n));
+  .filter((n) => !SUPER_ADMIN_ONLY_FNS.includes(n) && n !== "site_access_manage");
 
 
 export function useFunctionPermissions() {
@@ -191,19 +193,11 @@ export function useFunctionPermissions() {
   }, [user]);
 
   const hasFunctionAccess = (functionName: string): boolean => {
-    // Super Admin ผ่านทุกอย่าง
-    if (isSuperAdmin) return true;
-    // Admin ได้ทุกเมนูงาน ยกเว้น 4 เรื่องที่สงวนไว้ให้ Super Admin
-    if (isAdmin) return !SUPER_ADMIN_ONLY_FNS.includes(functionName);
-
-    const perm = permissions.find(p => p.function_name === functionName);
-    return perm?.can_access || false;
+    return canAccessFunction(functionName, permissions, isAdmin, isSuperAdmin, SUPER_ADMIN_ONLY_FNS);
   };
 
   const getAccessibleFunctions = (): string[] => {
-    if (isSuperAdmin) return SYSTEM_FUNCTIONS.map(f => f.name);
-    if (isAdmin) return SYSTEM_FUNCTIONS.map(f => f.name).filter(n => !SUPER_ADMIN_ONLY_FNS.includes(n));
-    return permissions.filter(p => p.can_access).map(p => p.function_name);
+    return SYSTEM_FUNCTIONS.map(f => f.name).filter(hasFunctionAccess);
   };
 
   return {

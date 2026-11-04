@@ -204,7 +204,7 @@ const menuGroups: MenuGroup[] = [
     label: "เข้าพื้นที่คลัง",
     items: [
       { title: "จองเข้าพื้นที่คลัง", url: "/site-access", icon: Ticket, adminOrWarehouseOnly: true },
-      { title: "จัดการตั๋วเข้าพื้นที่", url: "/site-access-manage", icon: ClipboardCheck, superAdminOnly: true },
+      { title: "จัดการตั๋วเข้าพื้นที่", url: "/site-access-manage", icon: ClipboardCheck, functionName: "site_access_manage" },
       { title: "จุดตรวจ รปภ.", url: "/site-access-gate", icon: ShieldCheck, superAdminOnly: true },
       { title: "รายงานการขอเข้าพื้นที่", url: "/site-access-report", icon: FileBarChart2 },
     ]
@@ -451,6 +451,7 @@ export function AppSidebar() {
         if (item.subItems && item.subItems.length === 0) return false;
         if (item.superAdminOnly && !isSuperAdmin) return false;
         if (item.adminOrWarehouseOnly) return isSuperAdmin || isAdmin || isWarehouseStaff;
+        if (item.functionName === "site_access_manage") return hasFunctionAccess(item.functionName);
         if (isAdmin) return true;
         // Check parent-level functionNames (OR) then functionName
         if (item.functionNames && item.functionNames.length > 0) {
