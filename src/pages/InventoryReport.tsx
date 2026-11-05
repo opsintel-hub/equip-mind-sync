@@ -1164,11 +1164,6 @@ export default function InventoryReport() {
               <div className="text-2xl font-bold">
                 ฿{stats.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
-              {isStorageScoped && (
-                <div className="text-xs text-muted-foreground mt-1">
-                  รวม {stats.totalQty.toLocaleString()} ชิ้นในคลังที่เลือก
-                </div>
-              )}
             </CardContent>
           </Card>
         </div>
