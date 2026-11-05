@@ -780,9 +780,7 @@ const DeliveryEntry = () => {
       toast.error("กรุณากรอกชื่อผู้นำส่งก่อนเพิ่มสินค้า");
       return;
     }
-    // Per-unit mode derives its quantity from the entered units (validated below),
-    // so the free-text quantity field stays blank there and must not block adding.
-    if (!isMediaPlayerEntry && !perUnitMode && (!quantity || parseInt(quantity) < 1)) {
+    if (!isMediaPlayerEntry && (!quantity || parseInt(quantity) < 1)) {
       toast.error("กรุณาระบุจำนวน");
       return;
     }
