@@ -38,3 +38,4 @@
 - [x] Issue consumables/non-serial equipment in aggregate without per-unit S/N forms; retain serial and Media Player workflows
 - [x] Verify aggregate quantities and billboard installation with 34 passing tests; authenticated GI-REQ-000203 opens 50,000/100,000-unit dialogs and quantity editing without per-unit cards or browser errors; no live stock issued
 - [x] Add search box, taller list and visible scroll affordance to the department filter dropdown; 7 new helper tests, 152 lib tests pass, authenticated dropdown shows all 11 rows and filters "hello" to 3
+- [x] Fix per-unit delivery-entry add blocked by "กรุณาระบุจำนวน" although quantity is derived from entered units; normal mode still requires quantity — live preview verified both ways
