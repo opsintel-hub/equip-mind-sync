@@ -31,6 +31,7 @@ import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
 import { buildStorageBalanceMap, matchesWarehouse, matchesLocation, storageDisplayLines, scopedStorageLines, sumStorageLines } from "@/lib/inventoryStorage";
+import { resolveStockStatusQuantity, getStockStatusTone, STOCK_STATUS_LABEL } from "@/lib/inventoryStockStatus";
 import BillboardSelect from "@/components/billboard/BillboardSelect";
 import { getCompatibilityBadge } from "@/components/equipment/BillboardCompatibilityField";
 import { useDeptScope } from "@/hooks/useDeptScope";
@@ -56,6 +57,8 @@ interface InventoryItem {
   brand: string | null;
   department: string | null;
   quantity_in_stock: number;
+  /** ยอดคงเหลือรวมของสินค้า (กอนแตงแถว S/N) — ใชสำหรับตักดืนสถานะ Stock */
+  total_stock_qty?: number;
   min_stock_level: number;
   unit: string;
   unit_price: number;
@@ -464,6 +467,31 @@ export default function InventoryReport() {
   // itemId -> non-zero balances per location (actual stock, not default location)
   const storageBalanceMap = useMemo(() => buildStorageBalanceMap(allocationRows as any), [allocationRows]);
 
+  // When a warehouse/location filter is active, quantities and values shown
+  // must reflect ONLY the stock physically in that warehouse/location.
+  const isStorageScoped = !!(filters.warehouseId || filters.locationId);
+
+  /**
+   * จำนวนที่ใชตักดืน "สถานะ Stock" — ตองเปนยอดคงเหลือรวมของ "สินค้า" เสมอ
+   * สินค้าที่มีหลาย S/N ถงแตงออกเปน 1 แถวตอ 1 S/N (แถวหนึ่งมียอด 1 ชน)
+   * ถานำยอดของแถวนั้นไปเทียบกับ Min ของสินค้าทังรหัส แถวทังหมดจะผิดเปน "ใกล้หมด"
+   */
+  const statusQtyFor = (item: any): number => {
+    const balances = storageBalanceMap[item.id] || [];
+    const allocationsTotal = balances.length > 0
+      ? sumStorageLines(
+          isStorageScoped
+            ? scopedStorageLines(balances, filters.warehouseId || null, filters.locationId || null)
+            : balances
+        )
+      : null;
+    return resolveStockStatusQuantity({
+      allocationsTotal,
+      itemTotalQuantity: item.total_stock_qty ?? item.quantity_in_stock ?? 0,
+      rowQuantity: item.quantity_in_stock ?? 0,
+    });
+  };
+
   // Fetch receipt prices and order_for_project for each equipment
   const { data: receiptPrices = [] } = useQuery({
     queryKey: ["inventory-receipt-prices"],
@@ -609,6 +637,8 @@ export default function InventoryReport() {
         ? item.unit_price
         : (receiptPrices.length > 0 ? receiptPrices[0] : 0);
       const baseFields = {
+        // ยอดคงเหลือรวมของสินค้า (กอนแตงแถว S/N) — ใชตักดืนสถานะ Stock
+        total_stock_qty: item.quantity_in_stock || 0,
         unit_price: effectiveUnitPrice,
         issue_status: issueStatus,
         issue_purpose: issueInfo?.purpose || null,
@@ -763,9 +793,9 @@ export default function InventoryReport() {
         return false;
       }
 
-      // Filter by stock status
+      // Filter by stock status (from the item's real total, not one S/N row)
       if (filters.stockStatus) {
-        const qty = item.quantity_in_stock;
+        const qty = statusQtyFor(item);
         const minStock = item.min_stock_level;
 
         if (filters.stockStatus === "out" && qty > 0) return false;
@@ -786,7 +816,7 @@ export default function InventoryReport() {
             case "near_warranty":
               return isNearWarranty(item.warranty_expiry_date);
             case "out_of_stock":
-              return item.quantity_in_stock === 0;
+              return statusQtyFor(item) === 0;
             default:
               return false;
           }
@@ -869,16 +899,15 @@ export default function InventoryReport() {
     handlePageChange(1);
   };
 
-  // Get stock status
+  // Get stock status (tone logic + Thai labels live in @/lib/inventoryStockStatus)
   const getStockStatus = (qty: number, minStock: number) => {
-    if (qty === 0) return { label: "หมด", variant: "destructive" as const, icon: XCircle };
-    if (qty <= minStock) return { label: "ใกล้หมด", variant: "warning" as const, icon: AlertTriangle };
-    return { label: "ปกติ", variant: "default" as const, icon: CheckCircle };
+    const tone = getStockStatusTone(qty, minStock);
+    if (tone === "out") return { label: STOCK_STATUS_LABEL.out, variant: "destructive" as const, icon: XCircle };
+    if (tone === "low") return { label: STOCK_STATUS_LABEL.low, variant: "warning" as const, icon: AlertTriangle };
+    return { label: STOCK_STATUS_LABEL.normal, variant: "default" as const, icon: CheckCircle };
   };
 
-  // When a warehouse/location filter is active, quantities and values shown
-  // must reflect ONLY the stock physically in that warehouse/location.
-  const isStorageScoped = !!(filters.warehouseId || filters.locationId);
+  // (isStorageScoped is declared above, next to statusQtyFor)
 
   // Display lines for an item, scoped to the active warehouse/location filter
   const displayLinesFor = (item: any) => {
@@ -906,9 +935,9 @@ export default function InventoryReport() {
   // Summary stats
   const stats = useMemo(() => {
     const total = filteredData.length;
-    const outOfStock = filteredData.filter((item) => (item.quantity_in_stock || 0) === 0).length;
+    const outOfStock = filteredData.filter((item) => statusQtyFor(item) === 0).length;
     const lowStock = filteredData.filter((item) => {
-      const qty = item.quantity_in_stock || 0;
+      const qty = statusQtyFor(item);
       const min = item.min_stock_level || 0;
       return qty > 0 && qty <= min;
     }).length;
@@ -943,7 +972,7 @@ export default function InventoryReport() {
         ? storageLines.map((l) => `${l.locationCode}${l.locationName && l.locationName !== "-" ? ` - ${l.locationName}` : ""} (${l.quantity} ${item.unit})`).join("\n")
         : "-";
       const status = getStockStatus(
-        item.quantity_in_stock,
+        statusQtyFor(item),
         item.min_stock_level
       );
 
@@ -1161,7 +1190,7 @@ export default function InventoryReport() {
                 <EntityCardGrid
                   items={paginatedData.map<CardItem>((item) => {
                     const itemTypeLabel = item.item_type === "media_player" ? (item.device_type === "MONITOR" ? "จอภาพ" : "MP") : item.item_type === "tools" ? "เครื่องมือ" : "อะไหล่";
-                    const st = getStockStatus(item.quantity_in_stock, item.min_stock_level);
+                    const st = getStockStatus(statusQtyFor(item), item.min_stock_level);
                     return {
                       id: item.id,
                       code: item.code,
@@ -1255,10 +1284,8 @@ export default function InventoryReport() {
                       const company = item.companies;
                       const location = item.locations;
                       const subcategory = item.subcategories;
-                      const status = getStockStatus(
-                        item.quantity_in_stock,
-                        item.min_stock_level
-                      );
+                      const statusQty = statusQtyFor(item);
+                      const status = getStockStatus(statusQty, item.min_stock_level);
                       const StatusIcon = status.icon;
 
                       return (
