@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Download, Package, AlertTriangle, XCircle, CheckCircle, Monitor, ImageIcon, Wrench, ArrowRightLeft, MapPin } from "lucide-react";
+import { Download, Package, AlertTriangle, XCircle, CheckCircle, Monitor, ImageIcon, Wrench, ArrowRightLeft, MapPin, Boxes } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -950,7 +950,14 @@ export default function InventoryReport() {
     );
     const totalQty = filteredData.reduce((sum, item) => sum + displayQtyFor(item), 0);
 
-    return { total, outOfStock, lowStock, normal, totalValue, totalQty };
+    // หน่วยนับที่ปรากฏในข้อมูลที่กรองได (สนิคาตางชนิดอาจใชหน่วยตางกັນ)
+    const unitSet = new Set<string>();
+    filteredData.forEach((item) => {
+      const u = String(item.unit || "").trim();
+      if (u) unitSet.add(u);
+    });
+
+    return { total, outOfStock, lowStock, normal, totalValue, totalQty, units: [...unitSet] };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredData, isStorageScoped, filters.warehouseId, filters.locationId, storageBalanceMap]);
 
@@ -1061,7 +1068,7 @@ export default function InventoryReport() {
         </Tabs>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -1071,7 +1078,33 @@ export default function InventoryReport() {
             <CardContent>
               <div className="flex items-center gap-2">
                 <Package className="h-4 w-4 text-muted-foreground" />
-                <span className="text-2xl font-bold">{stats.total.toLocaleString()}</span>
+                <span className="text-2xl font-bold tabular-nums">{stats.total.toLocaleString()}</span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 truncate">
+                {isStorageScoped ? "เฉพาะคลังที่เลือก" : "ทุกคลัง/ช่องจัดเก็บ"}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-primary/25 bg-primary/[0.04]">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {isStorageScoped ? "คงเหลือรวม (เฉพาะคลังที่เลือก)" : "คงเหลือรวม"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <Boxes className="h-4 w-4 shrink-0 text-primary" />
+                <span className="text-2xl font-bold text-primary tabular-nums truncate">
+                  {stats.totalQty.toLocaleString()}
+                </span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 truncate">
+                {stats.units.length === 1
+                  ? stats.units[0]
+                  : stats.units.length > 1
+                    ? `หลายหน่วย: ${stats.units.slice(0, 3).join(", ")}${stats.units.length > 3 ? ` +${stats.units.length - 3}` : ""}`
+                    : "ไม่มีข้อมูลหน่วย"}
               </div>
             </CardContent>
           </Card>
@@ -1085,9 +1118,12 @@ export default function InventoryReport() {
             <CardContent>
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
-                <span className="text-2xl font-bold text-green-600">
+                <span className="text-2xl font-bold text-green-600 tabular-nums">
                   {stats.normal.toLocaleString()}
                 </span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 truncate">
+                คงเหลือมากกว่า Min Stock
               </div>
             </CardContent>
           </Card>
@@ -1101,9 +1137,12 @@ export default function InventoryReport() {
             <CardContent>
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                <span className="text-2xl font-bold text-yellow-600">
+                <span className="text-2xl font-bold text-yellow-600 tabular-nums">
                   {stats.lowStock.toLocaleString()}
                 </span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 truncate">
+                คงเหลือเท่ากัับหรือน้อยกว่า Min Stock
               </div>
             </CardContent>
           </Card>
@@ -1117,9 +1156,12 @@ export default function InventoryReport() {
             <CardContent>
               <div className="flex items-center gap-2">
                 <XCircle className="h-4 w-4 text-red-500" />
-                <span className="text-2xl font-bold text-red-600">
+                <span className="text-2xl font-bold text-red-600 tabular-nums">
                   {stats.outOfStock.toLocaleString()}
                 </span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 truncate">
+                คงเหลือ 0 ชิ้น
               </div>
             </CardContent>
           </Card>
@@ -1131,14 +1173,12 @@ export default function InventoryReport() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold tabular-nums">
                 ฿{stats.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
-              {isStorageScoped && (
-                <div className="text-xs text-muted-foreground mt-1">
-                  รวม {stats.totalQty.toLocaleString()} ชิ้นในคลังที่เลือก
-                </div>
-              )}
+              <div className="text-xs text-muted-foreground mt-1 truncate">
+                คงเหลือ × ราคาตอหน่วย
+              </div>
             </CardContent>
           </Card>
         </div>
