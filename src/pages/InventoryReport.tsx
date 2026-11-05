@@ -1068,7 +1068,7 @@ export default function InventoryReport() {
         </Tabs>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -1091,16 +1091,16 @@ export default function InventoryReport() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
-                <Boxes className="h-4 w-4 text-primary" />
-                <span className="text-2xl font-bold text-primary">
+                <Boxes className="h-4 w-4 shrink-0 text-primary" />
+                <span className="text-2xl font-bold text-primary tabular-nums truncate">
                   {stats.totalQty.toLocaleString()}
                 </span>
               </div>
-              <div className="text-xs text-muted-foreground mt-1">
+              <div className="text-xs text-muted-foreground mt-1 truncate">
                 {stats.units.length === 1
                   ? stats.units[0]
                   : stats.units.length > 1
-                    ? `หลายหน่วย: ${stats.units.slice(0, 3).join(", ")}${stats.units.length > 3 ? " …" : ""}`
+                    ? `หลายหน่วย: ${stats.units.slice(0, 3).join(", ")}${stats.units.length > 3 ? ` +${stats.units.length - 3}` : ""}`
                     : "ไม่มีข้อมูลหน่วย"}
               </div>
             </CardContent>
