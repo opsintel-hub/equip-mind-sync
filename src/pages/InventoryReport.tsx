@@ -652,7 +652,8 @@ export default function InventoryReport() {
       // For equipment with multiple S/Ns, expand into separate rows
       if (item.item_type === "equipment") {
         const snData = equipmentSNMap[item.id];
-        if (snData && snData.allSNs.length > 1) {
+        // 1 สินค้า = 1 แถว: S/N หลายตัวรวมไว้ในช่องเดียว (ไม่แตกแถว)
+        if (false && snData && snData.allSNs.length > 1) {
           // Create one row per S/N
           for (const sn of snData.allSNs) {
             const isInStock = snData.inStockSNs.includes(sn);
@@ -1338,7 +1339,7 @@ export default function InventoryReport() {
                           <TableCell className="font-mono text-xs max-w-[200px]">
                             {item.serial_number ? (
                               <div className="space-y-0.5">
-                                <div className="whitespace-pre-line" title={item.serial_number}>
+                                <div className="whitespace-pre-line max-h-28 overflow-y-auto pr-1" title={item.serial_number}>
                                   {item.serial_number}
                                 </div>
                                 {item.item_type === 'equipment' && equipmentSNMap[item.id] && equipmentSNMap[item.id].allSNs.length > 1 && (
