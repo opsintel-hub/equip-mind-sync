@@ -1078,7 +1078,10 @@ export default function InventoryReport() {
             <CardContent>
               <div className="flex items-center gap-2">
                 <Package className="h-4 w-4 text-muted-foreground" />
-                <span className="text-2xl font-bold">{stats.total.toLocaleString()}</span>
+                <span className="text-2xl font-bold tabular-nums">{stats.total.toLocaleString()}</span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 truncate">
+                {isStorageScoped ? "เฉพาะคลังที่เลือก" : "ทุกคลัง/ช่องจัดเก็บ"}
               </div>
             </CardContent>
           </Card>
@@ -1115,9 +1118,12 @@ export default function InventoryReport() {
             <CardContent>
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
-                <span className="text-2xl font-bold text-green-600">
+                <span className="text-2xl font-bold text-green-600 tabular-nums">
                   {stats.normal.toLocaleString()}
                 </span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 truncate">
+                คงเหลือมากกว่า Min Stock
               </div>
             </CardContent>
           </Card>
@@ -1131,9 +1137,12 @@ export default function InventoryReport() {
             <CardContent>
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                <span className="text-2xl font-bold text-yellow-600">
+                <span className="text-2xl font-bold text-yellow-600 tabular-nums">
                   {stats.lowStock.toLocaleString()}
                 </span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 truncate">
+                คงเหลือเท่ากัับหรือน้อยกว่า Min Stock
               </div>
             </CardContent>
           </Card>
@@ -1147,9 +1156,12 @@ export default function InventoryReport() {
             <CardContent>
               <div className="flex items-center gap-2">
                 <XCircle className="h-4 w-4 text-red-500" />
-                <span className="text-2xl font-bold text-red-600">
+                <span className="text-2xl font-bold text-red-600 tabular-nums">
                   {stats.outOfStock.toLocaleString()}
                 </span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 truncate">
+                คงเหลือ 0 ชิ้น
               </div>
             </CardContent>
           </Card>
@@ -1161,8 +1173,11 @@ export default function InventoryReport() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold tabular-nums">
                 ฿{stats.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 truncate">
+                คงเหลือ × ราคาตอหน่วย
               </div>
             </CardContent>
           </Card>
