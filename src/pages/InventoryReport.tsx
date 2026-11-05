@@ -1068,7 +1068,7 @@ export default function InventoryReport() {
         </Tabs>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
+        <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -1079,6 +1079,29 @@ export default function InventoryReport() {
               <div className="flex items-center gap-2">
                 <Package className="h-4 w-4 text-muted-foreground" />
                 <span className="text-2xl font-bold">{stats.total.toLocaleString()}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-primary/25 bg-primary/[0.04]">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {isStorageScoped ? "คงเหลือรวม (เฉพาะคลังที่เลือก)" : "คงเหลือรวม"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                <Boxes className="h-4 w-4 text-primary" />
+                <span className="text-2xl font-bold text-primary">
+                  {stats.totalQty.toLocaleString()}
+                </span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {stats.units.length === 1
+                  ? stats.units[0]
+                  : stats.units.length > 1
+                    ? `หลายหน่วย: ${stats.units.slice(0, 3).join(", ")}${stats.units.length > 3 ? " …" : ""}`
+                    : "ไม่มีข้อมูลหน่วย"}
               </div>
             </CardContent>
           </Card>
