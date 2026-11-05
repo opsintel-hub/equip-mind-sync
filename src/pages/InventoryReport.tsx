@@ -1439,17 +1439,29 @@ export default function InventoryReport() {
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col gap-1">
-                              <Badge
-                                variant={status.variant === "warning" ? "outline" : status.variant}
-                                className={
-                                  status.variant === "warning"
-                                    ? "border-yellow-500 text-yellow-600 bg-yellow-50"
-                                    : ""
-                                }
-                              >
-                                <StatusIcon className="h-3 w-3 mr-1" />
-                                {status.label}
-                              </Badge>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge
+                                      variant={status.variant === "warning" ? "outline" : status.variant}
+                                      className={
+                                        status.variant === "warning"
+                                          ? "border-yellow-500 text-yellow-600 bg-yellow-50"
+                                          : ""
+                                      }
+                                    >
+                                      <StatusIcon className="h-3 w-3 mr-1" />
+                                      {status.label}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="left" className="max-w-[260px]">
+                                    <div className="text-xs space-y-0.5">
+                                      <div className="font-semibold">ตักดืนจากยอดคงเหลือรวมของรหัสนี้ (ไมใชแถว S/N แถวนี้)</div>
+                                      <div>คงเหลือรวม {statusQty.toLocaleString()} {item.unit} • Min {item.min_stock_level.toLocaleString()}</div>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                               {/* Show expiry/warranty status badges */}
                               {isExpired(item.expiry_date) && (
                                 <Badge variant="destructive" className="text-xs">
