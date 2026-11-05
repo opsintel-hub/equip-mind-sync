@@ -1284,7 +1284,7 @@ export default function InventoryReport() {
                       const company = item.companies;
                       const location = item.locations;
                       const subcategory = item.subcategories;
-                      const statusQty = item.quantity_in_stock;
+                      const statusQty = statusQtyFor(item);
                       const status = getStockStatus(statusQty, item.min_stock_level);
                       const StatusIcon = status.icon;
 
