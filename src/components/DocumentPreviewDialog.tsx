@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Download, FileX2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadStorageFile, parseStorageUrls } from "@/lib/storageDownload";
-import { PdfCanvasViewer } from "@/components/PdfCanvasViewer";
+import { lazy, Suspense } from "react";
+const PdfCanvasViewer = lazy(() => import("@/components/PdfCanvasViewer").then((m) => ({ default: m.PdfCanvasViewer })));
 import { cn } from "@/lib/utils";
 
 /** A single category of documents (e.g. "เอกสารจัดซื้อ"). May contain 0..N files. */
@@ -247,7 +248,7 @@ export function DocumentPreviewDialog({
           )}
           {activeTab?.hasFile && !loading && !error && isPdf && pdfData && (
             <div className="flex-1 min-h-0">
-              <PdfCanvasViewer data={pdfData} />
+              <Suspense fallback={<div className="p-6 text-center text-sm text-muted-foreground">กำลังโหลด PDF...</div>}><PdfCanvasViewer data={pdfData} /></Suspense>
             </div>
           )}
           {activeTab?.hasFile && !loading && !error && isImage && imageDataUrl && (

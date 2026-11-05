@@ -3,9 +3,9 @@ import { Loader2, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-reac
 import { Button } from "@/components/ui/button";
 
 // Use the bundled worker from pdfjs-dist (no CDN, ad-blocker safe)
-import * as pdfjsLib from "pdfjs-dist";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 // @ts-ignore - Vite handles ?url import
-import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import pdfWorker from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
