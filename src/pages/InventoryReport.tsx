@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SerialListPopover } from "@/components/inventory/SerialListPopover";
 import {
   Table,
   TableBody,
@@ -1245,16 +1246,16 @@ export default function InventoryReport() {
                     <TableHead className="min-w-[110px]">ประเภท</TableHead>
                     <TableHead className="min-w-[100px]">รหัส</TableHead>
                     <TableHead className="min-w-[160px]">ชื่อ</TableHead>
-                    <TableHead className="min-w-[140px]">S/N</TableHead>
+                    <TableHead className="text-right min-w-[110px]" title={isStorageScoped ? "จำนวนคงเหลือเฉพาะในคลัง/ตำแหน่งที่กรอง (ไม่รวมที่เบิกออกหรือติดตั้งอยู่บนป้าย)" : "จำนวนคงเหลือในคลัง (ไม่รวมที่เบิกออกหรือติดตั้งอยู่บนป้าย)"}>
+                      {isStorageScoped ? "คงเหลือในคลังที่เลือก" : "คงเหลือในคลัง"}
+                    </TableHead>
+                    <TableHead className="min-w-[190px]">S/N</TableHead>
                     <TableHead className="min-w-[120px]">หมวดหมู่</TableHead>
                     <TableHead className="min-w-[120px]">หมวดหมู่ย่อย</TableHead>
                     <TableHead className="min-w-[100px]">บริษัท</TableHead>
                     <TableHead className="min-w-[100px]">ฝ่าย</TableHead>
                     <TableHead className="min-w-[100px]">คลัง</TableHead>
                     <TableHead className="min-w-[200px]">ตำแหน่งจัดเก็บ</TableHead>
-                    <TableHead className="text-right min-w-[110px]" title={isStorageScoped ? "จำนวนคงเหลือเฉพาะในคลัง/ตำแหน่งที่กรอง (ไม่รวมที่เบิกออกหรือติดตั้งอยู่บนป้าย)" : "จำนวนคงเหลือในคลัง (ไม่รวมที่เบิกออกหรือติดตั้งอยู่บนป้าย)"}>
-                      {isStorageScoped ? "คงเหลือในคลังที่เลือก" : "คงเหลือในคลัง"}
-                    </TableHead>
                     <TableHead className="text-right min-w-[70px]">Min</TableHead>
                     <TableHead className="text-right min-w-[110px]">ราคา/ชิ้น</TableHead>
                     <TableHead className="min-w-[120px]">สถานะ Stock</TableHead>
@@ -1336,18 +1337,21 @@ export default function InventoryReport() {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell className="font-mono text-xs max-w-[200px]">
-                            {item.serial_number ? (
-                              <div className="space-y-0.5">
-                                <div className="whitespace-pre-line max-h-28 overflow-y-auto pr-1" title={item.serial_number}>
-                                  {item.serial_number}
-                                </div>
-                                {item.item_type === 'equipment' && equipmentSNMap[item.id] && equipmentSNMap[item.id].allSNs.length > 1 && (
-                                  <div className="text-[10px] text-muted-foreground">
-                                    ({equipmentSNMap[item.id].inStockCount} ในคลัง / {equipmentSNMap[item.id].allSNs.length} ทั้งหมด)
-                                  </div>
-                                )}
+                          <TableCell className="text-right font-medium whitespace-nowrap">
+                            {displayQtyFor(item).toLocaleString()} {item.unit}
+                            {isStorageScoped && displayQtyFor(item) !== (item.quantity_in_stock || 0) && (
+                              <div className="text-xs font-normal text-muted-foreground" title="ยอดคงเหลือรวมทุกคลังในระบบ">
+                                รวมทุกคลัง {(item.quantity_in_stock || 0).toLocaleString()}
                               </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {item.serial_number ? (
+                              <SerialListPopover
+                                serials={item.serial_number}
+                                inStockCount={item.item_type === 'equipment' ? equipmentSNMap[item.id]?.inStockCount : undefined}
+                                totalCount={item.item_type === 'equipment' ? equipmentSNMap[item.id]?.allSNs.length : undefined}
+                              />
                             ) : (
                               <span className="text-muted-foreground">-</span>
                             )}
@@ -1402,14 +1406,6 @@ export default function InventoryReport() {
                                 </div>
                               );
                             })()}
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            {displayQtyFor(item).toLocaleString()} {item.unit}
-                            {isStorageScoped && displayQtyFor(item) !== (item.quantity_in_stock || 0) && (
-                              <div className="text-xs font-normal text-muted-foreground" title="ยอดคงเหลือรวมทุกคลังในระบบ">
-                                รวมทุกคลัง {(item.quantity_in_stock || 0).toLocaleString()}
-                              </div>
-                            )}
                           </TableCell>
                           <TableCell className="text-right text-muted-foreground">
                             {item.min_stock_level.toLocaleString()}
