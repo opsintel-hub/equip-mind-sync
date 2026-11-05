@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Download, Package, AlertTriangle, XCircle, CheckCircle, Monitor, ImageIcon, Wrench, ArrowRightLeft, MapPin } from "lucide-react";
+import { Download, Package, AlertTriangle, XCircle, CheckCircle, Monitor, ImageIcon, Wrench, ArrowRightLeft, MapPin, Boxes } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -950,7 +950,14 @@ export default function InventoryReport() {
     );
     const totalQty = filteredData.reduce((sum, item) => sum + displayQtyFor(item), 0);
 
-    return { total, outOfStock, lowStock, normal, totalValue, totalQty };
+    // หน่วยนับที่ปรากฏในข้อมูลที่กรองได (สนิคาตางชนิดอาจใชหน่วยตางกັນ)
+    const unitSet = new Set<string>();
+    filteredData.forEach((item) => {
+      const u = String(item.unit || "").trim();
+      if (u) unitSet.add(u);
+    });
+
+    return { total, outOfStock, lowStock, normal, totalValue, totalQty, units: [...unitSet] };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredData, isStorageScoped, filters.warehouseId, filters.locationId, storageBalanceMap]);
 
