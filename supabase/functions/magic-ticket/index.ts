@@ -17,6 +17,42 @@ async function sha256(text: string) {
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+const str = (v: unknown) => (typeof v === "string" ? v.trim() : typeof v === "number" ? String(v) : "");
+
+// Forgiving input: exact matches always win; fallbacks only apply when the exact value is not found.
+// deno-lint-ignore no-explicit-any
+async function normalizeIssueRequest(admin: any, raw: Record<string, unknown>) {
+  const p: Record<string, unknown> = { ...raw };
+  if (!str(p.employee_code)) p.employee_code = str(raw.employee_name) || str(raw.requester_name) || str(raw.requester);
+
+  let dept = str(p.department) || str(raw.department_name);
+  if (dept) {
+    const { data: exact } = await admin.from("departments").select("name").eq("name", dept).eq("is_active", true).maybeSingle();
+    if (!exact) {
+      const { data: cands } = await admin.from("departments").select("name").eq("is_active", true).ilike("name", `${dept}%`);
+      if (cands?.length === 1) dept = cands[0].name;
+    }
+    p.department = dept;
+  }
+
+  const items = Array.isArray(raw.items) ? raw.items : [];
+  p.items = await Promise.all(items.map(async (it: unknown) => {
+    const o = (it && typeof it === "object" ? it : {}) as Record<string, unknown>;
+    let code = str(o.item_code) || str(o.code) || str(o.equipment_code);
+    const quantity = o.quantity ?? o.qty;
+    if (code && dept) {
+      const { data: exact } = await admin.from("equipment").select("code").eq("code", code).eq("department", dept).eq("is_active", true).limit(1);
+      if (!exact?.length && /\s/.test(code)) {
+        const first = code.split(/\s+/)[0];
+        const { data: hit } = await admin.from("equipment").select("code").eq("code", first).eq("department", dept).eq("is_active", true).limit(1);
+        if (hit?.length) code = first;
+      }
+    }
+    return { ...o, item_code: code, quantity };
+  }));
+  return p;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -75,7 +111,16 @@ Deno.serve(async (req) => {
     };
     if (req.method === "POST" && path === "/work-log/revert") return await rpcPost("magic_ticket_revert_event", (p) => ({ p, p_api_key_id: key.id }));
     if (req.method === "POST" && path === "/bind-ticket") return await rpcPost("magic_ticket_bind_ticket", (p) => ({ p }));
-    if (req.method === "POST" && path === "/issue-request") return await rpcPost("magic_ticket_issue_request", (p) => ({ p, p_api_key_id: key.id }));
+    if (req.method === "POST" && path === "/issue-request") {
+      const raw = await readBody();
+      if (!raw) return fail(400, "VALIDATION_ERROR", "body ต้องเป็น JSON object");
+      const p = await normalizeIssueRequest(admin, raw as Record<string, unknown>);
+      const { data, error } = await admin.rpc("magic_ticket_issue_request", { p, p_api_key_id: key.id });
+      if (error) throw error;
+      const r = data as { http_status: number; body: unknown };
+      if (r.http_status >= 400) console.warn("issue-request rejected", JSON.stringify({ raw, normalized: p, response: r.body }));
+      return json(r.http_status, r.body);
+    }
 
     if (req.method === "POST" && path === "/work-log") {
       let body: unknown;
