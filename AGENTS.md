@@ -26,3 +26,4 @@
 - Tool meeting reports use paginated permission-scoped tool IDs for related reads and shared pure quantity/date helpers for UI and Excel; assignments do not increase quantities, pending returns remain held until received, and schedule-readiness is not a condition or safety certification.
 - Shared dialog, sheet and popover portals target the active fullscreen element when present so meeting-mode filters, details and media remain visible and interactive.
 - Meeting report agenda and department focus are presentation-only subsets of permission-scoped rows; summaries and exports reuse the existing quantity helpers to avoid changing stock or authorization.
+- Inventory report uses DepartmentMultiFilter and array-based department queries alongside the existing permission scope; dependent companies and warehouses match any selected department so summaries and Excel share the filtered rows.

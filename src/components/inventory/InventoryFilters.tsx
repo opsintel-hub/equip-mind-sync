@@ -17,12 +17,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Search, X, Filter, ChevronDown, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { warehouseHasDept } from "@/lib/warehouseDepartments";
-import { companyIsAvailableToDepartment } from "@/lib/companyDepartments";
+import { DepartmentMultiFilter } from "@/components/DepartmentMultiFilter";
+import { inventoryWarehouseMatchesDepartments } from "@/lib/inventoryDepartmentFilter";
+import { companyIsAvailableToDepartments } from "@/lib/companyDepartments";
 
 export interface InventoryFiltersState {
   companyId: string;
-  department: string;
+  departments: string[];
   categoryId: string;
   subcategoryId: string;
   warehouseId: string;
@@ -127,35 +128,16 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
     },
   });
 
-  const selectedDeptId = departments.find((d) => d.name === filters.department)?.id || null;
+  const selectedDeptIds = departments.filter((d) => filters.departments.includes(d.name)).map((d) => d.id);
 
   // department_id=null is the explicit "ทุกฝ่าย" setting and remains visible in every department.
-  const companies = selectedDeptId
-    ? allCompanies.filter((c: any) => companyIsAvailableToDepartment(c, selectedDeptId))
+  const companies = selectedDeptIds.length
+    ? allCompanies.filter((c: any) => companyIsAvailableToDepartments(c, selectedDeptIds))
     : allCompanies;
 
-  // When a company that is tied to a specific department is selected, lock the
-  // department filter to that department. Companies marked "ทุกฝ่าย"
-  // (department_id = null) do not lock the department.
-  const selectedCompany = allCompanies.find((c: any) => c.id === filters.companyId);
-  const isDeptLockedByCompany = !!(selectedCompany && selectedCompany.department_id);
-
   const handleCompanyChange = (value: string) => {
-    if (value === "all") {
-      onFiltersChange({ ...filters, companyId: "" });
-      return;
-    }
-    const company = allCompanies.find((c: any) => c.id === value);
-    const deptId = company?.department_id;
-    if (deptId) {
-      const dept = departments.find((d) => d.id === deptId);
-      if (dept) {
-        onFiltersChange({ ...filters, companyId: value, department: dept.name });
-        return;
-      }
-    }
-    // "ทุกฝ่าย" company or unlinked — keep the current department untouched.
-    onFiltersChange({ ...filters, companyId: value });
+    // Company and department selections intersect; choosing a company never rewrites the selected departments.
+    onFiltersChange({ ...filters, companyId: value === "all" ? "" : value });
   };
 
   // Fetch categories
@@ -206,9 +188,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
     },
   });
 
-  const warehouses = filters.department
-    ? allWarehouses.filter((w: any) => warehouseHasDept(w, filters.department))
-    : allWarehouses;
+  const warehouses = allWarehouses.filter((w) => inventoryWarehouseMatchesDepartments(w, filters.departments));
 
   // Fetch locations based on selected warehouse
   const { data: locations = [] } = useQuery({
@@ -246,7 +226,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
 
   // Clear company / warehouse when they fall outside the selected department
   useEffect(() => {
-    if (!filters.department) return;
+    if (!filters.departments.length) return;
     const patch: Partial<InventoryFiltersState> = {};
     if (filters.companyId && !companies.some((c) => c.id === filters.companyId)) {
       patch.companyId = "";
@@ -256,7 +236,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
       patch.locationId = "";
     }
     if (Object.keys(patch).length > 0) onFiltersChange({ ...filters, ...patch });
-  }, [filters.department, companies.length, warehouses.length]);
+  }, [filters.departments, companies.length, warehouses.length]);
 
   const handleSearchSubmit = () => {
     onFiltersChange({ ...filters, search: localSearch, snSearch: localSnSearch });
@@ -268,7 +248,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
     setLocalSnSearch("");
     onFiltersChange({
       companyId: "",
-      department: "",
+      departments: [],
       categoryId: "",
       subcategoryId: "",
       warehouseId: "",
@@ -298,7 +278,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
   };
 
   const hasActiveFilters = Object.entries(filters).some(([key, v]) => {
-    if (key === 'statusFilters') {
+    if (Array.isArray(v)) {
       return Array.isArray(v) && v.length > 0;
     }
     return v !== "";
@@ -306,6 +286,7 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
 
   const activeFilterCount = (filters.statusFilters?.length || 0) + Object.entries(filters).filter(([key, v]) => {
     if (key === 'statusFilters') return false;
+    if (Array.isArray(v)) return v.length > 0;
     return v !== "" && v !== undefined && v !== null && v !== 30;
   }).length;
 
@@ -404,30 +385,17 @@ export function InventoryFilters({ filters, onFiltersChange }: InventoryFiltersP
             ]}
             placeholder="บริษัท"
             searchPlaceholder="ค้นหารหัสหรือชื่อบริษัท..."
-            emptyMessage={filters.department ? "ไม่พบบริษัทในฝ่ายนี้" : "ไม่พบบริษัท"}
+            emptyMessage={filters.departments.length ? "ไม่พบบริษัทในฝ่ายที่เลือก" : "ไม่พบบริษัท"}
             isLoading={isLoadingCompanies}
             triggerClassName="h-9 bg-background"
           />
 
-          <Select
-            value={filters.department}
-            onValueChange={(value) =>
-              onFiltersChange({ ...filters, department: value === "all" ? "" : value })
-            }
-            disabled={isDeptLockedByCompany}
-          >
-            <SelectTrigger className="h-9 bg-background">
-              <SelectValue placeholder={isDeptLockedByCompany ? "ฝ่าย (ล็อกตามบริษัท)" : "ฝ่าย"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">ฝ่ายทั้งหมด</SelectItem>
-              {departments.map((dept) => (
-                <SelectItem key={dept.id} value={dept.name}>
-                  {dept.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="min-w-0 [&_button]:w-full">
+            <DepartmentMultiFilter
+              value={filters.departments}
+              onChange={(value) => onFiltersChange({ ...filters, departments: value })}
+            />
+          </div>
 
           <Select
             value={filters.itemType || "all"}

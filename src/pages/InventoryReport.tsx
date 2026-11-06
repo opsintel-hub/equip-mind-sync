@@ -99,7 +99,7 @@ interface ReceivedSerialItem {
 export default function InventoryReport() {
   const [filters, setFilters] = useState<InventoryFiltersState>({
     companyId: "",
-    department: "",
+    departments: [],
     categoryId: "",
     subcategoryId: "",
     warehouseId: "",
@@ -205,8 +205,8 @@ export default function InventoryReport() {
       if (filters.companyId) {
         query = query.eq("company_id", filters.companyId);
       }
-      if (filters.department) {
-        query = query.eq("department", filters.department);
+      if (filters.departments.length) {
+        query = query.in("department", filters.departments);
       }
       if (filters.subcategoryId) {
         query = query.eq("subcategory_id", filters.subcategoryId);
@@ -269,8 +269,8 @@ export default function InventoryReport() {
       if (filters.companyId) {
         query = query.eq("company_id", filters.companyId);
       }
-      if (filters.department) {
-        query = query.eq("department", filters.department);
+      if (filters.departments.length) {
+        query = query.in("department", filters.departments);
       }
       // locationId filter applied client-side (see equipment query note)
       if (scopeDepts) query = query.in("department", scopeDepts);
@@ -344,8 +344,8 @@ export default function InventoryReport() {
       if (filters.companyId) {
         query = query.eq("company_id", filters.companyId);
       }
-      if (filters.department) {
-        query = query.eq("department", filters.department);
+      if (filters.departments.length) {
+        query = query.in("department", filters.departments);
       }
       // locationId filter applied client-side (see equipment query note)
       if (scopeDepts) query = query.in("department", scopeDepts);
