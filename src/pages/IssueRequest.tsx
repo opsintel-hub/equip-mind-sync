@@ -23,6 +23,8 @@ import { purposeAllowedFor } from "@/lib/purposeScope";
 import { SerialNumberSelect, SerialNumberItem } from "@/components/equipment/SerialNumberSelect";
 import { SimpleDepartmentSelect } from "@/components/equipment/SimpleDepartmentSelect";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { EntityCardGrid } from "@/components/common/EntityCardGrid";
+import { usePrimaryImages } from "@/hooks/usePrimaryImages";
 import { TablePagination } from "@/components/TablePagination";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { SubMediaTypeBadge } from "@/components/media-player/SubMediaTypeBadge";
@@ -1212,6 +1214,66 @@ const IssueRequest = () => {
   const fifoPagination = useTablePagination(priorityEquipment, 10);
   const historyPagination = useTablePagination(filteredRequests || [], 10);
 
+  const equipOptions = (() => {
+                          let list = filteredEquipmentByCategory || [];
+                          // Type filter
+                          if (itemTypeFilter !== "all") {
+                            list = list.filter((eq: any) => {
+                              const isMP = !!eq.is_media_player;
+                              const isMonitor = isMP && String(eq.device_type || "").toUpperCase() === "MONITOR";
+                              if (itemTypeFilter === "media_player") return isMP && !isMonitor;
+                              if (itemTypeFilter === "monitor") return isMonitor;
+                              if (itemTypeFilter === "spare") return !isMP;
+                              return true;
+                            });
+                          }
+                          // Billboard-first mode: only compatible spares + all MP
+                          if (billboardFirstMode && currentItem.billboard_id) {
+                            list = list.filter((eq: any) => {
+                              if (eq.is_media_player) return true;
+                              const mode = eq.billboard_compatibility_mode;
+                              if (!mode || mode === "unrestricted") return true;
+                              const set = compatMap[eq.id];
+                              return set && set.has(currentItem.billboard_id);
+                            });
+                          }
+                          // Dedupe Media Player rows by code+name
+                          const mpGroups = new Map<string, { rep: typeof list[number]; total: number; count: number }>();
+                          const nonMp: typeof list = [];
+                          for (const eq of list) {
+                            if (eq.is_media_player) {
+                              const key = `${eq.code}::${eq.name}`;
+                              const g = mpGroups.get(key);
+                              if (g) {
+                                g.total += eq.quantity_in_stock || 0;
+                                g.count += 1;
+                              } else {
+                                mpGroups.set(key, { rep: eq, total: eq.quantity_in_stock || 0, count: 1 });
+                              }
+                            } else {
+                              nonMp.push(eq);
+                            }
+                          }
+                          const mpOptions = Array.from(mpGroups.values()).map(({ rep, total, count }) => {
+                            const isMonitor = String((rep as any).device_type || "").toUpperCase() === "MONITOR";
+                            const icon = isMonitor ? "🖥️" : "🎬";
+                            const label = isMonitor ? "จอภาพ" : "Media Player";
+                            return {
+                              value: rep.id,
+                              label: `${icon} ${rep.code} - ${rep.name}`,
+                              description: `[${label}] คงเหลือ: ${total} ${rep.unit}${count > 1 ? ` (${count} เครื่อง)` : ''}`,
+                              searchableText: `${rep.code} ${rep.name} ${(rep as any).category || ''}`,
+                            };
+                          });
+                          const otherOptions = nonMp.map((eq) => ({
+                            value: eq.id,
+                            label: `🔧 ${eq.code} - ${eq.name}`,
+                            description: `${eq.category ? `[${eq.category}] ` : ''}คงเหลือ: ${eq.quantity_in_stock} ${eq.unit}`,
+                            searchableText: `${eq.code} ${eq.name} ${eq.serial_number || ''} ${eq.category || ''}`,
+                          }));
+                          return [...mpOptions, ...otherOptions];
+                        })();
+  const catalogIds = showEquipCatalog ? equipOptions.map((o) => o.value) : [];
   return (
     <div className="space-y-6">
       <div>
@@ -1621,65 +1683,7 @@ const IssueRequest = () => {
                   <div className="flex gap-2">
                     <div className="flex-1">
                       <SearchableSelect
-                        options={(() => {
-                          let list = filteredEquipmentByCategory || [];
-                          // Type filter
-                          if (itemTypeFilter !== "all") {
-                            list = list.filter((eq: any) => {
-                              const isMP = !!eq.is_media_player;
-                              const isMonitor = isMP && String(eq.device_type || "").toUpperCase() === "MONITOR";
-                              if (itemTypeFilter === "media_player") return isMP && !isMonitor;
-                              if (itemTypeFilter === "monitor") return isMonitor;
-                              if (itemTypeFilter === "spare") return !isMP;
-                              return true;
-                            });
-                          }
-                          // Billboard-first mode: only compatible spares + all MP
-                          if (billboardFirstMode && currentItem.billboard_id) {
-                            list = list.filter((eq: any) => {
-                              if (eq.is_media_player) return true;
-                              const mode = eq.billboard_compatibility_mode;
-                              if (!mode || mode === "unrestricted") return true;
-                              const set = compatMap[eq.id];
-                              return set && set.has(currentItem.billboard_id);
-                            });
-                          }
-                          // Dedupe Media Player rows by code+name
-                          const mpGroups = new Map<string, { rep: typeof list[number]; total: number; count: number }>();
-                          const nonMp: typeof list = [];
-                          for (const eq of list) {
-                            if (eq.is_media_player) {
-                              const key = `${eq.code}::${eq.name}`;
-                              const g = mpGroups.get(key);
-                              if (g) {
-                                g.total += eq.quantity_in_stock || 0;
-                                g.count += 1;
-                              } else {
-                                mpGroups.set(key, { rep: eq, total: eq.quantity_in_stock || 0, count: 1 });
-                              }
-                            } else {
-                              nonMp.push(eq);
-                            }
-                          }
-                          const mpOptions = Array.from(mpGroups.values()).map(({ rep, total, count }) => {
-                            const isMonitor = String((rep as any).device_type || "").toUpperCase() === "MONITOR";
-                            const icon = isMonitor ? "🖥️" : "🎬";
-                            const label = isMonitor ? "จอภาพ" : "Media Player";
-                            return {
-                              value: rep.id,
-                              label: `${icon} ${rep.code} - ${rep.name}`,
-                              description: `[${label}] คงเหลือ: ${total} ${rep.unit}${count > 1 ? ` (${count} เครื่อง)` : ''}`,
-                              searchableText: `${rep.code} ${rep.name} ${(rep as any).category || ''}`,
-                            };
-                          });
-                          const otherOptions = nonMp.map((eq) => ({
-                            value: eq.id,
-                            label: `🔧 ${eq.code} - ${eq.name}`,
-                            description: `${eq.category ? `[${eq.category}] ` : ''}คงเหลือ: ${eq.quantity_in_stock} ${eq.unit}`,
-                            searchableText: `${eq.code} ${eq.name} ${eq.serial_number || ''} ${eq.category || ''}`,
-                          }));
-                          return [...mpOptions, ...otherOptions];
-                        })()}
+                        options={equipOptions}
                         value={currentItem.equipment_id}
                         onValueChange={handleEquipmentSelect}
                         placeholder="เลือกสินค้า"
@@ -1698,6 +1702,22 @@ const IssueRequest = () => {
                       </Button>
                     )}
                   </div>
+                  <Button type="button" variant="link" size="sm" className="px-0 h-auto" onClick={() => setShowEquipCatalog((v) => !v)}>
+                    {showEquipCatalog ? "ซ่อนรูปภาพ" : "เลือกจากรูปภาพ"}
+                  </Button>
+                  {showEquipCatalog && (
+                    <div className="max-h-96 overflow-y-auto">
+                      <EntityCardGrid
+                        aspect="square"
+                        items={equipOptions.map((o) => ({
+                          id: o.value, title: o.label.replace(/^\S+\s/, ""), subtitle: o.description,
+                          imageUrl: equipImgMap[o.value],
+                          badges: o.value === currentItem.equipment_id ? [{ label: "เลือกแล้ว" }] : [],
+                        }))}
+                        onClick={(id) => { handleEquipmentSelect(id); setShowEquipCatalog(false); }}
+                      />
+                    </div>
+                  )}
                   {billboardFirstMode && !currentItem.billboard_id && (
                     <p className="text-[11px] text-amber-600 dark:text-amber-400">⚠️ เลือก "ป้ายโฆษณา" ก่อน ระบบจะกรองเฉพาะอะไหล่ที่รองรับป้ายนั้น</p>
                   )}
