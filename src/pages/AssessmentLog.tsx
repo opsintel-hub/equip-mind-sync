@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { EntityCardGrid } from "@/components/common/EntityCardGrid";
+import { ViewModeToggle, useViewMode } from "@/components/common/ViewModeToggle";
 import { SymptomSelect } from "@/components/media-player/SymptomSelect";
 import { AssessmentResultSelect } from "@/components/media-player/AssessmentResultSelect";
 import { useFunctionPermissions } from "@/hooks/useFunctionPermissions";
@@ -793,6 +795,31 @@ export default function AssessmentLog() {
     return m;
   }, [subjects]);
 
+  const [listView, setListView] = useViewMode("assessment-log", "table");
+  const renderPhotoGrid = (rows: AssessmentLog[]) => (
+    <EntityCardGrid
+      aspect="square"
+      items={rows.map((log) => {
+        const detail = logDetails[log.id];
+        const fb = log.media_player_id ? subjectByMpId.get(log.media_player_id) : log.equipment_id ? subjectByEqId.get(log.equipment_id) : null;
+        const photo = [...(detail?.source_photos || []), ...(log.photo_urls || [])][0];
+        const st = STATUS_LABELS[log.status] || { label: log.status, variant: "outline" as const };
+        return {
+          id: log.id,
+          imageUrl: photo,
+          code: detail?.code || fb?.code || log.document_no,
+          title: detail?.name || fb?.name || "—",
+          subtitle: `S/N: ${log.serial_number || detail?.serial || fb?.serial || "—"}`,
+          badges: [{ label: st.label, variant: st.variant }],
+        };
+      })}
+      onClick={(id) => {
+        const log = rows.find((r) => r.id === id);
+        if (log?.status === "pending") { setActiveLog(log); setCompleteDialogOpen(true); }
+      }}
+    />
+  );
+
   const renderLogCard = (log: AssessmentLog, opts: { actions?: React.ReactNode } = {}) => {
     const status = STATUS_LABELS[log.status] || { label: log.status, variant: "outline" as const };
     const rejection = rejectionMap[log.id];
@@ -1089,6 +1116,7 @@ export default function AssessmentLog() {
                     <TabsTrigger value="completed">ประเมินแล้ว ({stats.completed})</TabsTrigger>
                   </TabsList>
                 </Tabs>
+                <ViewModeToggle value={listView} onChange={setListView} hideCalendar />
                 <div className="relative md:w-72">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -1108,7 +1136,7 @@ export default function AssessmentLog() {
                 </div>
               ) : (
                 <>
-                  <div className="space-y-2">
+                  {listView === "card" ? renderPhotoGrid(pagedLogs) : <div className="space-y-2">
                     {pagedLogs.map((log) =>
                       renderLogCard(log, {
                         actions: log.status === "pending" ? (
@@ -1124,7 +1152,7 @@ export default function AssessmentLog() {
                         ) : null,
                       })
                     )}
-                  </div>
+                  </div>}
 
                   {/* Pagination */}
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 mt-4 border-t">
