@@ -99,6 +99,7 @@ const IssueRequest = () => {
   const { profile: currentProfile, actorName: currentActorName } = useCurrentUserProfile();
   const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
   const { applyEquipmentScope, applyMediaPlayerScope, scopeKey } = useSectionScope();
+  const [showEquipCatalog, setShowEquipCatalog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [fifoSearchTerm, setFifoSearchTerm] = useState("");
   const [fifoShowExpiring, setFifoShowExpiring] = useState(true);
@@ -1274,6 +1275,7 @@ const IssueRequest = () => {
                           return [...mpOptions, ...otherOptions];
                         })();
   const catalogIds = showEquipCatalog ? equipOptions.map((o) => o.value) : [];
+  const equipImgMap = usePrimaryImages("equipment_images", "equipment_id", catalogIds);
   return (
     <div className="space-y-6">
       <div>
