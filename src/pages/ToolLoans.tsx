@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { EntityCardGrid } from "@/components/common/EntityCardGrid";
+import { usePrimaryImages } from "@/hooks/usePrimaryImages";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ArrowLeftRight, Plus, Search, Wrench, ShieldAlert, Send, RotateCcw, XCircle, AlertTriangle, CheckCircle2 } from "lucide-react";
@@ -130,6 +132,9 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const selectedTool = tools.find(t => t.id === form.tool_id);
+  const [showCatalog, setShowCatalog] = useState(false);
+  const availableTools = tools.filter(t => t.current_quantity > 0);
+  const toolImgMap = usePrimaryImages("tool_images", "tool_id", showCatalog ? availableTools.map(t => t.id) : [], { bucket: "tool-images" });
 
   const handleCreate = async () => {
     const requester = (form.requester_name || actorName).trim();
@@ -458,6 +463,22 @@ export default function ToolLoans({ mode = "all" }: ToolLoansProps) {
                 searchPlaceholder="ค้นหาเครื่องมือ..."
                 emptyMessage="ไม่พบเครื่องมือ"
               />
+              <Button type="button" variant="link" size="sm" className="px-0 h-auto" onClick={() => setShowCatalog(v => !v)}>
+                {showCatalog ? "ซ่อนรูปภาพ" : "เลือกจากรูปภาพ"}
+              </Button>
+              {showCatalog && (
+                <div className="max-h-80 overflow-y-auto mt-2">
+                  <EntityCardGrid
+                    aspect="square"
+                    items={availableTools.map(t => ({
+                      id: t.id, code: t.code, title: t.name, imageUrl: toolImgMap[t.id],
+                      stat: `${t.current_quantity} ${t.unit}`,
+                      badges: t.id === form.tool_id ? [{ label: "เลือกแล้ว" }] : [],
+                    }))}
+                    onClick={id => { setForm(f => ({ ...f, tool_id: id, quantity: 1 })); setShowCatalog(false); }}
+                  />
+                </div>
+              )}
               {selectedTool && (
                 <div className="text-xs text-muted-foreground mt-1 space-x-2">
                   {selectedTool.requires_approval && <Badge variant="outline">ต้องอนุมัติก่อนจ่าย</Badge>}
