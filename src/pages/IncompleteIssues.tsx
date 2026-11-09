@@ -640,7 +640,9 @@ const IncompleteIssues = () => {
   const returnIssues = filteredIssues.filter(needsReturn);
   const filterPurposes = [...new Set([...(followUp.data?.rows || []).map(r=>r.purpose), ...goodRows.map(r=>r.purpose), ...transferRows.map(r=>r.purpose), ...defectiveRows.map(r=>r.purpose)])].sort();
   const reportAction = (row: FollowUpRow, stage: string) => {
-    setActiveTab(stage);
+    // แท็บ "สินค้ารอใช้งาน" ถูกถอดออกแล้ว — พาไปแท็บงานค้างแรกแทน
+    const targetTab = stage === "awaiting-usage" ? "billboard" : stage;
+    setActiveTab(targetTab);
     setFilters({ ...emptyFollowUpFilters(), departments: row.department === "ไม่ระบุฝ่าย" ? [] : [row.department], search: row.documentNo });
     setExpandedRequests(new Set([row.documentId]));
     const issue = incompleteIssues?.issues.find(i=>i.id===row.documentId);
