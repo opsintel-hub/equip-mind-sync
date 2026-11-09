@@ -9,6 +9,8 @@ import { th } from "date-fns/locale";
 import { ArrowRight } from "lucide-react";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PendingWarehouseTransfers, usePendingWarehouseTransfers } from "@/components/issue/PendingWarehouseTransfers";
 
 interface Transfer {
   id: string;
@@ -37,6 +39,7 @@ interface Transfer {
 export default function TransferHistory() {
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [loading, setLoading] = useState(true);
+  const { data: pendingTransfers = [] } = usePendingWarehouseTransfers();
 
   useEffect(() => {
     fetchTransfers();
@@ -113,11 +116,18 @@ export default function TransferHistory() {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">ประวัติการย้ายอุปกรณ์</h1>
+        <h1 className="text-3xl font-bold">โอนย้ายระหว่างคลัง</h1>
         <p className="text-muted-foreground mt-2">
-          บันทึกการย้ายอุปกรณ์ระหว่างตำแหน่งจัดเก็บ
+          คลังปลายทางตรวจรับของโอน และดูประวัติการย้ายอุปกรณ์
         </p>
       </div>
+      <Tabs defaultValue="pending">
+        <TabsList className="mb-4">
+          <TabsTrigger value="pending">รอรับโอนเข้า ({pendingTransfers.length})</TabsTrigger>
+          <TabsTrigger value="history">ประวัติการย้าย</TabsTrigger>
+        </TabsList>
+        <TabsContent value="pending"><PendingWarehouseTransfers /></TabsContent>
+        <TabsContent value="history">
 
       <Card>
         <CardHeader>
@@ -212,6 +222,8 @@ export default function TransferHistory() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
