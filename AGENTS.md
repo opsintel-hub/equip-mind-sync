@@ -27,3 +27,4 @@
 - Shared dialog, sheet and popover portals target the active fullscreen element when present so meeting-mode filters, details and media remain visible and interactive.
 - Meeting report agenda and department focus are presentation-only subsets of permission-scoped rows; summaries and exports reuse the existing quantity helpers to avoid changing stock or authorization.
 - Inventory report uses DepartmentMultiFilter and array-based department queries alongside the existing permission scope; dependent companies and warehouses match any selected department so summaries and Excel share the filtered rows.
+- Incomplete-issues page covers requester follow-up plus good-return receipt only; inter-warehouse transfer receipt lives on /transfer-history and defective intake on the defective-return menu, so each role finds its work in one place.
