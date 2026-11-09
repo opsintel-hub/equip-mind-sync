@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { agingBucket, issueAge, followUpQuantities, uniqueOutstanding, quantityByUnit, matchesFollowUp, emptyFollowUpFilters, summarizeFollowUp } from "./incompleteIssueReport";
+import { agingBucket, issueAge, followUpQuantities, uniqueOutstanding, quantityByUnit, matchesFollowUp, emptyFollowUpFilters, summarizeFollowUp, followUpDepartment } from "./incompleteIssueReport";
 
 for (const [days, bucket] of [[0,"today"],[1,"1-2"],[2,"1-2"],[3,"3-5"],[5,"3-5"],[6,"6-10"],[10,"6-10"],[11,"11-15"],[15,"11-15"],[16,"16-30"],[30,"16-30"],[31,">30"],[null,"unknown"]]) {
   test(`aging ${days} days belongs only to ${bucket}`, () => expect(agingBucket(days)).toBe(bucket));
@@ -22,3 +22,15 @@ test("different units are never combined as pieces", () => expect(quantityByUnit
 test("department multiselect excludes unrelated department", () => expect(matchesFollowUp(base,{...emptyFollowUpFilters(),departments:["Airport Media","Static Media"]})).toBe(false));
 test("serial alias is searchable", () => expect(matchesFollowUp({...base,aliases:["Alias 2"]},{...emptyFollowUpFilters(),serial:"alias 2"})).toBe(true));
 test("document count deduplicates lines and receipt rows", () => expect(summarizeFollowUp([base,{...base,id:"receipt",receiptQty:4}]).documents).toBe(1));
+test("STT0200 follows Static Media ownership, not Bus Media requester", () => {
+  expect(followUpDepartment({equipment_id:"STT0200"}, "Bus Media", {equipment:{STT0200:"Static Media"},mediaPlayers:{}})).toBe("Static Media");
+});
+test("Media Player follows its own department rather than equipment fallback", () => {
+  expect(followUpDepartment({equipment_id:"E",media_player_id:"MP"},"Bus Media",{equipment:{E:"Static Media"},mediaPlayers:{MP:"Digital Media"}})).toBe("Digital Media");
+});
+test("missing owner retains document department for legacy issues", () => {
+  expect(followUpDepartment({equipment_id:"missing"},"Bus Media",{equipment:{},mediaPlayers:{}})).toBe("Bus Media");
+});
+test("unknown owner and requester remain unassigned", () => {
+  expect(followUpDepartment({},null,{equipment:{},mediaPlayers:{}})).toBe("ไม่ระบุฝ่าย");
+});

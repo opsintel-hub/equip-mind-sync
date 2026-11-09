@@ -25,6 +25,15 @@ export interface FollowUpRow {
   billboardQty: number; returnQty: number; usageQty: number; receiptQty: number;
   receiptKind?: "good" | "defective" | "transfer";
 }
+export interface FollowUpDepartments {
+  equipment: Record<string, string | null>;
+  mediaPlayers: Record<string, string | null>;
+}
+/** Presentation ownership only: never use this to authorize writes or change document identity. */
+export function followUpDepartment(line: { equipment_id?: string | null; media_player_id?: string | null }, requester: string | null | undefined, owners: FollowUpDepartments): string {
+  const owner = line.media_player_id ? owners.mediaPlayers[line.media_player_id] : line.equipment_id ? owners.equipment[line.equipment_id] : null;
+  return owner?.trim() || requester?.trim() || "ไม่ระบุฝ่าย";
+}
 /** Bangkok calendar days; never substitute creation date for missing issue date. */
 export function issueAge(issuedAt: string | null | undefined, now = new Date()): number | null {
   if (!issuedAt || !Number.isFinite(new Date(issuedAt).getTime())) return null;
