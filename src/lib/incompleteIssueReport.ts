@@ -52,7 +52,9 @@ export function agingBucket(days: number | null): string {
   if (days <= 30) return "16-30";
   return ">30";
 }
-export function followUpQuantities(line: IssueQuantities & { needs_return?: boolean | null }, purpose?: { requires_billboard: boolean; requires_return: boolean } | null) {
+export function followUpQuantities(line: IssueQuantities & { needs_return?: boolean | null }, purpose?: { requires_billboard: boolean; requires_return: boolean } | null, isConsumable = false) {
+  // วัสดุสิ้นเปลืองจบตั้งแต่จ่ายของเสมอ ไม่ต้องระบุป้าย ไม่รอคืน ไม่ค้างใช้งาน ไม่ว่าวัตถุประสงค์จะกำหนดไว้เช่นไร
+  if (isConsumable) return { billboardQty: 0, returnQty: 0, usageQty: 0, receiptQty: 0 };
   return {
     billboardQty: purpose?.requires_billboard ? billboardLeft(line) : 0,
     returnQty: purpose?.requires_return && line.needs_return !== false ? returnOutstanding(line, purpose.requires_billboard) : 0,
