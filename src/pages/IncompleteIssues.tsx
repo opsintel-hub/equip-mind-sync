@@ -33,7 +33,7 @@ import { PendingWarehouseTransfers, usePendingWarehouseTransfers } from "@/compo
 import { IssueFollowUpFilters } from "@/components/issue/IssueFollowUpFilters";
 import { IssueMeetingReport } from "@/components/issue/IssueMeetingReport";
 import { useIssueFollowUpData } from "@/hooks/useIssueFollowUpData";
-import { agingBucket, issueAge, matchesFollowUp, emptyFollowUpFilters, type FollowUpRow } from "@/lib/incompleteIssueReport";
+import { agingBucket, issueAge, matchesFollowUp, followUpDepartment, emptyFollowUpFilters, type FollowUpRow } from "@/lib/incompleteIssueReport";
 import { allRows } from "@/lib/fetchAllRows";
 import { lineIssued, lineInstalled, lineLeft, billboardLeft, returnLeftIndependent } from "@/lib/issueQuantities";
 
@@ -284,17 +284,35 @@ const IncompleteIssues = () => {
     enabled: issueIds.length > 0,
   });
 
-  // Group items by pending_id
+  const itemDepartment = (issue: IncompleteIssue, item: PendingItem | IncompleteIssue) =>
+    followUpDepartment(item, issue.requester_department, followUp.data?.owners || { equipment: {}, mediaPlayers: {} });
+
+  // Filter individual lines as well as headers, so mixed-department documents cannot leak sibling rows.
   const itemsByIssue = useMemo(() => {
     const map = new Map<string, PendingItem[]>();
+    const headers = new Map((incompleteIssues?.issues || []).map(issue => [issue.id, issue]));
     allItems.forEach(item => {
+      const header = headers.get(item.pending_id);
+      if (!header) return;
+      const department = followUpDepartment(item, header.requester_department, followUp.data?.owners || { equipment: {}, mediaPlayers: {} });
+      if (!isSuperAdmin && !viewableDepts?.includes(department)) return;
+      if (filters.departments.length && !filters.departments.includes(department)) return;
       if (!map.has(item.pending_id)) {
         map.set(item.pending_id, []);
       }
       map.get(item.pending_id)?.push(item);
     });
     return map;
-  }, [allItems]);
+  }, [allItems, incompleteIssues, followUp.data?.owners, filters.departments, isSuperAdmin, deptKey]);
+
+  const issueDepartments = (issue: IncompleteIssue) => [...new Set(
+    (itemsByIssue.get(issue.id) || []).map(item => itemDepartment(issue, item)),
+  )];
+  const departmentBadges = (issue: IncompleteIssue) => {
+    const departments = issueDepartments(issue);
+    return (departments.length ? departments : [itemDepartment(issue, issue)]).map(department =>
+      <Badge key={department} variant="secondary">{department}</Badge>);
+  };
 
   const toggleExpand = (issueId: string) => {
     setExpandedRequests(prev => {
@@ -772,7 +790,7 @@ const IncompleteIssues = () => {
                                 
                                 <div className="text-sm text-muted-foreground">
                                   {issue.requester_name}
-                                  <div className="mt-1"><Badge variant="secondary">{issue.requester_department || "ไม่ระบุฝ่าย"}</Badge></div>
+                                  <div className="mt-1 flex flex-wrap gap-1">{departmentBadges(issue)}</div>
                                 </div>
 
                                 <div className="text-sm text-muted-foreground">
@@ -819,7 +837,7 @@ const IncompleteIssues = () => {
                                       {items.map((item) => (
                                         <TableRow key={item.id} className={lineLeft(item) > 0 && item.status === "issued" ? "bg-orange-50/50" : ""}>
                                           <TableCell className="font-mono text-sm">{item.equipment_code || "-"}</TableCell>
-                                          <TableCell>{item.equipment_name || "-"}</TableCell>
+                                          <TableCell>{item.equipment_name || "-"}<div className="text-xs text-muted-foreground">{itemDepartment(issue, item)}</div></TableCell>
                                           <TableCell className="text-muted-foreground">{item.serial_number || "-"}</TableCell>
                                           <TableCell className="text-right">{lineIssued(item)}</TableCell>
                                           <TableCell>{getItemStatusBadge(item)}</TableCell>
@@ -890,7 +908,7 @@ const IncompleteIssues = () => {
                                   {issue.issued_at ? format(new Date(issue.issued_at), "d MMM yy", { locale: th }) : "-"}
                                 </span>
                                 <span className="text-sm">{issue.companies?.name || "-"}</span>
-                                <span className="text-sm text-muted-foreground">{issue.requester_name}<div className="mt-1"><Badge variant="secondary">{issue.requester_department || "ไม่ระบุฝ่าย"}</Badge></div></span>
+                                <div className="text-sm text-muted-foreground">{issue.requester_name}<div className="mt-1 flex flex-wrap gap-1">{departmentBadges(issue)}</div></div>
                                 <span className="text-sm">
                                   {items.length ? `${items.length} รายการสินค้า` : `เบิก ${issuedQty} · คืนแล้ว ${returnedQty} · ค้าง ${remainingQty}`}
                                 </span>
@@ -935,7 +953,7 @@ const IncompleteIssues = () => {
                                       return (
                                         <TableRow key={item.id} className={left > 0 ? "bg-orange-50/40" : ""}>
                                           <TableCell className="font-mono text-sm">{item.equipment_code || "-"}</TableCell>
-                                          <TableCell>{item.equipment_name || "-"}</TableCell>
+                                          <TableCell>{item.equipment_name || "-"}<div className="text-xs text-muted-foreground">{itemDepartment(issue, item)}</div></TableCell>
                                           <TableCell className="text-muted-foreground whitespace-pre-line">{item.serial_number || "-"}</TableCell>
                                           <TableCell className="text-right">{iq}</TableCell>
                                           <TableCell className="text-right text-blue-600">{inst}</TableCell>
