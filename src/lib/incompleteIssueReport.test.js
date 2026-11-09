@@ -12,6 +12,12 @@ test("100m issued, 40m installed retains 60m assignment and 100m independent ret
 });
 test("multiple obligations do not inflate 100m to 220m", () => expect(uniqueOutstanding(base)).toBe(100));
 test("consumable no-return still has unused stock", () => expect(followUpQuantities({issued_quantity:100,installed_qty:40,needs_return:false},{requires_billboard:true,requires_return:true}).returnQty).toBe(0));
+test("general-use purpose (no billboard, no return) closes at issue with no outstanding", () => {
+  expect(followUpQuantities({issued_quantity:100}, {requires_billboard:false, requires_return:false})).toEqual({billboardQty:0,returnQty:0,usageQty:0,receiptQty:0});
+});
+test("return-only purpose still tracks unused stock awaiting return", () => {
+  expect(followUpQuantities({issued_quantity:100,returned_good_qty:30},{requires_billboard:false,requires_return:true}).usageQty).toBe(70);
+});
 test("different units are never combined as pieces", () => expect(quantityByUnit([base,{...base,id:"other",unit:"เครื่อง",returnQty:2,billboardQty:0,usageQty:0}])).toBe("100 เมตร · 2 เครื่อง"));
 test("department multiselect excludes unrelated department", () => expect(matchesFollowUp(base,{...emptyFollowUpFilters(),departments:["Airport Media","Static Media"]})).toBe(false));
 test("serial alias is searchable", () => expect(matchesFollowUp({...base,aliases:["Alias 2"]},{...emptyFollowUpFilters(),serial:"alias 2"})).toBe(true));

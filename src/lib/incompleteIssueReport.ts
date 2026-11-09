@@ -45,7 +45,8 @@ export function followUpQuantities(line: IssueQuantities & { needs_return?: bool
   return {
     billboardQty: purpose?.requires_billboard ? billboardLeft(line) : 0,
     returnQty: purpose?.requires_return && line.needs_return !== false ? returnOutstanding(line, purpose.requires_billboard) : 0,
-    usageQty: lineLeft(line), receiptQty: 0,
+    // วัตถุประสงค์ที่ไม่ต้องระบุป้ายและไม่ต้องส่งคืนถือว่าจบตั้งแต่จ่ายของ ไม่นับเป็นของค้างใช้งาน
+    usageQty: purpose && !purpose.requires_billboard && !purpose.requires_return ? 0 : lineLeft(line), receiptQty: 0,
   };
 }
 export function matchesFollowUp(row: FollowUpRow, filters: FollowUpFilters): boolean {
