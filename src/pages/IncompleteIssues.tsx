@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, AlertTriangle, MapPin, Package, RefreshCw, Clock, ChevronDown, ChevronRight, ShoppingCart, Edit, Warehouse, X } from "lucide-react";
+import { Search, AlertTriangle, MapPin, RefreshCw, Clock, ChevronDown, ChevronRight, ShoppingCart, Edit, Warehouse, X } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { useDeptScope } from "@/hooks/useDeptScope";
@@ -30,7 +30,6 @@ import { ReturnItemDialog, type ReturnItemLine } from "@/components/issue/Return
 import { SpecialRequestDialog } from "@/components/special-request/SpecialRequestDialog";
 import { PendingGoodReturns, usePendingGoodReturns } from "@/components/issue/PendingGoodReturns";
 import { PendingWarehouseTransfers, usePendingWarehouseTransfers } from "@/components/issue/PendingWarehouseTransfers";
-import { AwaitingUsageTab } from "@/components/issue/AwaitingUsageTab";
 import { IssueFollowUpFilters } from "@/components/issue/IssueFollowUpFilters";
 import { IssueMeetingReport } from "@/components/issue/IssueMeetingReport";
 import { useIssueFollowUpData } from "@/hooks/useIssueFollowUpData";
@@ -722,15 +721,10 @@ const IncompleteIssues = () => {
                   <Warehouse className="w-4 h-4" />
                   คลังตรวจรับของดีคืน ({filteredGood.length})
                 </TabsTrigger>
-                <TabsTrigger value="awaiting-usage" className="gap-2">
-                  <Package className="w-4 h-4" />
-                  สินค้ารอใช้งาน
-                </TabsTrigger>
                 <TabsTrigger value="report" className="gap-2"><Clock className="h-4 w-4" />รายงานประชุมติดตามงาน</TabsTrigger>
               </TabsList>
               </div>
 
-              <TabsContent value="awaiting-usage"><AwaitingUsageTab sharedFilters={filters} followUpRows={followUp.data?.rows} /></TabsContent>
               <TabsContent value="report"><IssueMeetingReport rows={reportRows} loading={followUp.isLoading || isLoading || scopeLoading || defectiveLoading || goodLoading || transferLoading} error={!!(followUp.error || defectiveError || goodError || transferError)} refreshedAt={followUp.data?.refreshedAt} onAction={reportAction} onRetry={() => { void followUp.refetch(); queryClient.invalidateQueries({queryKey:["defective-returns-pending"]}); queryClient.invalidateQueries({queryKey:["issue-good-returns-pending"]}); queryClient.invalidateQueries({queryKey:["warehouse-transfer-pending"]}); }} /></TabsContent>
 
               <TabsContent value="billboard">
@@ -1210,7 +1204,6 @@ const IncompleteIssues = () => {
           queryClient.invalidateQueries({ queryKey: ["defective-returns-pending"] });
           queryClient.invalidateQueries({ queryKey: ["stock-card-items"] });
           queryClient.invalidateQueries({ queryKey: ["issue-good-returns-pending"] });
-          queryClient.invalidateQueries({ queryKey: ["awaiting-usage"] });
         }}
       />
     </>
