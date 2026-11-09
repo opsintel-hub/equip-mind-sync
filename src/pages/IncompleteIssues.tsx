@@ -631,7 +631,7 @@ const IncompleteIssues = () => {
   const goodRows = pendingGood.map(r => receiptRow(r,"good"));
   const transferRows = pendingTransfers.map(r => receiptRow(r,"transfer"));
   const defectiveRows = defectiveReturns.map(r => receiptRow(r,"defective"));
-  const reportRows = [...(followUp.data?.rows || []), ...goodRows, ...transferRows, ...defectiveRows].filter(r => matchesFollowUp(r,filters));
+  const reportRows = [...(followUp.data?.rows || []), ...goodRows].filter(r => matchesFollowUp(r,filters));
   const filteredGood = pendingGood.filter((r,i) => matchesFollowUp(goodRows[i],filters));
   const filteredTransfers = pendingTransfers.filter((r,i) => matchesFollowUp(transferRows[i],filters));
   const filteredDefective = defectiveReturns.filter((r,i) => matchesFollowUp(defectiveRows[i],filters));
@@ -696,10 +696,10 @@ const IncompleteIssues = () => {
                 รอส่งคืน: {returnIssues.length}
               </Badge>
             )}
-            {filteredDefective.length > 0 && (
+            {filteredGood.length > 0 && (
               <Badge variant="secondary" className="text-lg px-4 py-2">
                 <Warehouse className="w-4 h-4 mr-1" />
-                รอเข้าคลัง: {filteredDefective.length + filteredGood.length + filteredTransfers.length}
+                คลังตรวจรับของดีคืน: {filteredGood.length}
               </Badge>
             )}
           </div>
@@ -720,7 +720,7 @@ const IncompleteIssues = () => {
                 </TabsTrigger>
                 <TabsTrigger value="warehouse" className="gap-2">
                   <Warehouse className="w-4 h-4" />
-                  รอเข้าคลัง ({filteredDefective.length + filteredGood.length + filteredTransfers.length})
+                  คลังตรวจรับของดีคืน ({filteredGood.length})
                 </TabsTrigger>
                 <TabsTrigger value="awaiting-usage" className="gap-2">
                   <Package className="w-4 h-4" />
@@ -1001,77 +1001,8 @@ const IncompleteIssues = () => {
 
 
               <TabsContent value="warehouse" className="space-y-4">
-                <PendingWarehouseTransfers filteredRows={filteredTransfers} departmentByPending={Object.fromEntries((followUp.data?.headers || []).map(h=>[h.id,h.requester_department || "ไม่ระบุฝ่าย"]))} />
+                <p className="text-sm text-muted-foreground">ของเหลือใช้สภาพดีที่ผู้เบิกส่งคืน รอคลังตรวจนับและกดรับเข้า · รับโอนระหว่างคลังอยู่ที่เมนู โอนย้ายและยืม · ของเสียอยู่ที่เมนู ส่งคืนของเสีย</p>
                 <PendingGoodReturns filteredRows={filteredGood} />
-                <div className="font-medium">ของเสียรอคลังรับเข้า ({filteredDefective.length})</div>
-                <div className="rounded-md border overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>เลขที่เอกสาร</TableHead>
-                        <TableHead>ประเภท</TableHead>
-                        <TableHead>สถานะ</TableHead>
-                        <TableHead>จำนวน</TableHead>
-                        <TableHead>ผู้ส่งคืน / ฝ่าย</TableHead>
-                        <TableHead>แหล่งที่มา</TableHead>
-                        <TableHead>สาเหตุ</TableHead>
-                        <TableHead>วันที่บันทึก</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredDefective.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                            ไม่มีรายการรอเข้าคลัง
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        filteredDefective.map((dr: any) => (
-                          <TableRow key={dr.id}>
-                            <TableCell className="font-medium">{dr.document_no}</TableCell>
-                            <TableCell>
-                              {dr.is_media_player ? (
-                                <DeviceTypeBadge value={(dr as any).media_players?.device_type ?? 'media_player'} className="text-xs" />
-                              ) : (
-                                <Badge variant="outline" className="text-xs">สินค้า/อะไหล่</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={dr.item_condition === "defective" ? "destructive" : "secondary"} className="text-xs">
-                                {dr.item_condition === "defective" ? "เสีย/ชำรุด" : "รอตรวจสอบ"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{dr.quantity}</TableCell>
-                            <TableCell>{dr.reporter_name || "—"}<div><Badge variant="secondary">{dr.reporter_department || "ไม่ระบุฝ่าย"}</Badge></div></TableCell>
-                            <TableCell>
-                              {dr.source_type === "billboard" ? (
-                                <Badge variant="outline" className="text-xs">
-                                  <MapPin className="w-3 h-3 mr-1" />
-                                  ป้ายโฆษณา
-                                </Badge>
-                              ) : dr.source_type}
-                            </TableCell>
-                            <TableCell className="max-w-[200px]">
-                              <div className="truncate">{dr.reason || "-"}</div>
-                              {Array.isArray(dr.return_photos) && dr.return_photos.length > 0 && (
-                                <div className="flex gap-1 mt-1">
-                                  {dr.return_photos.map((u: string) => (
-                                    <a key={u} href={u} target="_blank" rel="noreferrer">
-                                      <img src={u} alt="รูปของเสีย" className="w-10 h-10 rounded object-cover border" />
-                                    </a>
-                                  ))}
-                                </div>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {format(new Date(dr.created_at), "d MMM yy HH:mm", { locale: th })}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
               </TabsContent>
             </Tabs>
         </section>

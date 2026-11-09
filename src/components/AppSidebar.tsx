@@ -179,7 +179,7 @@ const menuGroups: MenuGroup[] = [
         functionName: "goods_issue",
       },
       { 
-        title: "รอระบุป้าย/รอคืน/รอเข้าคลัง", 
+        title: "รอระบุป้าย/รอคืน/ตรวจรับของคืน", 
         url: "/incomplete-issues",
         icon: Clock,
         functionName: "goods_issue",
@@ -212,7 +212,7 @@ const menuGroups: MenuGroup[] = [
   {
     label: "โอนย้ายและยืม",
     items: [
-      { title: "ประวัติการย้าย", url: "/transfer-history", icon: History, functionName: "transfer" },
+      { title: "รับโอน / ประวัติการย้าย", url: "/transfer-history", icon: History, functionNames: ["transfer", "goods_issue"] },
       { 
         title: "ยืมข้ามบริษัท", 
         url: "/equipment-loans",

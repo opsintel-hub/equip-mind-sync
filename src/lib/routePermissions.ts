@@ -50,7 +50,7 @@ export const ROUTE_PERMISSIONS: Record<string, RoutePermissionRule> = {
   "/site-access-report": {},
 
   // Transfer
-  "/transfer-history": { fns: ["transfer"] },
+  "/transfer-history": { fns: ["transfer", "goods_issue"] },
 
   // Billboards
   "/billboards": { fns: ["billboards"] },
