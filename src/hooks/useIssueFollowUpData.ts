@@ -32,17 +32,20 @@ export function useIssueFollowUpData() {
       const closedDocs = new Set(closed.map(r => r.target_doc_number));
       const grouped = new Map<string, Tables<"goods_issue_pending_items">[]>();
       const aliases = new Map<string, string[]>();
-      const owners: FollowUpDepartments = { equipment: {}, mediaPlayers: {} };
+      const owners: FollowUpDepartments = { equipment: {}, mediaPlayers: {}, consumables: {} };
       const loadOwners = async (key: "equipment_id" | "media_player_id", ids: string[]) => {
         const target = key === "equipment_id" ? owners.equipment : owners.mediaPlayers;
         const missing = [...new Set(ids)].filter(id => !(id in target));
         for (let i = 0; i < missing.length; i += 100) {
           const batch = missing.slice(i, i + 100);
-          const records = await fetchAllRows<{ id: string; department: string | null }>(() => supabase
+          const records = await fetchAllRows<{ id: string; department: string | null; is_consumable?: boolean | null }>(() => supabase
             .from(key === "equipment_id" ? "equipment" : "media_players")
-            .select("id, department").in("id", batch).order("id"));
+            .select(key === "equipment_id" ? "id, department, is_consumable" : "id, department").in("id", batch).order("id"));
           for (const id of batch) target[id] = null;
-          for (const record of records) target[record.id] = record.department;
+          for (const record of records) {
+            target[record.id] = record.department;
+            if (key === "equipment_id") owners.consumables[record.id] = !!record.is_consumable;
+          }
         }
       };
       await loadOwners("equipment_id", headers.map(h => h.equipment_id).filter((id): id is string => !!id));
