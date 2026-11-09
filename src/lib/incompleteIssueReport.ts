@@ -28,6 +28,8 @@ export interface FollowUpRow {
 export interface FollowUpDepartments {
   equipment: Record<string, string | null>;
   mediaPlayers: Record<string, string | null>;
+  /** equipment_id -> is_consumable; consumables close at issue, never tracked. */
+  consumables: Record<string, boolean>;
 }
 /** Presentation ownership only: never use this to authorize writes or change document identity. */
 export function followUpDepartment(line: { equipment_id?: string | null; media_player_id?: string | null }, requester: string | null | undefined, owners: FollowUpDepartments): string {
