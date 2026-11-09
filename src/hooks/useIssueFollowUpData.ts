@@ -77,7 +77,7 @@ export function useIssueFollowUpData() {
           const department = followUpDepartment(line, h.requester_department, owners);
           if (!isSuperAdmin && !viewableDepts?.includes(department)) continue;
           if (Number(line.issued_quantity || 0) <= 0) continue;
-          const quantities = followUpQuantities(line, purposeMap.get(h.purpose_id || ""));
+          const quantities = followUpQuantities(line, purposeMap.get(h.purpose_id || ""), !!(line.equipment_id && owners.consumables[line.equipment_id]));
           if (items?.length && line.status !== "issued") { quantities.billboardQty = 0; quantities.returnQty = 0; }
           if (closedDocs.has(h.document_no)) { quantities.billboardQty = 0; quantities.returnQty = 0; }
           if (!quantities.billboardQty && !quantities.returnQty && !quantities.usageQty) continue;
