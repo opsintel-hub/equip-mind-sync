@@ -23,14 +23,22 @@ test("department multiselect excludes unrelated department", () => expect(matche
 test("serial alias is searchable", () => expect(matchesFollowUp({...base,aliases:["Alias 2"]},{...emptyFollowUpFilters(),serial:"alias 2"})).toBe(true));
 test("document count deduplicates lines and receipt rows", () => expect(summarizeFollowUp([base,{...base,id:"receipt",receiptQty:4}]).documents).toBe(1));
 test("STT0200 follows Static Media ownership, not Bus Media requester", () => {
-  expect(followUpDepartment({equipment_id:"STT0200"}, "Bus Media", {equipment:{STT0200:"Static Media"},mediaPlayers:{}})).toBe("Static Media");
+  expect(followUpDepartment({equipment_id:"STT0200"}, "Bus Media", {equipment:{STT0200:"Static Media"},mediaPlayers:{},consumables:{}})).toBe("Static Media");
 });
 test("Media Player follows its own department rather than equipment fallback", () => {
-  expect(followUpDepartment({equipment_id:"E",media_player_id:"MP"},"Bus Media",{equipment:{E:"Static Media"},mediaPlayers:{MP:"Digital Media"}})).toBe("Digital Media");
+  expect(followUpDepartment({equipment_id:"E",media_player_id:"MP"},"Bus Media",{equipment:{E:"Static Media"},mediaPlayers:{MP:"Digital Media"},consumables:{}})).toBe("Digital Media");
 });
 test("missing owner retains document department for legacy issues", () => {
-  expect(followUpDepartment({equipment_id:"missing"},"Bus Media",{equipment:{},mediaPlayers:{}})).toBe("Bus Media");
+  expect(followUpDepartment({equipment_id:"missing"},"Bus Media",{equipment:{},mediaPlayers:{},consumables:{}})).toBe("Bus Media");
 });
 test("unknown owner and requester remain unassigned", () => {
-  expect(followUpDepartment({},null,{equipment:{},mediaPlayers:{}})).toBe("ไม่ระบุฝ่าย");
+  expect(followUpDepartment({},null,{equipment:{},mediaPlayers:{},consumables:{}})).toBe("ไม่ระบุฝ่าย");
+});
+test("consumable closes at issue even when purpose requires billboard and return", () => {
+  expect(followUpQuantities({issued_quantity:30,installed_qty:0}, {requires_billboard:true, requires_return:true}, true))
+    .toEqual({billboardQty:0,returnQty:0,usageQty:0,receiptQty:0});
+});
+test("non-consumable with billboard purpose still tracks assignment and return", () => {
+  expect(followUpQuantities({issued_quantity:30,installed_qty:0}, {requires_billboard:true, requires_return:true}, false))
+    .toEqual({billboardQty:30,returnQty:30,usageQty:30,receiptQty:0});
 });
