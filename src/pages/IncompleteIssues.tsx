@@ -285,7 +285,7 @@ const IncompleteIssues = () => {
   });
 
   const itemDepartment = (issue: IncompleteIssue, item: PendingItem | IncompleteIssue) =>
-    followUpDepartment(item, issue.requester_department, followUp.data?.owners || { equipment: {}, mediaPlayers: {} });
+    followUpDepartment(item, issue.requester_department, followUp.data?.owners || { equipment: {}, mediaPlayers: {}, consumables: {} });
 
   // Filter individual lines as well as headers, so mixed-department documents cannot leak sibling rows.
   const itemsByIssue = useMemo(() => {
@@ -294,7 +294,7 @@ const IncompleteIssues = () => {
     allItems.forEach(item => {
       const header = headers.get(item.pending_id);
       if (!header) return;
-      const department = followUpDepartment(item, header.requester_department, followUp.data?.owners || { equipment: {}, mediaPlayers: {} });
+      const department = followUpDepartment(item, header.requester_department, followUp.data?.owners || { equipment: {}, mediaPlayers: {}, consumables: {} });
       if (!isSuperAdmin && !viewableDepts?.includes(department)) return;
       if (filters.departments.length && !filters.departments.includes(department)) return;
       if (!map.has(item.pending_id)) {
