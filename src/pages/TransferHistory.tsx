@@ -121,7 +121,7 @@ export default function TransferHistory() {
           คลังปลายทางตรวจรับของโอน และดูประวัติการย้ายอุปกรณ์
         </p>
       </div>
-      <Tabs defaultValue={pendingTransfers.length ? "pending" : "history"}>
+      <Tabs defaultValue="pending">
         <TabsList className="mb-4">
           <TabsTrigger value="pending">รอรับโอนเข้า ({pendingTransfers.length})</TabsTrigger>
           <TabsTrigger value="history">ประวัติการย้าย</TabsTrigger>
