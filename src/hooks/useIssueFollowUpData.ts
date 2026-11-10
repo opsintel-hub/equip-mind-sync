@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useDeptScope } from "@/hooks/useDeptScope";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 import { fetchAllRows } from "@/lib/fetchAllRows";
-import { agingBucket, followUpQuantities, followUpDepartment, issueAge, type FollowUpRow, type FollowUpDepartments } from "@/lib/incompleteIssueReport";
+import { agingBucket, followUpQuantities, followUpDepartment, canViewFollowUpDocument, issueAge, type FollowUpRow, type FollowUpDepartments } from "@/lib/incompleteIssueReport";
 import type { Tables } from "@/integrations/supabase/types";
 import { buildReceivedSerialAliasMap } from "@/lib/serialSearch";
 
@@ -69,20 +69,20 @@ export function useIssueFollowUpData() {
       const now = new Date();
       const rows: FollowUpRow[] = [];
       for (const h of headers) {
+        if (!canViewFollowUpDocument(h.requester_department, isSuperAdmin, viewableDepts)) continue;
         const days = issueAge(h.issued_at, now);
         const items = grouped.get(h.id);
         const lines = items?.length ? items : [{ ...h, pending_id: h.id, serial_number: null,
           installed_qty: null, returned_good_qty: h.return_quantity, needs_return: true }];
         for (const line of lines) {
           const department = followUpDepartment(line, h.requester_department, owners);
-          if (!isSuperAdmin && !viewableDepts?.includes(department)) continue;
           if (Number(line.issued_quantity || 0) <= 0) continue;
           const quantities = followUpQuantities(line, purposeMap.get(h.purpose_id || ""), !!(line.equipment_id && owners.consumables[line.equipment_id]));
           if (items?.length && line.status !== "issued") { quantities.billboardQty = 0; quantities.returnQty = 0; }
           if (closedDocs.has(h.document_no)) { quantities.billboardQty = 0; quantities.returnQty = 0; }
           if (!quantities.billboardQty && !quantities.returnQty && !quantities.usageQty) continue;
           rows.push({ id: line.id, documentId: h.id, documentNo: h.document_no,
-            department, person: h.requester_name,
+            department, requesterDepartment: h.requester_department, person: h.requester_name,
             purpose: h.purpose || "ไม่ระบุวัตถุประสงค์", issuedAt: h.issued_at, days, bucket: agingBucket(days),
             code: line.equipment_code || "—", name: line.equipment_name || "—", serial: line.serial_number || "", aliases: aliases.get(line.id),
             unit: line.unit || "ไม่ระบุหน่วย", isMediaPlayer: !!(line.is_media_player || line.media_player_id), ...quantities });
