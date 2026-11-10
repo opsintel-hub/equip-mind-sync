@@ -1,4 +1,4 @@
-- [ ] Restore cross-team follow-up lines within requester-authorized documents; test department auto-filter and verify both action tabs without changing stock or RLS.
+- [x] Restore cross-team follow-up lines within requester-authorized documents; 43 tests pass, authenticated GI-REQ-000242 verified with simulated Bus-only frontend scope in both assignment and return dialogs, build OK; no stock/RLS changes or live return submission.
 - [x] Group incomplete-issue follow-up by item owner department, preserve requester identity and permissions; 36 tests pass and authenticated GI-REQ-000242 shows Static Media in billboard, return and meeting action views; desktop/mobile verified, build OK
 - [x] Open site-access management to Super Admin or explicitly granted site_access_manage users; 8 permission tests passed, authenticated Super Admin sidebar/direct URL and 26-ticket readback verified, server denies unassigned Admins; no individual grants added
 - [x] Reproduce issue request failure as requester
