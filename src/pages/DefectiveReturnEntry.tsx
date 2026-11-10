@@ -339,7 +339,7 @@ const DefectiveReturnEntry = () => {
     try {
       const { data, error } = await supabase
         .from("defective_returns")
-        .select("id, document_no, status, source_type, reason, notes, quantity, is_media_player, equipment_id, media_player_id, billboard_id, assessment_log_id, swap_request_id, reporter_name, reporter_department, created_at")
+        .select("id, document_no, status, source_type, source_document, reason, notes, quantity, is_media_player, equipment_id, media_player_id, billboard_id, assessment_log_id, swap_request_id, reporter_name, reporter_department, created_at")
         .eq("status", "pending_warehouse_entry")
         .is("stock_deducted_at", null)
         .order("created_at", { ascending: false });
@@ -1083,6 +1083,9 @@ const DefectiveReturnEntry = () => {
                             <MapPin className="w-3 h-3" /> ป้าย: <span className="text-foreground">{t.billboard_label}</span>
                           </div>
                         )}
+                        {t.source_document && (
+                          <div className="text-xs text-muted-foreground">📄 ใบเบิก: <span className="font-mono text-foreground">{t.source_document}</span></div>
+                        )}
                         {t.swap_info && (
                           <div className="text-xs rounded-md border border-blue-300/60 bg-blue-50/60 dark:border-blue-800/60 dark:bg-blue-950/30 px-2 py-1.5 space-y-0.5">
                             <div className="font-medium text-blue-700 dark:text-blue-300">
@@ -1461,6 +1464,9 @@ const DefectiveReturnEntry = () => {
                     <div><span className="text-muted-foreground">ผู้แจ้ง:</span> <span className="font-medium">{reviewTicket.reporter_name || "—"}</span></div>
                     <div><span className="text-muted-foreground">ฝ่าย:</span> <span className="font-medium">{reviewTicket.reporter_department || "—"}</span></div>
                   </div>
+                  {reviewTicket.source_document && (
+                    <div className="text-xs border-t pt-2">📄 ใบเบิก: <span className="font-mono font-medium">{reviewTicket.source_document}</span></div>
+                  )}
                   {reviewTicket.assessment_doc_no && (
                     <div className="text-xs border-t pt-2">📋 จากการประเมิน: <span className="font-mono font-medium">{reviewTicket.assessment_doc_no}</span></div>
                   )}
