@@ -33,6 +33,7 @@ import { SerialNumberSelect, SerialNumberItem } from "@/components/equipment/Ser
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
 import { requiresEquipmentUnitAssignments, createEquipmentAssignments, equipmentInstallRows } from "@/lib/issueAssignmentMode";
+import { issueHeaderTotals } from "@/lib/issueHeaderTotals";
 
 interface EquipmentWithDetails {
   id: string;
@@ -763,38 +764,17 @@ const IssueGoods = () => {
 
       if (latestItemsError) throw latestItemsError;
 
-      const headerQuantity = (latestItems || []).reduce((sum, item) => sum + (item.quantity || 0), 0);
-      const headerIssued = (latestItems || []).reduce((sum, item) => sum + (item.issued_quantity || 0), 0);
-      const headerRemaining = (latestItems || []).reduce(
-        (sum, item) => sum + (item.remaining_quantity ?? Math.max(0, (item.quantity || 0) - (item.issued_quantity || 0))),
-        0
-      );
-
-      const allRejected = (latestItems || []).length > 0 && (latestItems || []).every(item => item.status === "rejected");
-      const allIssued = (latestItems || []).length > 0 && (latestItems || []).every(item => item.status === "issued");
-      const anyIssued = (latestItems || []).some(item => (item.issued_quantity || 0) > 0);
-      const anyWaiting = (latestItems || []).some(item => item.status === "waiting_stock");
+      const totals = issueHeaderTotals(latestItems || []);
 
       // Legacy header-only requests have no item rows: derive totals/status from the
       // header itself instead of zeroing everything out.
       const hasItemRows = (latestItems || []).length > 0;
 
-      let parentStatus = "pending";
-      if (hasItemRows) {
-        if (allRejected) {
-          parentStatus = "rejected";
-        } else if (allIssued) {
-          parentStatus = "issued";
-        } else if (anyIssued || anyWaiting) {
-          parentStatus = "waiting_stock";
-        }
-      } else {
-        parentStatus = remainingQty > 0 ? "waiting_stock" : "issued";
-      }
+      const parentStatus = hasItemRows ? totals.status : remainingQty > 0 ? "waiting_stock" : "issued";
 
-      const headerAnyIssued = hasItemRows ? anyIssued : totalIssued > 0;
+      const headerAnyIssued = hasItemRows ? totals.anyIssued : totalIssued > 0;
 
-      await supabase
+      const { error: headerError } = await supabase
         .from("goods_issue_pending")
         .update({
           status: parentStatus,
@@ -802,10 +782,10 @@ const IssueGoods = () => {
           issued_by: headerAnyIssued ? user.id : null,
           ...(hasItemRows
             ? {
-                quantity: headerQuantity,
-                issued_quantity: headerIssued,
-                remaining_quantity: headerRemaining,
-                total_items: latestItems.length,
+                quantity: totals.quantity,
+                issued_quantity: totals.issued_quantity,
+                remaining_quantity: totals.remaining_quantity,
+                total_items: totals.total_items,
               }
             : {
                 issued_quantity: totalIssued,
@@ -813,6 +793,7 @@ const IssueGoods = () => {
               }),
         })
         .eq("id", selectedItem.pending_id);
+      if (headerError) throw headerError;
 
       // ตัดของออกจากช่องจัดเก็บที่เลือกหยิบ
       if (issuedQty > 0 && allocationTotal(pickAllocations) > 0) {
@@ -900,36 +881,26 @@ const IssueGoods = () => {
         .from("goods_issue_pending_items")
         .update({
           status: "rejected",
+          remaining_quantity: 0,
           notes: itemRejectReason || selectedItemForReject.notes,
         })
         .eq("id", selectedItemForReject.id);
 
       if (error) throw error;
 
-      // Update parent request status if all items are rejected or issued
-      const allItems = pendingItems?.filter(item => item.pending_id === selectedItemForReject.pending_id) || [];
-      const allProcessed = allItems.every(item => 
-        item.id === selectedItemForReject.id ? true : (item.status === "issued" || item.status === "rejected")
-      );
-      const anyPending = allItems.some(item => 
-        item.id === selectedItemForReject.id ? false : (item.status === "pending" || item.status === "waiting_stock")
-      );
-      const allRejected = allItems.every(item => 
-        item.id === selectedItemForReject.id ? true : item.status === "rejected"
-      );
-
-      if (allRejected) {
-        await supabase
-          .from("goods_issue_pending")
-          .update({ status: "rejected", reject_reason: "ปฏิเสธทุกรายการ" })
-          .eq("id", selectedItemForReject.pending_id);
-      } else if (allProcessed && !anyPending) {
-        // At least some items were issued
-        await supabase
-          .from("goods_issue_pending")
-          .update({ status: "issued" })
-          .eq("id", selectedItemForReject.pending_id);
-      }
+      // Use fresh persisted rows and the same terminal-line rules as issuance.
+      const { data: latestItems, error: itemsError } = await supabase
+        .from("goods_issue_pending_items")
+        .select("quantity, issued_quantity, remaining_quantity, status")
+        .eq("pending_id", selectedItemForReject.pending_id);
+      if (itemsError) throw itemsError;
+      if (!latestItems?.length) throw new Error("ไม่พบรายการใบเบิก กรุณาลองใหม่");
+      const { anyIssued, ...totals } = issueHeaderTotals(latestItems);
+      const { error: headerError } = await supabase
+        .from("goods_issue_pending")
+        .update({ ...totals, ...(totals.status === "rejected" ? { reject_reason: "ปฏิเสธทุกรายการ" } : {}) })
+        .eq("id", selectedItemForReject.pending_id);
+      if (headerError) throw headerError;
     },
     onSuccess: () => {
       toast.success("ปฏิเสธรายการนี้สำเร็จ");
