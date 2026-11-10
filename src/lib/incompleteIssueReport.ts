@@ -20,6 +20,7 @@ export interface FollowUpFilters {
 export const emptyFollowUpFilters = (): FollowUpFilters => ({ departments: [], purposes: [], ages: [], problems: [], serial: "", search: "" });
 export interface FollowUpRow {
   id: string; documentId: string; documentNo: string; department: string; person: string;
+  requesterDepartment?: string | null;
   purpose: string; issuedAt: string | null; days: number | null; bucket: string;
   code: string; name: string; serial: string; aliases?: string[]; unit: string; isMediaPlayer: boolean;
   billboardQty: number; returnQty: number; usageQty: number; receiptQty: number;
@@ -35,6 +36,14 @@ export interface FollowUpDepartments {
 export function followUpDepartment(line: { equipment_id?: string | null; media_player_id?: string | null }, requester: string | null | undefined, owners: FollowUpDepartments): string {
   const owner = line.media_player_id ? owners.mediaPlayers[line.media_player_id] : line.equipment_id ? owners.equipment[line.equipment_id] : null;
   return owner?.trim() || requester?.trim() || "ไม่ระบุฝ่าย";
+}
+/** Document scope is requester-based; stock ownership is only a presentation label. */
+export function canViewFollowUpDocument(requester: string | null | undefined, isSuperAdmin: boolean, viewableDepts: readonly string[] | null | undefined): boolean {
+  return isSuperAdmin || (!!requester && !!viewableDepts?.includes(requester));
+}
+/** A selected requester department retains cross-team lines from its authorized documents. */
+export function matchesFollowUpDepartment(owner: string, requester: string | null | undefined, selected: readonly string[]): boolean {
+  return !selected.length || selected.includes(owner) || (!!requester && selected.includes(requester));
 }
 /** Bangkok calendar days; never substitute creation date for missing issue date. */
 export function issueAge(issuedAt: string | null | undefined, now = new Date()): number | null {
@@ -64,7 +73,7 @@ export function followUpQuantities(line: IssueQuantities & { needs_return?: bool
 }
 export function matchesFollowUp(row: FollowUpRow, filters: FollowUpFilters): boolean {
   const term = filters.search.trim().toLowerCase();
-  return (!filters.departments.length || filters.departments.includes(row.department)) &&
+  return matchesFollowUpDepartment(row.department, row.requesterDepartment, filters.departments) &&
     (!filters.purposes.length || filters.purposes.includes(row.purpose)) &&
     (!filters.ages.length || filters.ages.includes(row.bucket)) &&
     (!filters.problems.length || filters.problems.some(p =>

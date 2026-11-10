@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { agingBucket, issueAge, followUpQuantities, uniqueOutstanding, quantityByUnit, matchesFollowUp, emptyFollowUpFilters, summarizeFollowUp, followUpDepartment } from "./incompleteIssueReport";
+import { agingBucket, issueAge, followUpQuantities, uniqueOutstanding, quantityByUnit, matchesFollowUp, emptyFollowUpFilters, summarizeFollowUp, followUpDepartment, canViewFollowUpDocument, matchesFollowUpDepartment } from "./incompleteIssueReport";
 
 for (const [days, bucket] of [[0,"today"],[1,"1-2"],[2,"1-2"],[3,"3-5"],[5,"3-5"],[6,"6-10"],[10,"6-10"],[11,"11-15"],[15,"11-15"],[16,"16-30"],[30,"16-30"],[31,">30"],[null,"unknown"]]) {
   test(`aging ${days} days belongs only to ${bucket}`, () => expect(agingBucket(days)).toBe(bucket));
@@ -41,4 +41,27 @@ test("consumable closes at issue even when purpose requires billboard and return
 test("non-consumable with billboard purpose still tracks assignment and return", () => {
   expect(followUpQuantities({issued_quantity:30,installed_qty:0}, {requires_billboard:true, requires_return:true}, false))
     .toEqual({billboardQty:30,returnQty:30,usageQty:30,receiptQty:0});
+});
+test("Bus scope retains Static stock on an authorized Bus document", () => {
+  const owner = followUpDepartment({equipment_id:"STT0200"}, "Bus Media", {equipment:{STT0200:"Static Media"},mediaPlayers:{},consumables:{}});
+  expect(owner).toBe("Static Media");
+  expect(canViewFollowUpDocument("Bus Media", false, ["Bus Media"])).toBe(true);
+  expect(matchesFollowUpDepartment(owner, "Bus Media", ["Bus Media"])).toBe(true);
+  expect(matchesFollowUp({...base,department:owner,requesterDepartment:"Bus Media"}, {...emptyFollowUpFilters(),departments:["Bus Media"]})).toBe(true);
+});
+test("Static ownership does not grant access to a Bus document", () => {
+  expect(canViewFollowUpDocument("Bus Media", false, ["Static Media"])).toBe(false);
+});
+test("no department permissions cannot view follow-up documents", () => {
+  expect(canViewFollowUpDocument("Bus Media", false, [])).toBe(false);
+  expect(canViewFollowUpDocument(null, false, ["Bus Media"])).toBe(false);
+});
+test("Super Admin keeps access to legacy documents without requester department", () => {
+  expect(canViewFollowUpDocument(null, true, null)).toBe(true);
+});
+test("mixed-owner Bus document retains both lines under Bus and filters by owner under Static", () => {
+  const rows = [{...base,department:"Static Media",requesterDepartment:"Bus Media"},{...base,id:"bus",requesterDepartment:"Bus Media"}];
+  expect(rows.filter(r => matchesFollowUp(r,{...emptyFollowUpFilters(),departments:["Bus Media"]})).map(r=>r.id)).toEqual(["line","bus"]);
+  expect(rows.filter(r => matchesFollowUp(r,{...emptyFollowUpFilters(),departments:["Static Media"]})).map(r=>r.id)).toEqual(["line"]);
+  expect(rows.filter(r => matchesFollowUp(r,{...emptyFollowUpFilters(),departments:["Digital Media"]}))).toEqual([]);
 });

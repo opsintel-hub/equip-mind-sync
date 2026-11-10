@@ -33,7 +33,7 @@ import { PendingWarehouseTransfers, usePendingWarehouseTransfers } from "@/compo
 import { IssueFollowUpFilters } from "@/components/issue/IssueFollowUpFilters";
 import { IssueMeetingReport } from "@/components/issue/IssueMeetingReport";
 import { useIssueFollowUpData } from "@/hooks/useIssueFollowUpData";
-import { agingBucket, issueAge, matchesFollowUp, followUpDepartment, emptyFollowUpFilters, type FollowUpRow } from "@/lib/incompleteIssueReport";
+import { agingBucket, issueAge, matchesFollowUp, followUpDepartment, canViewFollowUpDocument, matchesFollowUpDepartment, emptyFollowUpFilters, type FollowUpRow } from "@/lib/incompleteIssueReport";
 import { allRows } from "@/lib/fetchAllRows";
 import { lineIssued, lineInstalled, lineLeft, billboardLeft, returnLeftIndependent } from "@/lib/issueQuantities";
 
@@ -287,16 +287,16 @@ const IncompleteIssues = () => {
   const itemDepartment = (issue: IncompleteIssue, item: PendingItem | IncompleteIssue) =>
     followUpDepartment(item, issue.requester_department, followUp.data?.owners || { equipment: {}, mediaPlayers: {}, consumables: {} });
 
-  // Filter individual lines as well as headers, so mixed-department documents cannot leak sibling rows.
+  // Keep requester-authorized lines even when stock belongs to another department.
   const itemsByIssue = useMemo(() => {
     const map = new Map<string, PendingItem[]>();
     const headers = new Map((incompleteIssues?.issues || []).map(issue => [issue.id, issue]));
     allItems.forEach(item => {
       const header = headers.get(item.pending_id);
       if (!header) return;
+      if (!canViewFollowUpDocument(header.requester_department, isSuperAdmin, viewableDepts)) return;
       const department = followUpDepartment(item, header.requester_department, followUp.data?.owners || { equipment: {}, mediaPlayers: {}, consumables: {} });
-      if (!isSuperAdmin && !viewableDepts?.includes(department)) return;
-      if (filters.departments.length && !filters.departments.includes(department)) return;
+      if (!matchesFollowUpDepartment(department, header.requester_department, filters.departments)) return;
       if (!map.has(item.pending_id)) {
         map.set(item.pending_id, []);
       }

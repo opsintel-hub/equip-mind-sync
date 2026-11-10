@@ -1,3 +1,4 @@
+- [ ] Restore cross-team follow-up lines within requester-authorized documents; test department auto-filter and verify both action tabs without changing stock or RLS.
 - [x] Group incomplete-issue follow-up by item owner department, preserve requester identity and permissions; 36 tests pass and authenticated GI-REQ-000242 shows Static Media in billboard, return and meeting action views; desktop/mobile verified, build OK
 - [x] Open site-access management to Super Admin or explicitly granted site_access_manage users; 8 permission tests passed, authenticated Super Admin sidebar/direct URL and 26-ticket readback verified, server denies unassigned Admins; no individual grants added
 - [x] Reproduce issue request failure as requester
