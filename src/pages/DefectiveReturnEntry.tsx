@@ -1464,6 +1464,9 @@ const DefectiveReturnEntry = () => {
                     <div><span className="text-muted-foreground">ผู้แจ้ง:</span> <span className="font-medium">{reviewTicket.reporter_name || "—"}</span></div>
                     <div><span className="text-muted-foreground">ฝ่าย:</span> <span className="font-medium">{reviewTicket.reporter_department || "—"}</span></div>
                   </div>
+                  {reviewTicket.source_document && (
+                    <div className="text-xs border-t pt-2">📄 ใบเบิก: <span className="font-mono font-medium">{reviewTicket.source_document}</span></div>
+                  )}
                   {reviewTicket.assessment_doc_no && (
                     <div className="text-xs border-t pt-2">📋 จากการประเมิน: <span className="font-mono font-medium">{reviewTicket.assessment_doc_no}</span></div>
                   )}
