@@ -26,6 +26,7 @@ import { DateRange } from "react-day-picker";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 import { logStockMovement } from "@/lib/stockMovement";
 import { useRealtimeInvalidate } from "@/hooks/useRealtimeInvalidate";
+import { deliveryConfirmationItems } from "@/lib/deliveryConfirmationItems";
 
 const ISSUE_TYPES = [
   { value: "damaged_in_transit", label: "สินค้าชำรุดระหว่างการจัดส่ง" },
@@ -169,7 +170,7 @@ const DeliveryConfirmation = () => {
   });
 
   const getItemsForRequest = (requestId: string) => {
-    return allItems?.filter((item: any) => item.pending_id === requestId) || [];
+    return deliveryConfirmationItems(allItems || [], requestId);
   };
 
   const isAlreadyConfirmed = (requestId: string, isDirectShipment = false) => {
@@ -684,8 +685,10 @@ const DeliveryConfirmation = () => {
                   <div><span className="text-muted-foreground">ผู้ขอเบิก:</span> <span className="font-medium">{selectedRequest?.requester_name}</span></div>
                   <div><span className="text-muted-foreground">ฝ่าย:</span> <span className="font-medium">{selectedRequest?.requester_department || "-"}</span></div>
                   <div><span className="text-muted-foreground">ปลายทาง:</span> <span className="font-medium">{selectedRequest?.destination || "-"}</span></div>
-                  <div><span className="text-muted-foreground">สินค้า:</span> <span className="font-medium inline-flex items-center gap-2">{selectedRequest?.equipment_name || selectedRequest?.equipment?.name || "-"}{selectedRequest?.is_media_player && (selectedRequest as any)?.media_players?.device_type && <DeviceTypeBadge value={(selectedRequest as any).media_players.device_type} />}</span></div>
-                  {selectedRequest?.equipment_code && (
+                  {selectedRequest && getItemsForRequest(selectedRequest.id).length === 0 && (
+                    <div><span className="text-muted-foreground">สินค้า:</span> <span className="font-medium inline-flex items-center gap-2">{selectedRequest?.equipment_name || selectedRequest?.equipment?.name || "-"}{selectedRequest?.is_media_player && (selectedRequest as any)?.media_players?.device_type && <DeviceTypeBadge value={(selectedRequest as any).media_players.device_players?.device_type} />}</span></div>
+                  )}
+                  {selectedRequest?.equipment_code && getItemsForRequest(selectedRequest.id).length === 0 && (
                     <div><span className="text-muted-foreground">รหัสสินค้า:</span> <span className="font-medium font-mono">{selectedRequest.equipment_code}</span></div>
                   )}
                   {selectedRequest?._billboard && (
@@ -697,8 +700,14 @@ const DeliveryConfirmation = () => {
                   {selectedRequest?.pickup_type && (
                     <div><span className="text-muted-foreground">รูปแบบรับ:</span> {getPickupBadge(selectedRequest.pickup_type)}</div>
                   )}
-                  <div><span className="text-muted-foreground">จำนวนขอ:</span> <span className="font-medium">{selectedRequest?.quantity} {selectedRequest?.unit}</span></div>
-                  <div><span className="text-muted-foreground">จำนวนจ่าย:</span> <span className="font-medium">{selectedRequest?.issued_quantity || 0} {selectedRequest?.unit}</span></div>
+                  {selectedRequest && getItemsForRequest(selectedRequest.id).length > 0 ? (
+                    <div><span className="text-muted-foreground">รายการที่จ่ายจริง:</span> <span className="font-medium">{getItemsForRequest(selectedRequest.id).length} รายการ</span></div>
+                  ) : (
+                    <>
+                      <div><span className="text-muted-foreground">จำนวนขอ:</span> <span className="font-medium">{selectedRequest?.quantity} {selectedRequest?.unit}</span></div>
+                      <div><span className="text-muted-foreground">จำนวนจ่าย:</span> <span className="font-medium">{selectedRequest?.issued_quantity || 0} {selectedRequest?.unit}</span></div>
+                    </>
+                  )}
                   {selectedRequest?.item_condition && selectedRequest.item_condition !== "new" && (
                     <div><span className="text-muted-foreground">สภาพ:</span> <span className="font-medium">{selectedRequest.item_condition}</span></div>
                   )}
@@ -725,7 +734,7 @@ const DeliveryConfirmation = () => {
                         <div key={item.id} className="text-sm bg-background rounded-lg px-3 py-2 border">
                           <div className="flex justify-between items-center">
                             <span className="font-medium">{item.equipment_code} - {item.equipment_name}</span>
-                            <span className="font-medium">{item.issued_quantity || item.quantity} {item.unit}</span>
+                            <span className="font-medium">{item.issued_quantity} {item.unit}</span>
                           </div>
                           {/* Item-level serial number */}
                           {item.serial_number && (
