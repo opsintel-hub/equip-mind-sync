@@ -673,7 +673,7 @@ const IncompleteIssues = () => {
   };
 
   const reportPending = loadState.loading || loadState.error || followUp.isLoading || !!followUp.error || goodLoading || !!goodError;
-  const combinedLoadState = { ...loadState, loading: loadState.loading || followUp.isLoading || goodLoading, error: loadState.error || !!followUp.error || !!goodError, reload: () => { loadState.reload(); void followUp.refetch(); void queryClient.invalidateQueries({ queryKey: ["issue-good-returns-pending"] }); } };
+  const combinedLoadState = loadState;
 
   const getItemStatusBadge = (item: PendingItem) => {
     const installStatus = (item as any).install_status as string | undefined;
@@ -752,7 +752,7 @@ const IncompleteIssues = () => {
               </TabsList>
               </div>
 
-              <TabsContent value="report"><IssueMeetingReport rows={reportRows} loading={followUp.isLoading || isLoading || scopeLoading || defectiveLoading || goodLoading || transferLoading} error={!!(followUp.error || defectiveError || goodError || transferError)} refreshedAt={followUp.data?.refreshedAt} onAction={reportAction} onRetry={() => { void followUp.refetch(); queryClient.invalidateQueries({queryKey:["defective-returns-pending"]}); queryClient.invalidateQueries({queryKey:["issue-good-returns-pending"]}); queryClient.invalidateQueries({queryKey:["warehouse-transfer-pending"]}); }} /></TabsContent>
+              <TabsContent value="report"><IssueMeetingReport rows={reportRows} loading={reportPending} error={loadState.error} refreshedAt={followUp.data?.refreshedAt} onAction={reportAction} onRetry={loadState.reload} /></TabsContent>
 
               <TabsContent value="billboard">
                 <div className="space-y-2">
