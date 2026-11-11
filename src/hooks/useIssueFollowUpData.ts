@@ -1,3 +1,4 @@
+import { useReportContext, useReportQuery } from "@/hooks/useReportQuery";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useDeptScope } from "@/hooks/useDeptScope";
@@ -10,11 +11,12 @@ import { buildReceivedSerialAliasMap } from "@/lib/serialSearch";
 type Header = Tables<"goods_issue_pending">;
 export function useIssueFollowUpData() {
   const { deptKey, loading, isSuperAdmin, viewableDepts } = useDeptScope();
+  const report = useReportContext("incomplete", deptKey, loading);
   useRealtimeInvalidate({ table: "goods_issue_pending", queryKeys: [["issue-follow-up"]] });
   useRealtimeInvalidate({ table: "goods_issue_pending_items", queryKeys: [["issue-follow-up"]] });
   useRealtimeInvalidate({ table: "special_requests", queryKeys: [["issue-follow-up"]] });
-  return useQuery({
-    queryKey: ["issue-follow-up", deptKey], enabled: !loading, placeholderData: prev => prev,
+  return useReportQuery({
+    queryKey: ["issue-follow-up", deptKey], enabled: !loading,
     queryFn: async () => {
       const [headers, purposes, closed] = await Promise.all([
         fetchAllRows<Header>(() => {
@@ -91,5 +93,5 @@ export function useIssueFollowUpData() {
       // Receipt queues may need already-settled headers, so keep the scoped header map.
       return { rows, headers, owners, refreshedAt: now.toISOString() };
     },
-  });
+  }, report);
 }

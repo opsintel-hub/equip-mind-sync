@@ -18,10 +18,12 @@ import { useAllowedDepartments } from "@/hooks/useAllowedDepartments";
 import { useDeptScope } from "@/hooks/useDeptScope";
 import { allRows } from "@/lib/fetchAllRows";
 import { receiptStorageDefault } from "@/lib/receiptStorage";
+import { useReportContext, useReportQuery } from "@/hooks/useReportQuery";
 
 export function usePendingGoodReturns() {
   const { deptKey, loading, isSuperAdmin, viewableDepts } = useDeptScope();
-  return useQuery({
+  const report = useReportContext("incomplete", deptKey, loading);
+  return useReportQuery({
     queryKey: ["issue-good-returns-pending",deptKey], enabled: !loading,
     queryFn: async () => {
       let query = supabase
@@ -34,7 +36,7 @@ export function usePendingGoodReturns() {
       if (error) throw error;
       return data || [];
     },
-  });
+  }, report);
 }
 
 export function PendingGoodReturns({ filteredRows }: { filteredRows?: any[] }) {
