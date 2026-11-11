@@ -29,6 +29,6 @@
 - Inventory report uses DepartmentMultiFilter and array-based department queries alongside the existing permission scope; dependent companies and warehouses match any selected department so summaries and Excel share the filtered rows.
 - Incomplete-issues page covers requester follow-up plus good-return receipt only; inter-warehouse transfer receipt lives on /transfer-history and defective intake on the defective-return menu, so each role finds its work in one place.
 - Incomplete-issue follow-up authorizes headers and lines by requester department, never stock-owner department; owner labels/grouping remain presentation-only and department filters match owner or requester so cross-team lines stay actionable without expanding document access.
-- Consumables (is_consumable) close at issue regardless of purpose flags: followUpQuantities zeroes billboard/return/usage obligations; meeting cards label counts ใบเบิก vs รายการ.
+- Consumables (is_consumable) close at issue regardless of purpose flags: followUpQuantities zeroes billboard/return/usage obligations.
 
-- Super Admin test-document rollback (mt_rollback_issue_document) refuses documents with defective/old-part returns, since those already moved stock.
+- mt_rollback_issue_document refuses docs with defective returns (stock already moved).
