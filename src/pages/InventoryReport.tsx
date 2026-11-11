@@ -134,7 +134,7 @@ export default function InventoryReport() {
     queryFn: async () => {
       const { data, error } = await allRows(supabase
         .from("equipment_billboard_compatibility")
-        .select("equipment_id, billboard_id").order("id"));
+        .select("equipment_id, billboard_id").order("equipment_id").order("billboard_id"));
       if (error) throw error;
       const map: Record<string, Set<string>> = {};
       (data || []).forEach((row: any) => {
