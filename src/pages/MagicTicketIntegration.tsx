@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
+import MagicTicketTestSessions from "@/components/MagicTicketTestSessions";
 
 const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/magic-ticket`;
 const dt = (v?: string | null) => (v ? format(new Date(v), "d MMM yy HH:mm:ss", { locale: th }) : "-");
@@ -111,13 +112,15 @@ export default function MagicTicketIntegration() {
       </Card>
 
       <Tabs defaultValue="log">
-        <TabsList>
+        <TabsList className="h-auto flex-wrap">
+          <TabsTrigger value="test-sessions">รอบทดสอบ</TabsTrigger>
           <TabsTrigger value="log">Log เหตุการณ์</TabsTrigger>
           <TabsTrigger value="requests">คำขอเบิกจาก Ticket</TabsTrigger>
           <TabsTrigger value="map">Ticket ↔ ใบเบิก</TabsTrigger>
           <TabsTrigger value="keys">API Keys</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="test-sessions" className="mt-4"><MagicTicketTestSessions /></TabsContent>
         <TabsContent value="log" className="space-y-4 mt-4">
           <div className="flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-56">

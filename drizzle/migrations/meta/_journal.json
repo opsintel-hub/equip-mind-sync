@@ -267,6 +267,20 @@
       "when": 1793774517482,
       "tag": "0037_explicit_site_access_management_permission",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1794358866381,
+      "tag": "0038_magic_ticket_test_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1794359220057,
+      "tag": "0039_guard_replayed_magic_ticket_test_documents",
+      "breakpoints": true
     }
   ]
 }
