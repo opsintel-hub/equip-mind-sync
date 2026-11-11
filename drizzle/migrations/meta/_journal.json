@@ -288,6 +288,13 @@
       "when": 1794359614636,
       "tag": "0040_selected_read_policy_boundaries",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1794359724944,
+      "tag": "0041_retain_issue_authorized_cross_team_assets",
+      "breakpoints": true
     }
   ]
 }
