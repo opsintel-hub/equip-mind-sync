@@ -31,4 +31,4 @@
 - Incomplete-issue follow-up authorizes headers and lines by requester department, never stock-owner department; owner labels/grouping remain presentation-only and department filters match owner or requester so cross-team lines stay actionable without expanding document access.
 - Consumables (is_consumable) close at issue regardless of purpose flags: followUpQuantities zeroes billboard/return/usage obligations.
 
-- mt_rollback_issue_document refuses docs with defective returns (stock already moved).
+- mt_rollback_issue_document skips docs with defective returns.
