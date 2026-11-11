@@ -1,3 +1,6 @@
+- [ ] Add Super Admin Magic Ticket time-window sessions with explicit ticket allowlist, automatic capture and review.
+- [ ] Add atomic conflict-checked rollback with retained audit, duplicate protection and original storage restoration.
+- [ ] Test Bangkok time boundaries, permissions, capture/rollback and authenticated desktop/mobile UI.
 - [x] Correct GI-REQ-000254 to issued with zero pending-to-issue quantity; verified header and rejected lines, preserved stock and issued quantities.
 - [x] Share header status/totals calculation across issue and rejection; regression reproduced before fix and passed after, 13 tests pass, build OK; authenticated receipt row/button/dialog verified without submitting receipt. Existing receipt dialog still displays rejected lines/requested quantities (not changed in this task).
 - [x] Restore cross-team follow-up lines within requester-authorized documents; 43 tests pass, authenticated GI-REQ-000242 verified with simulated Bus-only frontend scope in both assignment and return dialogs, build OK; no stock/RLS changes or live return submission.
