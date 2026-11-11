@@ -61,18 +61,12 @@ const MediaPlayerPublicView = () => {
 
     setPlayer(p as unknown as MediaPlayerRow);
 
-    const [modelRes, statusRes, imgRes] = await Promise.all([
-      (p as any).model_id
-        ? supabase.from("media_player_models" as any).select("name").eq("id", (p as any).model_id).maybeSingle()
-        : Promise.resolve({ data: null } as any),
-      (p as any).status
-        ? supabase.from("media_player_statuses" as any).select("label").eq("value", (p as any).status).maybeSingle()
-        : Promise.resolve({ data: null } as any),
-      supabase.from("media_player_images" as any).select("image_url").eq("media_player_id", playerId).order("display_order"),
-    ]);
-    if (modelRes.data) setModelName((modelRes.data as any).name);
-    setStatusLabel(statusRes.data ? (statusRes.data as any).label : ((p as any).status || "Active"));
-    setImages(((imgRes.data as any) || []).map((i: any) => i.image_url));
+    // Public QR reads only the scanned player's display data, never whole tables.
+    const { data: extrasRaw } = await supabase.rpc("public_get_mp_qr_extras", { _id: playerId });
+    const extras = extrasRaw as { model_name?: string; status_label?: string; images?: string[] } | null;
+    setModelName(extras?.model_name || "-");
+    setStatusLabel(extras?.status_label || p.status || "Active");
+    setImages(extras?.images || []);
 
     // Journeys
     const [{ data: history }, { data: currentInstalls }, { data: movs }] = await Promise.all([
