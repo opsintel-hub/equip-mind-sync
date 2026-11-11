@@ -21,7 +21,8 @@ import { TablePagination } from "@/components/TablePagination";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { LEAD_TIERS, LeadTier, SITE_ACCESS_STATUS, fmtDT, fmtLead, leadHours, leadTier, purposeLabel } from "@/lib/siteAccess";
 
-type Mode = "approve" | "reject" | "close" | "identity";
+type Mode = "approve" | "reject" | "close" | "identity" | "schedule" | "cancel";
+const toLocalInput = (iso?: string | null) => { if (!iso) return ""; const d = new Date(iso); const p = (n: number) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
 
 export default function SiteAccessManage() {
   const { user } = useAuth();
@@ -29,6 +30,8 @@ export default function SiteAccessManage() {
   const { allowedDepartments } = useAllowedDepartments("view");
   const [bookerName, setBookerName] = useState("");
   const [bookerDepartment, setBookerDepartment] = useState("");
+  const [schedStart, setSchedStart] = useState("");
+  const [schedEnd, setSchedEnd] = useState("");
   const [calendarVersion, setCalendarVersion] = useState(0);
   const [tab, setTab] = useState("pending_assignment");
   const [tickets, setTickets] = useState<any[]>([]);
@@ -96,9 +99,10 @@ export default function SiteAccessManage() {
   }, [filtered]);
 
   const open = (t: any, m: Mode) => {
-    if (m === "identity" && !isSuperAdmin) return;
+    if ((m === "identity" || m === "schedule" || m === "cancel") && !isSuperAdmin) return;
     setActive(t); setMode(m); setNote("");
     setBookerName(t.supervisor_name || ""); setBookerDepartment(t.department || "");
+    setSchedStart(toLocalInput(t.planned_start_at)); setSchedEnd(toLocalInput(t.planned_end_at));
   };
 
   const save = async () => {
@@ -106,11 +110,20 @@ export default function SiteAccessManage() {
     if (mode === "identity") {
       if (!isSuperAdmin) return toast.error("เฉพาะ Super Admin เท่านั้น");
       if (!bookerName.trim() || !allowedDepartments.some((d) => d.name === bookerDepartment)) return toast.error("กรุณาระบุชื่อผู้จองและฝ่าย");
-    } else if (mode !== "approve" && !note.trim()) return toast.error("กรุณาระบุเหตุผล");
+    } else if (mode === "schedule") {
+      if (!isSuperAdmin) return toast.error("เฉพาะ Super Admin เท่านั้น");
+      if (!schedStart || !schedEnd) return toast.error("กรุณาระบุเวลาเริ่มและสิ้นสุด");
+      if (new Date(schedEnd) <= new Date(schedStart)) return toast.error("เวลาสิ้นสุดต้องหลังเวลาเริ่ม");
+    } else if (mode === "cancel" && !isSuperAdmin) return toast.error("เฉพาะ Super Admin เท่านั้น");
+    else if (mode !== "approve" && !note.trim()) return toast.error("กรุณาระบุเหตุผล");
     setSaving(true);
     let error: any = null;
     if (mode === "identity") {
       ({ error } = await supabase.from("warehouse_access_tickets").update({ supervisor_name: bookerName.trim().slice(0, 120), department: bookerDepartment }).eq("id", active.id).select("id").single());
+    } else if (mode === "schedule") {
+      ({ error } = await supabase.from("warehouse_access_tickets").update({ planned_start_at: new Date(schedStart).toISOString(), planned_end_at: new Date(schedEnd).toISOString() }).eq("id", active.id).select("id").single());
+    } else if (mode === "cancel") {
+      ({ error } = await supabase.from("warehouse_access_tickets").update({ status: "cancelled", reject_reason: note.trim() ? `ยกเลิกโดย Super Admin: ${note.trim()}`.slice(0, 500) : "ยกเลิกโดย Super Admin" }).eq("id", active.id).select("id").single());
     } else if (mode === "close") {
       ({ error } = await supabase.rpc("admin_close_access_ticket", { _ticket_id: active.id, _reason: note.trim() }));
     } else {
@@ -121,7 +134,7 @@ export default function SiteAccessManage() {
     }
     setSaving(false);
     if (error) return toast.error(error.message);
-    toast.success(mode === "identity" ? `แก้ไขผู้จอง ${active.ticket_no} แล้ว` : mode === "approve" ? `อนุมัติ ${active.ticket_no} แล้ว` : mode === "close" ? `ปิดตั๋ว ${active.ticket_no} โดย Admin แล้ว` : `ไม่อนุมัติ ${active.ticket_no}`);
+    toast.success(mode === "schedule" ? `แก้ไขวันเวลา ${active.ticket_no} แล้ว` : mode === "cancel" ? `ยกเลิกตั๋ว ${active.ticket_no} แล้ว` : mode === "identity" ? `แก้ไขผู้จอง ${active.ticket_no} แล้ว` : mode === "approve" ? `อนุมัติ ${active.ticket_no} แล้ว` : mode === "close" ? `ปิดตั๋ว ${active.ticket_no} โดย Admin แล้ว` : `ไม่อนุมัติ ${active.ticket_no}`);
     setCalendarVersion((v) => v + 1);
     setActive(null); load();
   };
@@ -242,6 +255,8 @@ export default function SiteAccessManage() {
                   )}
                   <div className="flex flex-wrap gap-2 pt-1">
                     {isSuperAdmin && <Button size="sm" variant="outline" onClick={() => open(t, "identity")}>แก้ไขชื่อ / ฝ่าย</Button>}
+                    {isSuperAdmin && ["pending_assignment", "approved"].includes(t.status) && <Button size="sm" variant="outline" onClick={() => open(t, "schedule")}>แก้ไขวันเวลา</Button>}
+                    {isSuperAdmin && ["pending_assignment", "approved"].includes(t.status) && <Button size="sm" variant="destructive" onClick={() => open(t, "cancel")}>ยกเลิกตั๋ว</Button>}
                     {t.status === "pending_assignment" && <Button size="sm" onClick={() => open(t, "approve")}>อนุมัติ</Button>}
                     {(t.status === "pending_assignment" || t.status === "approved") && <Button size="sm" variant="outline" onClick={() => open(t, "reject")}>ไม่อนุมัติ</Button>}
                     {(t.status === "checked_in" || t.status === "approved") && <Button size="sm" variant="secondary" onClick={() => open(t, "close")}>ปิดตั๋วแทน รปภ.</Button>}
@@ -284,13 +299,24 @@ export default function SiteAccessManage() {
 
       <Dialog open={!!active} onOpenChange={(o) => !o && setActive(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{mode === "identity" ? "แก้ไขชื่อ / ฝ่ายผู้จอง" : mode === "approve" ? "อนุมัติตั๋ว" : mode === "close" ? "ปิดตั๋วแทน รปภ." : "ไม่อนุมัติตั๋ว"} {active?.ticket_no}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{mode === "schedule" ? "แก้ไขวันเวลาเข้าพื้นที่" : mode === "cancel" ? "ยกเลิกตั๋ว" : mode === "identity" ? "แก้ไขชื่อ / ฝ่ายผู้จอง" : mode === "approve" ? "อนุมัติตั๋ว" : mode === "close" ? "ปิดตั๋วแทน รปภ." : "ไม่อนุมัติตั๋ว"} {active?.ticket_no}</DialogTitle></DialogHeader>
           {mode === "identity" ? (
             <div className="space-y-3">
               <div className="space-y-1.5"><Label htmlFor="edit-booker-name">ชื่อผู้จอง *</Label><Input id="edit-booker-name" value={bookerName} onChange={(e) => setBookerName(e.target.value)} maxLength={120} /></div>
               <div className="space-y-1.5"><Label>ฝ่ายผู้จอง *</Label>
                 <Select value={bookerDepartment || undefined} onValueChange={setBookerDepartment}><SelectTrigger aria-label="แก้ไขฝ่ายผู้จอง"><SelectValue placeholder="เลือกฝ่าย" /></SelectTrigger><SelectContent>{allowedDepartments.map((d) => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}</SelectContent></Select>
               </div>
+            </div>
+          ) : mode === "schedule" ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label htmlFor="sched-start">เวลาเริ่ม *</Label><Input id="sched-start" type="datetime-local" value={schedStart} onChange={(e) => setSchedStart(e.target.value)} /></div>
+              <div className="space-y-1.5"><Label htmlFor="sched-end">เวลาสิ้นสุด *</Label><Input id="sched-end" type="datetime-local" value={schedEnd} onChange={(e) => setSchedEnd(e.target.value)} /></div>
+            </div>
+          ) : mode === "cancel" ? (
+            <div className="space-y-1.5">
+              <p className="text-sm text-muted-foreground">ตั๋วจะถูกเปลี่ยนเป็น “ยกเลิก” และหายจากปฏิทิน ประวัติยังเก็บไว้ตรวจสอบได้</p>
+              <Label>เหตุผล (ถ้ามี)</Label>
+              <Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} maxLength={400} />
             </div>
           ) : mode === "approve" ? (
             <p className="text-sm text-muted-foreground">ยืนยันอนุมัติให้เข้าพื้นที่ตามวันเวลาที่จอง</p>
@@ -303,7 +329,7 @@ export default function SiteAccessManage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setActive(null)}>ยกเลิก</Button>
-            <Button variant={mode === "reject" ? "destructive" : "default"} disabled={saving} onClick={save}>{saving ? "กำลังบันทึก..." : "ยืนยัน"}</Button>
+            <Button variant={mode === "reject" || mode === "cancel" ? "destructive" : "default"} disabled={saving} onClick={save}>{saving ? "กำลังบันทึก..." : "ยืนยัน"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
