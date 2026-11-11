@@ -31,4 +31,4 @@
 - Incomplete-issue follow-up authorizes headers and lines by requester department, never stock-owner department; owner labels/grouping remain presentation-only and department filters match owner or requester so cross-team lines stay actionable without expanding document access.
 - Consumables (is_consumable) close at issue regardless of purpose flags: followUpQuantities zeroes billboard/return/usage obligations; meeting cards label counts ใบเบิก vs รายการ.
 
-- Super Admin can roll back an entire test issue document by number via mt_rollback_issue_document (restores stock to the issue location, removes billboard links, cancels the document); documents with defective/old-part returns are refused for manual review because those already moved stock elsewhere.
+- Super Admin test-document rollback (mt_rollback_issue_document) refuses documents with defective/old-part returns, since those already moved stock.
