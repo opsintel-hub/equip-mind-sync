@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
 import MagicTicketTestSessions from "@/components/MagicTicketTestSessions";
+import MagicTicketDocumentRollback from "@/components/MagicTicketDocumentRollback";
 
 const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/magic-ticket`;
 const dt = (v?: string | null) => (v ? format(new Date(v), "d MMM yy HH:mm:ss", { locale: th }) : "-");
@@ -114,6 +115,7 @@ export default function MagicTicketIntegration() {
       <Tabs defaultValue="log">
         <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="test-sessions">รอบทดสอบ</TabsTrigger>
+          <TabsTrigger value="doc-rollback">คืนของด้วยเลขใบเบิก</TabsTrigger>
           <TabsTrigger value="log">Log เหตุการณ์</TabsTrigger>
           <TabsTrigger value="requests">คำขอเบิกจาก Ticket</TabsTrigger>
           <TabsTrigger value="map">Ticket ↔ ใบเบิก</TabsTrigger>
@@ -121,6 +123,7 @@ export default function MagicTicketIntegration() {
         </TabsList>
 
         <TabsContent value="test-sessions" className="mt-4"><MagicTicketTestSessions /></TabsContent>
+        <TabsContent value="doc-rollback" className="mt-4"><MagicTicketDocumentRollback /></TabsContent>
         <TabsContent value="log" className="space-y-4 mt-4">
           <div className="flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-56">
