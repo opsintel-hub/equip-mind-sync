@@ -7995,6 +7995,7 @@ export type Database = {
           uninstall_reason: string
         }[]
       }
+      public_get_mp_qr_extras: { Args: { _id: string }; Returns: Json }
       public_get_mp_stock_movements: {
         Args: { _media_player_id: string }
         Returns: {
@@ -8058,6 +8059,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      security_asset_read: {
+        Args: { p_equipment: string; p_media_player: string; p_tool: string }
+        Returns: boolean
+      }
+      security_department_read: {
+        Args: { p_department: string }
+        Returns: boolean
+      }
+      security_issue_read: { Args: { p_id: string }; Returns: boolean }
       site_access_report: {
         Args: { _from: string; _to: string }
         Returns: {
