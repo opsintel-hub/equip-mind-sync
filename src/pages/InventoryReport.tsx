@@ -1,3 +1,5 @@
+import { useReportContext, useReportQuery, useReportLoading } from "@/hooks/useReportQuery";
+import { ReportLoadingStatus, LoadingValue } from "@/components/reports/ReportLoadingStatus";
 import { allRows } from "@/lib/fetchAllRows";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -115,8 +117,11 @@ export default function InventoryReport() {
   });
   // Compatibility filter: filter equipment by billboard support
   const [compatBillboardId, setCompatBillboardId] = useState<string>("");
-  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
-  const { applyEquipmentScope, applyToolScope, applyMediaPlayerScope, scopeKey } = useSectionScope();
+  const { isSuperAdmin, viewableDepts, deptKey, loading: deptLoading } = useDeptScope();
+  const { applyEquipmentScope, applyToolScope, applyMediaPlayerScope, scopeKey, loading: sectionLoading } = useSectionScope();
+  const report = useReportContext("inventory", `${deptKey}:${scopeKey}`, deptLoading || sectionLoading);
+  const loadState = useReportLoading(report);
+  const serverFilters = { companyId: filters.companyId, departments: filters.departments, subcategoryId: filters.subcategoryId, itemType: filters.itemType };
   const scopeDepts = isSuperAdmin ? null : ((viewableDepts && viewableDepts.length > 0) ? viewableDepts : ["__no_dept_permission__"]);
   const [viewMode, setViewMode] = useViewMode("inventory-report", "table");
   const [mainTab, setMainTab] = useState<"list" | "map">("list");
@@ -124,7 +129,7 @@ export default function InventoryReport() {
   // Pagination is handled by useTablePagination below
 
   // Fetch all compat data (mode + billboard ids per equipment)
-  const { data: compatMap = {} } = useQuery({
+  const { data: compatMap = {} } = useReportQuery({
     queryKey: ["equipment-compat-map"],
     queryFn: async () => {
       const { data, error } = await allRows(supabase
@@ -138,11 +143,11 @@ export default function InventoryReport() {
       });
       return map;
     },
-  });
+  }, report);
 
 
   // Fetch categories for mapping
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [] } = useReportQuery({
     queryKey: ["categories-map"],
     queryFn: async () => {
       const { data, error } = await allRows(supabase
@@ -151,7 +156,7 @@ export default function InventoryReport() {
       if (error) throw error;
       return data;
     },
-  });
+  }, report);
 
   // Create category name map
   const categoryMap = useMemo(() => {
@@ -163,8 +168,8 @@ export default function InventoryReport() {
   }, [categories]);
 
   // Fetch equipment with related data
-  const { data: equipmentData = [], isLoading: isLoadingEquipment } = useQuery({
-    queryKey: ["inventory-report-equipment", filters, deptKey, scopeKey],
+  const { data: equipmentData = [], isLoading: isLoadingEquipment } = useReportQuery({
+    queryKey: ["inventory-report-equipment", serverFilters, deptKey, scopeKey],
     queryFn: async () => {
       // Skip if filtering for media players or tools only
       if (filters.itemType === "media_player" || filters.itemType === "tools") {
@@ -231,11 +236,11 @@ export default function InventoryReport() {
       }));
     },
     enabled: filters.itemType !== "media_player" && filters.itemType !== "tools",
-  });
+  }, report);
 
   // Fetch tools with related data
-  const { data: toolsData = [], isLoading: isLoadingTools } = useQuery({
-    queryKey: ["inventory-report-tools", filters, deptKey, scopeKey],
+  const { data: toolsData = [], isLoading: isLoadingTools } = useReportQuery({
+    queryKey: ["inventory-report-tools", serverFilters, deptKey, scopeKey],
     queryFn: async () => {
       // Skip if filtering for equipment or media players only
       if (filters.itemType === "equipment" || filters.itemType === "media_player") {
@@ -305,11 +310,11 @@ export default function InventoryReport() {
       }));
     },
     enabled: filters.itemType !== "equipment" && filters.itemType !== "media_player",
-  });
+  }, report);
 
   // Fetch media players with related data
-  const { data: mediaPlayerData = [], isLoading: isLoadingMediaPlayers } = useQuery({
-    queryKey: ["inventory-report-media-players", filters, deptKey, scopeKey],
+  const { data: mediaPlayerData = [], isLoading: isLoadingMediaPlayers } = useReportQuery({
+    queryKey: ["inventory-report-media-players", serverFilters, deptKey, scopeKey],
     queryFn: async () => {
       // Skip if filtering for equipment or tools only
       if (filters.itemType === "equipment" || filters.itemType === "tools") {
@@ -386,10 +391,10 @@ export default function InventoryReport() {
       });
     },
     enabled: filters.itemType !== "equipment" && filters.itemType !== "tools",
-  });
+  }, report);
 
   // Fetch all serial numbers from equipment_serial_numbers table (authoritative source)
-  const { data: allEquipmentSNs = [] } = useQuery({
+  const { data: allEquipmentSNs = [] } = useReportQuery({
     queryKey: ["inventory-equipment-sns"],
     queryFn: async () => {
       const { data, error } = await allRows(supabase
@@ -399,7 +404,7 @@ export default function InventoryReport() {
       if (error) throw error;
       return data || [];
     },
-  });
+  }, report);
 
   // Build maps: equipment_id -> all S/Ns (display) and in_stock count
   const equipmentSNMap = useMemo(() => {
@@ -425,7 +430,7 @@ export default function InventoryReport() {
   }, [allEquipmentSNs]);
 
   // Fetch latest received serials for fallback (covers legacy rows where master serial was not updated)
-  const { data: receivedSerials = [] } = useQuery({
+  const { data: receivedSerials = [] } = useReportQuery({
     queryKey: ["inventory-received-serials"],
     queryFn: async () => {
       const { data, error } = await allRows(supabase
@@ -438,7 +443,7 @@ export default function InventoryReport() {
       if (error) throw error;
       return (data || []) as ReceivedSerialItem[];
     },
-  });
+  }, report);
 
   const receiptSerialMaps = useMemo(() => {
     return {
@@ -454,7 +459,7 @@ export default function InventoryReport() {
   }, [receivedSerials]);
 
   // Fetch actual stock balances per storage location (covers inter-warehouse transfers)
-  const { data: allocationRows = [] } = useQuery({
+  const { data: allocationRows = [] } = useReportQuery({
     queryKey: ["inventory-location-allocations"],
     queryFn: async () => {
       const { data, error } = await allRows(supabase
@@ -463,7 +468,7 @@ export default function InventoryReport() {
       if (error) throw error;
       return data || [];
     },
-  });
+  }, report);
 
   // itemId -> non-zero balances per location (actual stock, not default location)
   const storageBalanceMap = useMemo(() => buildStorageBalanceMap(allocationRows as any), [allocationRows]);
@@ -494,7 +499,7 @@ export default function InventoryReport() {
   };
 
   // Fetch receipt prices and order_for_project for each equipment
-  const { data: receiptPrices = [] } = useQuery({
+  const { data: receiptPrices = [] } = useReportQuery({
     queryKey: ["inventory-receipt-prices"],
     queryFn: async () => {
       const { data, error } = await allRows(supabase
@@ -504,7 +509,7 @@ export default function InventoryReport() {
       if (error) throw error;
       return data || [];
     },
-  });
+  }, report);
 
   const receiptPriceMap = useMemo(() => {
     const map: Record<string, number[]> = {};
@@ -533,7 +538,7 @@ export default function InventoryReport() {
   }, [receiptPrices]);
 
   // Fetch issue data for equipment
-  const { data: issueData = [] } = useQuery({
+  const { data: issueData = [] } = useReportQuery({
     queryKey: ["inventory-issue-data"],
     queryFn: async () => {
       const { data, error } = await allRows(supabase
@@ -554,10 +559,10 @@ export default function InventoryReport() {
       if (error) throw error;
       return data || [];
     },
-  });
+  }, report);
 
   // Fetch billboards to get their codes
-  const { data: billboards = [] } = useQuery({
+  const { data: billboards = [] } = useReportQuery({
     queryKey: ["billboards-map"],
     queryFn: async () => {
       const { data, error } = await allRows(supabase
@@ -566,7 +571,7 @@ export default function InventoryReport() {
       if (error) throw error;
       return data || [];
     },
-  });
+  }, report);
 
   // billboards.equipment_id is the billboard code itself (text), no extra lookup needed
 
@@ -713,7 +718,7 @@ export default function InventoryReport() {
     return result;
   }, [equipmentData, toolsData, mediaPlayerData, issueMap, equipmentSNMap, receiptSerialMaps, receiptPriceMap]);
 
-  const isLoading = isLoadingEquipment || isLoadingTools || isLoadingMediaPlayers;
+  const isLoading = loadState.loading || loadState.error;
 
   // Get advance days from filters or use default
   const advanceDays = filters.advanceDays || DEFAULT_ADVANCE_DAYS;
@@ -1053,7 +1058,7 @@ export default function InventoryReport() {
           </div>
           <div className="flex items-center gap-2">
             {mainTab === "list" && <ViewModeToggle value={viewMode} onChange={setViewMode} />}
-            <Button onClick={handleExport} disabled={filteredData.length === 0}>
+            <Button onClick={handleExport} disabled={isLoading || filteredData.length === 0}>
               <Download className="mr-2 h-4 w-4" />
               Export Excel
             </Button>
@@ -1067,6 +1072,7 @@ export default function InventoryReport() {
           </TabsList>
         </Tabs>
 
+        <ReportLoadingStatus state={loadState} />
         {/* Summary Cards */}
         <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
           <Card>
@@ -1078,7 +1084,7 @@ export default function InventoryReport() {
             <CardContent>
               <div className="flex items-center gap-2">
                 <Package className="h-4 w-4 text-muted-foreground" />
-                <span className="text-2xl font-bold tabular-nums">{stats.total.toLocaleString()}</span>
+                <span className="text-2xl font-bold tabular-nums"><LoadingValue pending={isLoading}>{stats.total.toLocaleString()}</LoadingValue></span>
               </div>
               <div className="text-xs text-muted-foreground mt-1 truncate">
                 {isStorageScoped ? "เฉพาะคลังที่เลือก" : "ทุกคลัง/ช่องจัดเก็บ"}
@@ -1096,7 +1102,7 @@ export default function InventoryReport() {
               <div className="flex items-center gap-2">
                 <Boxes className="h-4 w-4 shrink-0 text-primary" />
                 <span className="text-2xl font-bold text-primary tabular-nums truncate">
-                  {stats.totalQty.toLocaleString()}
+                  <LoadingValue pending={isLoading}>{stats.totalQty.toLocaleString()}</LoadingValue>
                 </span>
               </div>
               <div className="text-xs text-muted-foreground mt-1 truncate">
@@ -1119,7 +1125,7 @@ export default function InventoryReport() {
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-green-500" />
                 <span className="text-2xl font-bold text-green-600 tabular-nums">
-                  {stats.normal.toLocaleString()}
+                  <LoadingValue pending={isLoading}>{stats.normal.toLocaleString()}</LoadingValue>
                 </span>
               </div>
               <div className="text-xs text-muted-foreground mt-1 truncate">
@@ -1138,7 +1144,7 @@ export default function InventoryReport() {
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-yellow-500" />
                 <span className="text-2xl font-bold text-yellow-600 tabular-nums">
-                  {stats.lowStock.toLocaleString()}
+                  <LoadingValue pending={isLoading}>{stats.lowStock.toLocaleString()}</LoadingValue>
                 </span>
               </div>
               <div className="text-xs text-muted-foreground mt-1 truncate">
@@ -1157,7 +1163,7 @@ export default function InventoryReport() {
               <div className="flex items-center gap-2">
                 <XCircle className="h-4 w-4 text-red-500" />
                 <span className="text-2xl font-bold text-red-600 tabular-nums">
-                  {stats.outOfStock.toLocaleString()}
+                  <LoadingValue pending={isLoading}>{stats.outOfStock.toLocaleString()}</LoadingValue>
                 </span>
               </div>
               <div className="text-xs text-muted-foreground mt-1 truncate">
@@ -1174,7 +1180,7 @@ export default function InventoryReport() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold tabular-nums">
-                ฿{stats.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                ฿<LoadingValue pending={isLoading}>{stats.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</LoadingValue>
               </div>
               <div className="text-xs text-muted-foreground mt-1 truncate">
                 คงเหลือ × ราคาตอหน่วย

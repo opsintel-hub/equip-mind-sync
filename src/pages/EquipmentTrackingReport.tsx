@@ -1,3 +1,5 @@
+import { useReportContext, useReportQuery, useReportLoading } from "@/hooks/useReportQuery";
+import { ReportLoadingStatus, LoadingValue } from "@/components/reports/ReportLoadingStatus";
 import { allRows } from "@/lib/fetchAllRows";
 import React, { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -123,10 +125,12 @@ function BillboardViewTab() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { allowedDepartments, isAdmin: isAdminDept, isSingleDepartment } = useAllowedDepartments();
+  const { allowedDepartments, isAdmin: isAdminDept, isSingleDepartment, loading: scopeLoading } = useAllowedDepartments();
+  const report = useReportContext("tracking-billboard", allowedDepartments.map(d => d.name).sort().join("|"), scopeLoading);
+  const loadState = useReportLoading(report);
   const allowedDeptNames = useMemo(() => allowedDepartments.map(d => d.name), [allowedDepartments]);
 
-  const { data: billboards, isLoading: loadingBillboards } = useQuery({
+  const { data: billboards, isLoading: loadingBillboards } = useReportQuery({
     queryKey: ["billboard-tracking-billboards", isAdminDept, allowedDeptNames.join("|")],
     queryFn: async () => {
       let q = supabase
@@ -141,9 +145,9 @@ function BillboardViewTab() {
       if (error) throw error;
       return data || [];
     },
-  });
+  }, report);
 
-  const { data: billboardEquipment, isLoading: loadingEquipment } = useQuery({
+  const { data: billboardEquipment, isLoading: loadingEquipment } = useReportQuery({
     queryKey: ["billboard-tracking-equipment"],
     queryFn: async () => {
       const { data, error } = await allRows(supabase
@@ -152,9 +156,9 @@ function BillboardViewTab() {
       if (error) throw error;
       return data || [];
     },
-  });
+  }, report);
 
-  const { data: mediaPlayers, isLoading: loadingMedia } = useQuery({
+  const { data: mediaPlayers, isLoading: loadingMedia } = useReportQuery({
     queryKey: ["billboard-tracking-media-players", isAdminDept, allowedDeptNames.join("|")],
     queryFn: async () => {
       let q = supabase
@@ -168,9 +172,9 @@ function BillboardViewTab() {
       if (error) throw error;
       return data || [];
     },
-  });
+  }, report);
 
-  const { data: billboardReceivedSerials = [] } = useQuery({
+  const { data: billboardReceivedSerials = [] } = useReportQuery({
     queryKey: ["billboard-tracking-received-serials"],
     queryFn: async () => {
       const { data, error } = await allRows(supabase
@@ -182,7 +186,7 @@ function BillboardViewTab() {
       if (error) throw error;
       return data || [];
     },
-  });
+  }, report);
 
   const billboardEquipmentAliasMap = useMemo(
     () => buildReceivedSerialAliasMap(billboardReceivedSerials.filter((row: any) => !row.is_media_player), "equipment_id"),
@@ -380,18 +384,19 @@ function BillboardViewTab() {
     XLSX.writeFile(wb, `billboard-equipment-${format(new Date(), "yyyyMMdd")}.xlsx`);
   };
 
-  const isLoading = loadingBillboards || loadingEquipment || loadingMedia;
+  const isLoading = loadState.loading || loadState.error;
 
   return (
     <div className="space-y-4">
+      <ReportLoadingStatus state={loadState} />
       {/* Summary Cards — reflect filtered results */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.totalBillboards}</div><div className="text-xs text-muted-foreground">ป้ายในผลค้นหา</div></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-emerald-600">{summaryStats.withEquip}</div><div className="text-xs text-muted-foreground">ป้ายที่มีอุปกรณ์</div></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-blue-600">{summaryStats.totalEquipPieces}</div><div className="text-xs text-muted-foreground">อุปกรณ์รวม (ชิ้น)</div></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-destructive">{summaryStats.expiredCount}</div><div className="text-xs text-muted-foreground">หมดอายุแล้ว</div></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-amber-600">{summaryStats.expiringSoonCount}</div><div className="text-xs text-muted-foreground">ใกล้หมดอายุ (≤90 วัน)</div></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-amber-700">{summaryStats.warrantyExpiredCount + summaryStats.warrantyExpiringSoonCount}</div><div className="text-xs text-muted-foreground">หมด/ใกล้หมดประกัน</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary"><LoadingValue pending={isLoading}>{summaryStats.totalBillboards}</LoadingValue></div><div className="text-xs text-muted-foreground">ป้ายในผลค้นหา</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-emerald-600"><LoadingValue pending={isLoading}>{summaryStats.withEquip}</LoadingValue></div><div className="text-xs text-muted-foreground">ป้ายที่มีอุปกรณ์</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-blue-600"><LoadingValue pending={isLoading}>{summaryStats.totalEquipPieces}</LoadingValue></div><div className="text-xs text-muted-foreground">อุปกรณ์รวม (ชิ้น)</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-destructive"><LoadingValue pending={isLoading}>{summaryStats.expiredCount}</LoadingValue></div><div className="text-xs text-muted-foreground">หมดอายุแล้ว</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-amber-600"><LoadingValue pending={isLoading}>{summaryStats.expiringSoonCount}</LoadingValue></div><div className="text-xs text-muted-foreground">ใกล้หมดอายุ (≤90 วัน)</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-amber-700"><LoadingValue pending={isLoading}>{summaryStats.warrantyExpiredCount + summaryStats.warrantyExpiringSoonCount}</LoadingValue></div><div className="text-xs text-muted-foreground">หมด/ใกล้หมดประกัน</div></CardContent></Card>
       </div>
 
       {/* Filters */}
@@ -435,7 +440,7 @@ function BillboardViewTab() {
             <SelectItem value="warranty_expiring">ใกล้หมดประกัน</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" size="sm" onClick={handleExport} className="gap-1">
+        <Button variant="outline" size="sm" onClick={handleExport} disabled={isLoading} className="gap-1">
           <Download className="w-4 h-4" /> Export
         </Button>
       </div>
@@ -607,11 +612,13 @@ function EquipmentViewTab() {
   const [selectedEquipment, setSelectedEquipment] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { allowedDepartments: eqAllowedDepts, isAdmin: eqIsAdminDept } = useAllowedDepartments();
+  const { allowedDepartments: eqAllowedDepts, isAdmin: eqIsAdminDept, loading: scopeLoading } = useAllowedDepartments();
+  const report = useReportContext("tracking-equipment", eqAllowedDepts.map(d => d.name).sort().join("|"), scopeLoading);
+  const loadState = useReportLoading(report);
   const eqAllowedNames = useMemo(() => eqAllowedDepts.map(d => d.name), [eqAllowedDepts]);
 
   // Equipment
-  const { data: equipment, isLoading: loadingEq } = useQuery({
+  const { data: equipment, isLoading: loadingEq } = useReportQuery({
     queryKey: ["eq-tracking-equipment", eqIsAdminDept, eqAllowedNames.join("|")],
     queryFn: async () => {
       let q = supabase
@@ -626,10 +633,10 @@ function EquipmentViewTab() {
       if (error) throw error;
       return data || [];
     },
-  });
+  }, report);
 
   // Equipment serial numbers for per-S/N rows
-  const { data: equipmentSNs } = useQuery({
+  const { data: equipmentSNs } = useReportQuery({
     queryKey: ["eq-tracking-equipment-sns"],
     queryFn: async () => {
       const { data, error } = await allRows(supabase
@@ -639,7 +646,7 @@ function EquipmentViewTab() {
       if (error) throw error;
       return data || [];
     },
-  });
+  }, report);
 
   const eqSNMap = useMemo(() => {
     const m: Record<string, { allSNs: string[]; inStockSNs: string[]; pendingAssessSNs: string[]; underRepairSNs: string[]; inClaimSNs: string[] }> = {};
@@ -655,7 +662,7 @@ function EquipmentViewTab() {
   }, [equipmentSNs]);
 
   // Media Players
-  const { data: mediaPlayers, isLoading: loadingMP } = useQuery({
+  const { data: mediaPlayers, isLoading: loadingMP } = useReportQuery({
     queryKey: ["eq-tracking-media-players-all", eqIsAdminDept, eqAllowedNames.join("|")],
     queryFn: async () => {
       let q = supabase
@@ -670,10 +677,10 @@ function EquipmentViewTab() {
       if (error) throw error;
       return data || [];
     },
-  });
+  }, report);
 
   // Billboard equipment (current installations)
-  const { data: billboardEquipment } = useQuery({
+  const { data: billboardEquipment } = useReportQuery({
     queryKey: ["eq-tracking-bb-equip"],
     queryFn: async () => {
       const { data, error } = await allRows(supabase
@@ -682,21 +689,21 @@ function EquipmentViewTab() {
       if (error) throw error;
       return data || [];
     },
-  });
+  }, report);
 
   // Billboards lookup for media players
-  const { data: billboards } = useQuery({
+  const { data: billboards } = useReportQuery({
     queryKey: ["eq-tracking-bb-lookup"],
     queryFn: async () => {
       const { data, error } = await allRows(supabase.from("billboards").select("id, old_code, location_name, equipment_id").order("id"));
       if (error) throw error;
       return data || [];
     },
-  });
+  }, report);
 
   // Pending issued items: จ่ายแล้วแต่ยังไม่ได้ติดตั้งเข้าป้าย
   // (รอผู้รับกดยืนยัน / แจ้งปัญหาที่รับ / ไม่ได้ระบุป้ายปลายทาง)
-  const { data: pendingIssuedItems = [] } = useQuery({
+  const { data: pendingIssuedItems = [] } = useReportQuery({
     queryKey: ["eq-tracking-pending-issued"],
     queryFn: async () => {
       const { data, error } = await allRows(supabase
@@ -707,7 +714,7 @@ function EquipmentViewTab() {
       if (error) { console.error(error); return []; }
       return data || [];
     },
-  });
+  }, report);
 
   const pendingIssuedMap = useMemo(() => {
     const eq: Record<string, { count: number; docs: string[] }> = {};
@@ -896,18 +903,19 @@ function EquipmentViewTab() {
     XLSX.writeFile(wb, `equipment-tracking-${format(new Date(), "yyyyMMdd")}.xlsx`);
   };
 
-  const isLoading = loadingEq || loadingMP;
+  const isLoading = loadState.loading || loadState.error;
 
   const isFiltered = !!(search || snSearch || typeFilter !== "all" || categoryFilter !== "all" || brandFilter !== "all" || installFilter !== "all");
 
   return (
     <div className="space-y-4">
+      <ReportLoadingStatus state={loadState} />
       {/* Summary Cards — reflect current filtered result */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary">{summaryStats.total}</div><div className="text-xs text-muted-foreground">{isFiltered ? "ผลค้นหา (รายการ S/N)" : "ทั้งหมด (รายการ S/N)"}</div></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-emerald-600">{summaryStats.installed}</div><div className="text-xs text-muted-foreground">ติดตั้งบนป้ายอยู่</div></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-orange-600">{summaryStats.issuedPending}</div><div className="text-xs text-muted-foreground">จ่ายแล้ว / รอระบุป้าย</div></CardContent></Card>
-        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-blue-600">{summaryStats.inStock}</div><div className="text-xs text-muted-foreground">อยู่ในคลัง / ยังไม่ติดตั้ง</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-primary"><LoadingValue pending={isLoading}>{summaryStats.total}</LoadingValue></div><div className="text-xs text-muted-foreground">{isFiltered ? "ผลค้นหา (รายการ S/N)" : "ทั้งหมด (รายการ S/N)"}</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-emerald-600"><LoadingValue pending={isLoading}>{summaryStats.installed}</LoadingValue></div><div className="text-xs text-muted-foreground">ติดตั้งบนป้ายอยู่</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-orange-600"><LoadingValue pending={isLoading}>{summaryStats.issuedPending}</LoadingValue></div><div className="text-xs text-muted-foreground">จ่ายแล้ว / รอระบุป้าย</div></CardContent></Card>
+        <Card><CardContent className="p-3 text-center"><div className="text-2xl font-bold text-blue-600"><LoadingValue pending={isLoading}>{summaryStats.inStock}</LoadingValue></div><div className="text-xs text-muted-foreground">อยู่ในคลัง / ยังไม่ติดตั้ง</div></CardContent></Card>
         <Card><CardContent className="p-3 text-center"><div className="text-xs text-muted-foreground mb-1">💡 คลิก <Eye className="inline w-3 h-3" /> เพื่อดู<br/>รายการป้ายทั้งหมดที่ติดตั้ง<br/>+ วันหมดประกัน → วาง PM ครั้งเดียว</div></CardContent></Card>
       </div>
 
@@ -952,7 +960,7 @@ function EquipmentViewTab() {
             <SelectItem value="pending">จ่ายแล้ว / รอระบุป้าย</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" size="sm" onClick={handleExport} className="gap-1">
+        <Button variant="outline" size="sm" onClick={handleExport} disabled={isLoading} className="gap-1">
           <Download className="w-4 h-4" /> Export
         </Button>
       </div>

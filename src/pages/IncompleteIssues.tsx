@@ -1,3 +1,5 @@
+import { useReportContext, useReportQuery, useReportLoading } from "@/hooks/useReportQuery";
+import { ReportLoadingStatus, LoadingValue } from "@/components/reports/ReportLoadingStatus";
 import { useState, useMemo } from "react";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { TablePagination } from "@/components/TablePagination";
@@ -93,6 +95,8 @@ const IncompleteIssues = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { isSuperAdmin, viewableDepts, deptKey, loading: scopeLoading } = useDeptScope();
+  const report = useReportContext("incomplete", deptKey, scopeLoading);
+  const loadState = useReportLoading(report);
   const [filters, setFilters] = useState(emptyFollowUpFilters);
   const followUp = useIssueFollowUpData();
   const [activeTab, setActiveTab] = useState("billboard");
@@ -157,7 +161,7 @@ const IncompleteIssues = () => {
   };
 
   // Fetch incomplete issues (issued but missing billboard or waiting for return)
-  const { data: incompleteIssues, isLoading } = useQuery({
+  const { data: incompleteIssues, isLoading } = useReportQuery({
     queryKey: ["incomplete-issues", deptKey],
     enabled: !scopeLoading,
     queryFn: async () => {
@@ -225,9 +229,8 @@ const IncompleteIssues = () => {
 
       return { issues: incomplete as (IncompleteIssue & { companies: { name: string } | null })[], purposes };
     },
-    placeholderData: (prev) => prev,
     refetchOnWindowFocus: false,
-  });
+  }, report);
 
   // Realtime: อัปเดตรายการยังไม่สมบูรณ์ทันที (คลังจ่ายของ / ผู้ขอยืนยัน) โดยไม่กระพริบ
   useRealtimeInvalidate({
@@ -245,7 +248,7 @@ const IncompleteIssues = () => {
 
 
   // Fetch defective returns pending warehouse entry
-  const { data: defectiveReturns = [], isLoading: defectiveLoading, error: defectiveError } = useQuery({
+  const { data: defectiveReturns = [], isLoading: defectiveLoading, error: defectiveError } = useReportQuery({
     queryKey: ["defective-returns-pending", deptKey],
     enabled: !scopeLoading,
     queryFn: async () => {
@@ -259,7 +262,7 @@ const IncompleteIssues = () => {
       if (error) throw error;
       return data || [];
     },
-  });
+  }, report);
 
   const { data: pendingGood = [], isLoading: goodLoading, error: goodError } = usePendingGoodReturns();
   const { data: pendingTransfers = [], isLoading: transferLoading, error: transferError } = usePendingWarehouseTransfers();
@@ -267,7 +270,7 @@ const IncompleteIssues = () => {
   // Fetch items for all incomplete issues
   const issueIds = useMemo(() => (incompleteIssues?.issues || []).map(i => i.id), [incompleteIssues]);
 
-  const { data: allItems = [] } = useQuery({
+  const { data: allItems = [] } = useReportQuery({
     queryKey: ["incomplete-issue-items", issueIds],
     queryFn: async () => {
       if (issueIds.length === 0) return [];
@@ -282,7 +285,7 @@ const IncompleteIssues = () => {
       return data as PendingItem[];
     },
     enabled: issueIds.length > 0,
-  });
+  }, report);
 
   const itemDepartment = (issue: IncompleteIssue, item: PendingItem | IncompleteIssue) =>
     followUpDepartment(item, issue.requester_department, followUp.data?.owners || { equipment: {}, mediaPlayers: {}, consumables: {} });
@@ -669,6 +672,9 @@ const IncompleteIssues = () => {
     if (issue && item && stage === "return") { setReturnTarget({issue,item:item as unknown as ReturnItemLine}); setItemReturnOpen(true); }
   };
 
+  const reportPending = loadState.loading || loadState.error || followUp.isLoading || !!followUp.error || goodLoading || !!goodError;
+  const combinedLoadState = { ...loadState, loading: loadState.loading || followUp.isLoading || goodLoading, error: loadState.error || !!followUp.error || !!goodError, reload: () => { loadState.reload(); void followUp.refetch(); void queryClient.invalidateQueries({ queryKey: ["issue-good-returns-pending"] }); } };
+
   const getItemStatusBadge = (item: PendingItem) => {
     const installStatus = (item as any).install_status as string | undefined;
     if (installStatus === "pending_confirmation") {
@@ -724,6 +730,7 @@ const IncompleteIssues = () => {
           </div>
         </div>
 
+        <ReportLoadingStatus state={combinedLoadState} />
         <section className="space-y-4">
           <IssueFollowUpFilters value={filters} onChange={setFilters} purposes={filterPurposes} />
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -731,15 +738,15 @@ const IncompleteIssues = () => {
               <TabsList className="w-max whitespace-nowrap">
                 <TabsTrigger value="billboard" className="gap-2">
                   <MapPin className="w-4 h-4" />
-                  รอระบุป้าย ({billboardIssues.length})
+                  รอระบุป้าย (<LoadingValue pending={reportPending}>{billboardIssues.length}</LoadingValue>)
                 </TabsTrigger>
                 <TabsTrigger value="return" className="gap-2">
                   <RefreshCw className="w-4 h-4" />
-                  รอส่งคืน ({returnIssues.length})
+                  รอส่งคืน (<LoadingValue pending={reportPending}>{returnIssues.length}</LoadingValue>)
                 </TabsTrigger>
                 <TabsTrigger value="warehouse" className="gap-2">
                   <Warehouse className="w-4 h-4" />
-                  คลังตรวจรับของดีคืน ({filteredGood.length})
+                  คลังตรวจรับของดีคืน (<LoadingValue pending={reportPending}>{filteredGood.length}</LoadingValue>)
                 </TabsTrigger>
                 <TabsTrigger value="report" className="gap-2"><Clock className="h-4 w-4" />รายงานประชุมติดตามงาน</TabsTrigger>
               </TabsList>
@@ -749,7 +756,7 @@ const IncompleteIssues = () => {
 
               <TabsContent value="billboard">
                 <div className="space-y-2">
-                  {isLoading ? (
+                  {reportPending ? (
                     <div className="text-center py-8">กำลังโหลด...</div>
                   ) : billboardIssues.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">ไม่มีรายการที่รอระบุป้ายโฆษณา</div>
@@ -882,7 +889,7 @@ const IncompleteIssues = () => {
 
               <TabsContent value="return">
                 <div className="space-y-3">
-                  {isLoading ? (
+                  {reportPending ? (
                     <div className="text-center py-8">กำลังโหลด...</div>
                   ) : returnIssues.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">ไม่มีรายการที่รอส่งคืน</div>

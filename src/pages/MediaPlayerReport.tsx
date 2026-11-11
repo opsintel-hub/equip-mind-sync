@@ -1,3 +1,5 @@
+import { useReportContext, useReportQuery, useReportLoading } from "@/hooks/useReportQuery";
+import { ReportLoadingStatus, LoadingValue } from "@/components/reports/ReportLoadingStatus";
 import { allRows } from "@/lib/fetchAllRows";
 import { useSubMediaTypes } from "@/hooks/useSubMediaTypes";
 import { useState, useMemo, useEffect } from "react";
@@ -165,12 +167,16 @@ export default function MediaPlayerReport() {
   const [projectFilter, setProjectFilter] = useState("all");
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [lightboxImages, setLightboxImages] = useState<string[] | null>(null);
-  const { isSuperAdmin, viewableDepts, deptKey } = useDeptScope();
-  const { applyMediaPlayerScope, scopeKey } = useSectionScope();
+  const { isSuperAdmin, viewableDepts, deptKey, loading: deptLoading } = useDeptScope();
+  const { applyMediaPlayerScope, scopeKey, loading: sectionLoading } = useSectionScope();
   const [viewMode, setViewMode] = useViewMode("media-player-report", "table");
 
+  const report = useReportContext("media-player", `${deptKey}:${scopeKey}`, deptLoading || sectionLoading);
+  const loadState = useReportLoading(report);
+  const reportPending = loadState.loading || loadState.error;
+
   // Fetch all media players with extra fields
-  const { data: players = [], isLoading } = useQuery({
+  const { data: players = [], isLoading } = useReportQuery({
     queryKey: ["media-player-report-v2", deptKey, scopeKey],
     queryFn: async () => {
       let query = supabase
@@ -197,12 +203,12 @@ export default function MediaPlayerReport() {
       if (error) throw error;
       return (data || []) as unknown as MediaPlayerMaster[];
     },
-  });
+  }, report);
 
   const primaryImgMap = usePrimaryImages("media_player_images", "media_player_id", players.map((p) => p.id));
 
   // Fetch receipt-level data (S/N, price, PO, lot) for expansion
-  const { data: receiptRows = [] } = useQuery({
+  const { data: receiptRows = [] } = useReportQuery({
     queryKey: ["media-player-report-receipts"],
     queryFn: async () => {
       const { data, error } = await allRows(supabase
@@ -214,16 +220,16 @@ export default function MediaPlayerReport() {
       if (error) throw error;
       return data || [];
     },
-  });
+  }, report);
 
   // Fetch departments for filter
-  const { data: departments = [] } = useQuery({
+  const { data: departments = [] } = useReportQuery({
     queryKey: ["departments-list"],
     queryFn: async () => {
       const { data } = await allRows(supabase.from("departments").select("name").eq("is_active", true).order("name"));
       return (data || []).map((d: any) => d.name);
     },
-  });
+  }, report);
 
   // Build latest receipt map for fallback fields like PO / lot / received serial
   const latestReceiptMap = useMemo(() => {
@@ -257,7 +263,7 @@ export default function MediaPlayerReport() {
     return map;
   }, [receiptRows]);
 
-  const { data: imageRows = [] } = useQuery({
+  const { data: imageRows = [] } = useReportQuery({
     queryKey: ["media-player-report-images"],
     queryFn: async () => {
       const { data, error } = await allRows(supabase
@@ -267,7 +273,7 @@ export default function MediaPlayerReport() {
       if (error) throw error;
       return (data || []) as unknown as Array<{ media_player_id: string; image_url: string; display_order: number | null }>;
     },
-  });
+  }, report);
 
   const imagesByPlayer = useMemo(() => {
     const map: Record<string, string[]> = {};
@@ -551,7 +557,7 @@ export default function MediaPlayerReport() {
         {mainTab === "list" && (
         <div className="flex items-center gap-2">
           <ViewModeToggle value={viewMode} onChange={setViewMode} />
-          <Button variant="outline" onClick={handleExport}>
+          <Button variant="outline" disabled={reportPending} onClick={handleExport}>
             <Download className="w-4 h-4 mr-2" />
             Export Excel
           </Button>
@@ -586,63 +592,64 @@ export default function MediaPlayerReport() {
       )}
 
       <div className={mainTab === "map" ? "hidden" : "space-y-6"}>
+      <ReportLoadingStatus state={loadState} />
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Monitor className="w-5 h-5 text-primary" /></div>
-          <div><p className="text-xs text-muted-foreground">ทั้งหมด</p><p className="text-2xl font-bold">{stats.total}</p></div>
+          <div><p className="text-xs text-muted-foreground">ทั้งหมด</p><p className="text-2xl font-bold"><LoadingValue pending={reportPending}>{stats.total}</LoadingValue></p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Tag className="w-5 h-5 text-primary" /></div>
-          <div><p className="text-xs text-muted-foreground">จำนวนรหัส (Prefix)</p><p className="text-2xl font-bold">{stats.uniquePrefixes}</p></div>
+          <div><p className="text-xs text-muted-foreground">จำนวนรหัส (Prefix)</p><p className="text-2xl font-bold"><LoadingValue pending={reportPending}>{stats.uniquePrefixes}</LoadingValue></p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><CheckCircle className="w-5 h-5 text-chart-2" /></div>
-          <div><p className="text-xs text-muted-foreground">ติดตั้งแล้ว</p><p className="text-2xl font-bold">{stats.installed}</p></div>
+          <div><p className="text-xs text-muted-foreground">ติดตั้งแล้ว</p><p className="text-2xl font-bold"><LoadingValue pending={reportPending}>{stats.installed}</LoadingValue></p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Package className="w-5 h-5 text-chart-1" /></div>
-          <div><p className="text-xs text-muted-foreground">ในคลัง</p><p className="text-2xl font-bold">{stats.inStock}</p></div>
+          <div><p className="text-xs text-muted-foreground">ในคลัง</p><p className="text-2xl font-bold"><LoadingValue pending={reportPending}>{stats.inStock}</LoadingValue></p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-destructive" /></div>
-          <div><p className="text-xs text-muted-foreground">เสีย/ชำรุด</p><p className="text-2xl font-bold">{stats.defective}</p></div>
+          <div><p className="text-xs text-muted-foreground">เสีย/ชำรุด</p><p className="text-2xl font-bold"><LoadingValue pending={reportPending}>{stats.defective}</LoadingValue></p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Wrench className="w-5 h-5 text-chart-4" /></div>
-          <div><p className="text-xs text-muted-foreground">รอตรวจสอบ</p><p className="text-2xl font-bold">{stats.pendingInspection}</p></div>
+          <div><p className="text-xs text-muted-foreground">รอตรวจสอบ</p><p className="text-2xl font-bold"><LoadingValue pending={reportPending}>{stats.pendingInspection}</LoadingValue></p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-purple-600" /></div>
-          <div><p className="text-xs text-muted-foreground">พักรอประเมิน</p><p className="text-2xl font-bold">{stats.pendingAssessment}</p></div>
+          <div><p className="text-xs text-muted-foreground">พักรอประเมิน</p><p className="text-2xl font-bold"><LoadingValue pending={reportPending}>{stats.pendingAssessment}</LoadingValue></p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center"><Wrench className="w-5 h-5 text-cyan-600" /></div>
-          <div><p className="text-xs text-muted-foreground">กำลังซ่อม</p><p className="text-2xl font-bold">{stats.underRepair}</p></div>
+          <div><p className="text-xs text-muted-foreground">กำลังซ่อม</p><p className="text-2xl font-bold"><LoadingValue pending={reportPending}>{stats.underRepair}</LoadingValue></p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center"><Shield className="w-5 h-5 text-rose-700" /></div>
-          <div><p className="text-xs text-muted-foreground">รอเคลม</p><p className="text-2xl font-bold">{stats.inClaim}</p></div>
+          <div><p className="text-xs text-muted-foreground">รอเคลม</p><p className="text-2xl font-bold"><LoadingValue pending={reportPending}>{stats.inClaim}</LoadingValue></p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center"><CheckCircle className="w-5 h-5 text-emerald-600" /></div>
-          <div><p className="text-xs text-muted-foreground">Refurbished</p><p className="text-2xl font-bold">{stats.refurbished}</p></div>
+          <div><p className="text-xs text-muted-foreground">Refurbished</p><p className="text-2xl font-bold"><LoadingValue pending={reportPending}>{stats.refurbished}</LoadingValue></p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Building2 className="w-5 h-5 text-chart-3" /></div>
-          <div><p className="text-xs text-muted-foreground">จำนวนยี่ห้อ</p><p className="text-2xl font-bold">{stats.uniqueBrands}</p></div>
+          <div><p className="text-xs text-muted-foreground">จำนวนยี่ห้อ</p><p className="text-2xl font-bold"><LoadingValue pending={reportPending}>{stats.uniqueBrands}</LoadingValue></p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Shield className="w-5 h-5 text-chart-5" /></div>
-          <div><p className="text-xs text-muted-foreground">ประกันใกล้หมด (90 วัน)</p><p className="text-2xl font-bold">{stats.warrantyExpiring}</p></div>
+          <div><p className="text-xs text-muted-foreground">ประกันใกล้หมด (90 วัน)</p><p className="text-2xl font-bold"><LoadingValue pending={reportPending}>{stats.warrantyExpiring}</LoadingValue></p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><Layers className="w-5 h-5 text-primary" /></div>
-          <div><p className="text-xs text-muted-foreground">ฝ่าย</p><p className="text-2xl font-bold">{stats.uniqueDepartments}</p></div>
+          <div><p className="text-xs text-muted-foreground">ฝ่าย</p><p className="text-2xl font-bold"><LoadingValue pending={reportPending}>{stats.uniqueDepartments}</LoadingValue></p></div>
         </CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center"><FolderKanban className="w-5 h-5 text-primary" /></div>
-          <div><p className="text-xs text-muted-foreground">Order for Project</p><p className="text-2xl font-bold">{stats.uniqueProjects}</p></div>
+          <div><p className="text-xs text-muted-foreground">Order for Project</p><p className="text-2xl font-bold"><LoadingValue pending={reportPending}>{stats.uniqueProjects}</LoadingValue></p></div>
         </CardContent></Card>
       </div>
 
@@ -790,7 +797,7 @@ export default function MediaPlayerReport() {
       {viewMode === "table" && (
       <Card>
         <CardContent className="p-0">
-          {isLoading ? (
+          {reportPending ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
@@ -1172,7 +1179,7 @@ function MediaPlayerProfileDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {isLoading ? (
+        {reportPending ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
