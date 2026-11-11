@@ -4318,6 +4318,125 @@ export type Database = {
         }
         Relationships: []
       }
+      magic_ticket_test_documents: {
+        Row: {
+          captured_at: string
+          pending_id: string
+          session_id: string
+          ticket_code: string
+        }
+        Insert: {
+          captured_at?: string
+          pending_id: string
+          session_id: string
+          ticket_code: string
+        }
+        Update: {
+          captured_at?: string
+          pending_id?: string
+          session_id?: string
+          ticket_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "magic_ticket_test_documents_pending_id_fkey"
+            columns: ["pending_id"]
+            isOneToOne: true
+            referencedRelation: "goods_issue_pending"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "magic_ticket_test_documents_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "magic_ticket_test_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      magic_ticket_test_journal: {
+        Row: {
+          after_row: Json | null
+          before_row: Json | null
+          created_at: string
+          id: number
+          row_id: string
+          session_id: string
+          table_name: string
+        }
+        Insert: {
+          after_row?: Json | null
+          before_row?: Json | null
+          created_at?: string
+          id?: never
+          row_id: string
+          session_id: string
+          table_name: string
+        }
+        Update: {
+          after_row?: Json | null
+          before_row?: Json | null
+          created_at?: string
+          id?: never
+          row_id?: string
+          session_id?: string
+          table_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "magic_ticket_test_journal_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "magic_ticket_test_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      magic_ticket_test_sessions: {
+        Row: {
+          asset_ids: string[]
+          created_at: string
+          created_by: string
+          ended_at: string | null
+          ends_at: string
+          id: string
+          name: string
+          rolled_back_at: string | null
+          rolled_back_by: string | null
+          starts_at: string
+          status: string
+          ticket_codes: string[]
+        }
+        Insert: {
+          asset_ids: string[]
+          created_at?: string
+          created_by?: string
+          ended_at?: string | null
+          ends_at: string
+          id?: string
+          name: string
+          rolled_back_at?: string | null
+          rolled_back_by?: string | null
+          starts_at: string
+          status?: string
+          ticket_codes: string[]
+        }
+        Update: {
+          asset_ids?: string[]
+          created_at?: string
+          created_by?: string
+          ended_at?: string | null
+          ends_at?: string
+          id?: string
+          name?: string
+          rolled_back_at?: string | null
+          rolled_back_by?: string | null
+          starts_at?: string
+          status?: string
+          ticket_codes?: string[]
+        }
+        Relationships: []
+      }
       magic_ticket_ticket_map: {
         Row: {
           department_code: string | null
@@ -7804,6 +7923,21 @@ export type Database = {
       }
       mark_special_request_done: {
         Args: { _id: string; _notes: string }
+        Returns: Json
+      }
+      mt_test_create: {
+        Args: {
+          p_assets: string[]
+          p_end: string
+          p_name: string
+          p_start: string
+          p_tickets: string[]
+        }
+        Returns: string
+      }
+      mt_test_end: { Args: { p_id: string }; Returns: undefined }
+      mt_test_rollback: {
+        Args: { p_confirm: boolean; p_id: string }
         Returns: Json
       }
       public_confirm_ad_issue_request: {
