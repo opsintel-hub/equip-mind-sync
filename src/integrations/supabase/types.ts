@@ -7925,6 +7925,10 @@ export type Database = {
         Args: { _id: string; _notes: string }
         Returns: Json
       }
+      mt_rollback_issue_document: {
+        Args: { p_confirm: boolean; p_document_no: string; p_reason?: string }
+        Returns: Json
+      }
       mt_test_create: {
         Args: {
           p_assets: string[]
