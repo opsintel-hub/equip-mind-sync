@@ -1,5 +1,5 @@
-- [ ] Improve loading feedback and permission-scoped short-lived caching on equipment tracking, inventory, Media Player and incomplete-issue reports.
-- [ ] Verify authenticated loading, retry/refresh, report readback, repeated navigation and mobile layout without stock writes.
+- [x] Improve loading feedback and user/permission-scoped three-minute caching on equipment tracking, inventory, Media Player and incomplete-issue reports; inventory search no longer changes server query keys, compatibility pagination uses its actual composite key.
+- [x] Verify authenticated dataset progress, retained rows during refresh, simulated failure/retry, all four report readbacks, repeated tab navigation and 390px layout without overflow or stock writes; targeted tests pass and build OK. First-load network speed is not guaranteed.
 - [x] Add Super Admin Magic Ticket time-window sessions with explicit new-ticket allowlist, reserved assets, automatic capture and review.
 - [x] Add atomic conflict-checked journal rollback, retained audit, physical-return confirmation, duplicate protection and replay guards; isolated 100→90→100 capture/rollback/retry and permission SQL checks passed with all fixture writes rolled back.
 - [x] Verify Bangkok boundaries (11 unit tests pass), authenticated desktop/mobile create/end/empty rollback readback, no page errors, build OK. External Magic Ticket full flow and old-part/MP/SN restoration not yet verified; requires coordinated test tickets, assets and real client participation before operational testing.
