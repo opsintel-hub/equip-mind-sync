@@ -11,7 +11,7 @@ BEGIN
     INSERT INTO public.magic_ticket_ticket_map(ticket_code,gi_document_no,pending_id) VALUES('VERIFY-MT-ISOLATED-TICKET','VERIFY-MT-ISOLATED-DOC',h);
     IF NOT EXISTS(SELECT 1 FROM public.magic_ticket_test_documents WHERE pending_id=h AND session_id=s) THEN RAISE EXCEPTION 'capture failed'; END IF;
     UPDATE public.equipment SET quantity_in_stock=90 WHERE id=a;
-    INSERT INTO public.stock_movements(equipment_id,movement_type,quantity,stock_before,stock_after,reference_document) VALUES(a,'issue',10,100,90,'VERIFY-MT-ISOLATED-DOC');
+    INSERT INTO public.stock_movements(equipment_id,equipment_code,equipment_name,movement_type,quantity,stock_before,stock_after,reference_document) VALUES(a,'VERIFY-MT-ISOLATED','Isolated regression fixture','issue',10,100,90,'VERIFY-MT-ISOLATED-DOC');
     PERFORM public.mt_test_end(s);
     BEGIN
       UPDATE public.equipment SET quantity_in_stock=89 WHERE id=a;
