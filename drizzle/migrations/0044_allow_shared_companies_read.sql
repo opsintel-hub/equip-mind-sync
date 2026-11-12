@@ -1,0 +1,4 @@
+DROP POLICY IF EXISTS "Authenticated users can view companies" ON public.companies;
+DROP POLICY IF EXISTS security_selected_read_boundary ON public.companies;
+CREATE POLICY "Authenticated users can view companies" ON public.companies FOR SELECT TO authenticated USING (public.is_approved_user(auth.uid()) AND (companies.department_id IS NULL OR EXISTS (SELECT 1 FROM public.departments d WHERE d.id = companies.department_id AND public.security_department_read(d.name))));
+CREATE POLICY security_selected_read_boundary ON public.companies AS RESTRICTIVE FOR SELECT TO authenticated USING (public.is_approved_user(auth.uid()) AND (companies.department_id IS NULL OR EXISTS (SELECT 1 FROM public.departments d WHERE d.id = companies.department_id AND public.security_department_read(d.name))));
