@@ -302,6 +302,13 @@
       "when": 1794377933784,
       "tag": "0042_rollback_test_issue_document",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1794445517276,
+      "tag": "0043_fix_rollback_defective_link",
+      "breakpoints": true
     }
   ]
 }
