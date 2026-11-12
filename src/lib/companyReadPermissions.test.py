@@ -17,20 +17,26 @@ async def main():
         await page.goto("http://localhost:8080/delivery-entry")
         result = await page.evaluate("""async (token) => {
             const {supabase} = await import('/src/integrations/supabase/client.ts');
-            await supabase.auth.getSession();
-            const approved = await supabase.from('companies').select('id', {count:'exact'}).is('department_id', null);
-            const all = await supabase.from('companies').select('id,department_id');
-            const departments = await supabase.from('departments').select('id,name');
+            const request = async (path, body) => {
+                const response = await fetch(supabase.supabaseUrl + '/rest/v1/' + path, {
+                    method:body ? 'POST' : 'GET',
+                    headers:{apikey:supabase.supabaseKey, Authorization:'Bearer '+token, 'Content-Type':'application/json'},
+                    ...(body ? {body:JSON.stringify(body)} : {})});
+                return {data:await response.json(), error:!response.ok};
+            };
+            const approved = await request('companies?select=id&department_id=is.null');
+            const all = await request('companies?select=id,department_id');
+            const departments = await request('departments?select=id,name');
             const allowed = new Set();
             for (const d of departments.data || []) {
-                const permission = await supabase.rpc('security_department_read', {p_department:d.name});
+                const permission = await request('rpc/security_department_read', {p_department:d.name});
                 if (permission.error) throw new Error('Department permission check failed');
                 if (permission.data) allowed.add(d.id);
             }
             const {createClient} = await import('/node_modules/.vite/deps/@supabase_supabase-js.js');
             const anonymous = createClient(supabase.supabaseUrl, supabase.supabaseKey, {auth:{persistSession:false,autoRefreshToken:false}});
             const anon = await anonymous.from('companies').select('id').is('department_id',null);
-            return {count:approved.count,error:!!approved.error,
+            return {count:approved.data.length,error:!!approved.error,
                 outsideScope:(all.data || []).filter(c=>c.department_id && !allowed.has(c.department_id)).length,
                 anonymousRows:(anon.data || []).length};
         }""", session["access_token"])
