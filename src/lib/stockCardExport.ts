@@ -1,6 +1,7 @@
 import { format, parseISO } from "date-fns";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
+import type { ToolStockSummary } from "./toolStockCard";
 
 // ── Types ──
 interface ExportItem {
@@ -55,6 +56,10 @@ const MOVEMENT_LABELS: Record<string, string> = {
   defective_return: "ของเสียเข้า",
   install: "ติดตั้งป้าย",
   uninstall: "ถอดจากป้าย",
+  tool_loan: "จ่ายยืม / ถือครอง",
+  tool_return: "คลังรับคืนเครื่องมือ",
+  tool_pm_issue: "จ่ายเพื่อซ่อม / PM",
+  tool_pm_complete: "ผลซ่อม / PM",
 };
 
 const CONDITION_LABELS: Record<string, string> = {
@@ -78,6 +83,7 @@ export function exportStockCardExcel(
   timeline: TimelineEvent[],
   journeys: BillboardJourney[],
   currentInstallCount: number,
+  toolSummary?: ToolStockSummary,
 ) {
   const wb = XLSX.utils.book_new();
 
@@ -95,8 +101,10 @@ export function exportStockCardExcel(
     ["ฝ่าย", item.department || "-"],
     ["สต็อกปัจจุบัน", item.quantity_in_stock ?? 0],
     ["สภาพ", getConditionLabel(item.item_condition)],
-    ["ติดตั้งอยู่ (ป้าย)", currentInstallCount],
-    ["จำนวนครั้งติดตั้ง", journeys.length],
+    ...(item.type === "tool" && toolSummary ? [
+      ["จำนวนทั้งหมด", toolSummary.total], ["ถือครอง / ยืม", toolSummary.held],
+      ["รอคลังรับคืน", toolSummary.pendingReturn], ["PM สำเร็จ (ครั้ง)", toolSummary.pmCount],
+    ] : [["ติดตั้งอยู่ (ป้าย)", currentInstallCount], ["จำนวนครั้งติดตั้ง", journeys.length]]),
   ];
   const wsInfo = XLSX.utils.aoa_to_sheet(infoRows);
   wsInfo["!cols"] = [{ wch: 20 }, { wch: 40 }];
@@ -146,6 +154,7 @@ export function exportStockCardPDF(
   item: ExportItem,
   timeline: TimelineEvent[],
   journeys: BillboardJourney[],
+  toolSummary?: ToolStockSummary,
 ) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
@@ -172,6 +181,10 @@ export function exportStockCardPDF(
   ].filter(Boolean).join("  |  ");
   doc.text(infoLine, 14, y);
   y += 8;
+  if (toolSummary) {
+    doc.text(`Total: ${toolSummary.total} | Held: ${toolSummary.held} | Pending receipt: ${toolSummary.pendingReturn} | PM: ${toolSummary.pmCount}`, 14, y);
+    y += 8;
+  }
 
   // Timeline table
   if (timeline.length > 0) {

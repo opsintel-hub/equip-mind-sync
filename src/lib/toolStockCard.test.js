@@ -1,0 +1,11 @@
+import { expect, test } from "bun:test";
+import { toolStockSummary, toolStockEvents } from "./toolStockCard";
+const loan = { id: "12345678-rest", quantity: 1, returned_quantity: 0, status: "issued", issued_at: "2026-11-10T04:00:00Z", loan_date: "2026-11-09", requester_name: "ช่าง", return_required: true, due_date: "2026-11-14" };
+test("a one-unit loan is still a real tool when stock is zero", () => expect(toolStockSummary(0, [loan], [])).toEqual({ stock: 0, held: 1, total: 1, pendingReturn: 0, pmCount: 0 }));
+test("pending return stays held until warehouse receives it", () => expect(toolStockSummary(0, [{ ...loan, status: "pending_return", returned_quantity: 1 }], [])).toEqual({ stock: 0, held: 1, total: 1, pendingReturn: 1, pmCount: 0 }));
+test("confirmed receipt restores stock and removes holding", () => expect(toolStockSummary(1, [{ ...loan, status: "returned", returned_quantity: 1 }], []).total).toBe(1));
+test("partial receipt leaves remaining units held", () => expect(toolStockSummary(2, [{ ...loan, status: "returned", quantity: 4, returned_quantity: 2 }], []).held).toBe(2));
+test("unissued requests produce neither holdings nor movements", () => { const request = { ...loan, status: "pending_issue", issued_at: null }; expect(toolStockSummary(1, [request], []).held).toBe(0); expect(toolStockEvents([request], [])).toHaveLength(0); });
+test("declared return is not a received stock event", () => expect(toolStockEvents([{ ...loan, status: "pending_return", returned_quantity: 1 }], [])).toHaveLength(1));
+test("receipt appears newest first with actual received quantity and no fabricated balances", () => { const events = toolStockEvents([{ ...loan, status: "returned", returned_quantity: 1, return_date: "2026-11-12" }], []); expect(events[0].type).toBe("tool_return"); expect(events[0].quantity).toBe(1); expect(events[0].stock_after).toBeUndefined(); });
+test("PM outcome does not add inventory", () => { const history = [{ completed_date: "2026-11-13", task: { task_number: "PM-1", quantity_checked: 1 }, result: { name: "ผ่าน" } }]; expect(toolStockSummary(0, [loan], history).total).toBe(1); expect(toolStockEvents([loan], history)[0].type).toBe("tool_pm_complete"); });
