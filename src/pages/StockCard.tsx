@@ -765,9 +765,10 @@ export default function StockCard() {
   // ── Export to PDF ──
   const handleExportPDF = useCallback(() => {
     if (!selectedItem) return;
-    exportStockCardPDF(selectedItem, filteredTimeline, journeys);
+    if (selectedItem.type === "tool" && !toolSummary) return;
+    exportStockCardPDF(selectedItem, filteredTimeline, journeys, toolSummary);
     toast({ title: "ส่งออก PDF สำเร็จ" });
-  }, [selectedItem, filteredTimeline, journeys]);
+  }, [selectedItem, filteredTimeline, journeys, toolSummary]);
 
   // ── All Movements Tab Data ──
   const { data: movAllCompanies } = useQuery({
@@ -1096,10 +1097,10 @@ export default function StockCard() {
               {/* Summary cards */}
               {selectedItem.type === "tool" ? (
                 <div className="grid grid-cols-2 lg:grid-cols-5 gap-3" aria-label="ยอดเครื่องมือ">
-                  {[
+                  {([
                     ["จำนวนทั้งหมด", toolSummary?.total], ["ในคลัง", toolSummary?.stock],
                     ["ถือครอง / ยืม", toolSummary?.held], ["รอคลังรับคืน", toolSummary?.pendingReturn], ["PM สำเร็จ (ครั้ง)", toolSummary?.pmCount],
-                  ].map(([label, value]) => <div key={label} className="bg-muted/50 rounded-lg p-3 text-center"><div className="text-2xl font-bold text-foreground">{value ?? "—"}</div><div className="text-xs text-muted-foreground">{label}</div></div>)}
+                  ] as const).map(([label, value]) => <div key={label} className="bg-muted/50 rounded-lg p-3 text-center"><div className="text-2xl font-bold text-foreground">{value ?? "—"}</div><div className="text-xs text-muted-foreground">{label}</div></div>)}
                 </div>
               ) : (
               <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:w-auto">

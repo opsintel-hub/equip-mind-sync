@@ -154,6 +154,7 @@ export function exportStockCardPDF(
   item: ExportItem,
   timeline: TimelineEvent[],
   journeys: BillboardJourney[],
+  toolSummary?: ToolStockSummary,
 ) {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
@@ -180,6 +181,10 @@ export function exportStockCardPDF(
   ].filter(Boolean).join("  |  ");
   doc.text(infoLine, 14, y);
   y += 8;
+  if (toolSummary) {
+    doc.text(`Total: ${toolSummary.total} | Held: ${toolSummary.held} | Pending receipt: ${toolSummary.pendingReturn} | PM: ${toolSummary.pmCount}`, 14, y);
+    y += 8;
+  }
 
   // Timeline table
   if (timeline.length > 0) {
