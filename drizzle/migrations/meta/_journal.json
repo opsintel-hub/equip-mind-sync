@@ -316,6 +316,13 @@
       "when": 1794453940587,
       "tag": "0044_allow_shared_companies_read",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1794560442516,
+      "tag": "0045_approved_master_reads_owner_bound_uploads",
+      "breakpoints": true
     }
   ]
 }
