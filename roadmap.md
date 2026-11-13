@@ -1,4 +1,4 @@
-- [ ] Show real tool Stock Card balances and loan/return/PM history with matching exports; verify TLAIR-00032 without stock writes.
+- [x] Show tool Stock Card balances and loan/return/PM history with exports; 28 tests pass, authenticated TLAIR-00032 reads total 1 / stock 0 / held 1 and actual loan, Excel values verified, mobile has no overflow, build OK; live PM/receipt writes not exercised.
 - [x] Improve loading feedback and user/permission-scoped three-minute caching on equipment tracking, inventory, Media Player and incomplete-issue reports; inventory search no longer changes server query keys, compatibility pagination uses its actual composite key.
 - [x] Verify authenticated dataset progress, retained rows during refresh, simulated failure/retry, all four report readbacks, repeated tab navigation and 390px layout without overflow or stock writes; targeted tests pass and build OK. First-load network speed is not guaranteed.
 - [x] Add Super Admin Magic Ticket time-window sessions with explicit new-ticket allowlist, reserved assets, automatic capture and review.
