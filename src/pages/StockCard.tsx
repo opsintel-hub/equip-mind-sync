@@ -37,6 +37,8 @@ import { StockMovementGroupRow, GroupedMovement } from "@/components/stock-movem
 import { StockMovementDocumentDialog } from "@/components/stock-movement/StockMovementDocumentDialog";
 import { buildReceivedSerialAliasMap, formatMergedSerials, matchesSerialSearch } from "@/lib/serialSearch";
 import { CompatibilityBadgeCell } from "@/components/reports/CompatibilityBadgeCell";
+import { outstandingToolLoan } from "@/lib/toolMeetingReport";
+import { toolStockSummary, toolStockEvents } from "@/lib/toolStockCard";
 
 
 // ── Types ──────────────────────────────────────────────────────
@@ -102,6 +104,10 @@ const MOVEMENT_TYPES = [
   { value: "repair_in", label: "ส่งซ่อม", icon: Hammer, color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400" },
   { value: "claim_in", label: "ส่งเคลม", icon: AlertTriangle, color: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400" },
   { value: "refurb_back", label: "Refurbished คืนคลัง", icon: ArrowDownToLine, color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+  { value: "tool_loan", label: "จ่ายยืม / ถือครอง", icon: ArrowUpFromLine, color: "bg-muted text-primary" },
+  { value: "tool_return", label: "คลังรับคืนเครื่องมือ", icon: RotateCcw, color: "bg-muted text-success" },
+  { value: "tool_pm_issue", label: "จ่ายเพื่อซ่อม / PM", icon: Wrench, color: "bg-muted text-warning" },
+  { value: "tool_pm_complete", label: "ผลซ่อม / PM", icon: Check, color: "bg-muted text-success" },
 ];
 
 const CONDITIONS = [
@@ -252,6 +258,7 @@ export default function StockCard() {
         toolQ = toolQ.in("department", scopeDepts);
       }
       const [eqRes, mpRes, toolRes] = await Promise.all([allRows(eqQ.order("id")), allRows(mpQ.order("id")), allRows(toolQ.order("id"))]);
+      for (const result of [eqRes, mpRes, toolRes]) { if (result.error) throw result.error; }
 
       eqRes.data?.forEach(e => items.push({
         id: e.id, code: e.code, name: e.name, serial_number: formatMergedSerials(e.serial_number, equipmentAliasMap[e.id]) || null,
@@ -319,6 +326,26 @@ export default function StockCard() {
   const hasSN = selectedItem && (selectedItem.serial_number || selectedItem.serial_number_2);
   const isMediaPlayerIssuedPending = selectedItem?.type === "media_player" && !selectedItem.billboard_id && ["issued", "in_transit"].includes(selectedItem.status || "");
 
+  const toolActivity = useQuery({
+    queryKey: ["stock-card-tool-activity", selectedItemId, deptScopeKey],
+    enabled: selectedItem?.type === "tool",
+    staleTime: 2 * 60 * 1000,
+    queryFn: async () => {
+      if (!selectedItem || selectedItem.type !== "tool") return { loans: [], history: [] };
+      const [loans, history] = await Promise.all([
+        allRows(supabase.from("equipment_loans").select("*").eq("item_kind", "tool").eq("tool_id", selectedItem.id).order("id")),
+        allRows(supabase.from("tool_pm_history").select("*, result:pm_results(name), task:tool_pm_tasks(task_number, quantity_checked)").eq("tool_id", selectedItem.id).order("id")),
+      ]);
+      if (loans.error) throw loans.error;
+      if (history.error) throw history.error;
+      return { loans: loans.data || [], history: history.data || [] };
+    },
+  });
+  const toolSummary = selectedItem?.type === "tool" && toolActivity.data
+    ? toolStockSummary(selectedItem.quantity_in_stock ?? 0, toolActivity.data.loans, toolActivity.data.history)
+    : undefined;
+  const toolHoldings = (toolActivity.data?.loans || []).filter(l => outstandingToolLoan(l) > 0);
+
   // ── Pending issued (จ่ายแล้วแต่ยังไม่ติดตั้ง/ยืนยันรับ) ──
   const { data: pendingIssuedRows = [] } = useQuery({
     queryKey: ["stock-card-pending-issued", selectedItemId, selectedItemType],
@@ -384,7 +411,7 @@ export default function StockCard() {
   const { data: billboardHistory = [] } = useQuery({
     queryKey: ["stock-card-billboard-history", selectedItemId],
     staleTime: 2 * 60 * 1000,
-    enabled: !!selectedItemId,
+    enabled: !!selectedItemId && selectedItemType !== "tool",
     queryFn: async () => {
       if (!selectedItemId) return [];
       const { data } = await allRows(supabase.from("billboard_equipment_history")
@@ -399,7 +426,7 @@ export default function StockCard() {
   const { data: currentInstallations = [] } = useQuery({
     queryKey: ["stock-card-current-install", selectedItemId, selectedItemType],
     staleTime: 2 * 60 * 1000,
-    enabled: !!selectedItemId,
+    enabled: !!selectedItemId && selectedItemType !== "tool",
     queryFn: async () => {
       if (!selectedItemId) return [];
       if (selectedItemType === "media_player") {
@@ -428,12 +455,16 @@ export default function StockCard() {
 
   const currentLocationLabel = useMemo(() => {
     if (!selectedItem) return "-";
+    if (selectedItem.type === "tool") {
+      return [selectedItem.quantity_in_stock ? selectedItem.current_location || "ในคลัง (ไม่ระบุตำแหน่ง)" : null,
+        ...toolHoldings.map(l => `${l.holder_name || l.requester_name} · ${outstandingToolLoan(l)} ${selectedItem.unit}${l.status === "pending_return" ? " · รอคลังรับคืน" : ""}`)].filter(Boolean).join("\n") || "ไม่พบตำแหน่งปัจจุบัน";
+    }
     if (currentInstallations.length > 0) {
       return currentInstallations.map((inst: any) => formatBillboardLocation(inst.billboards, inst.billboard_id)).join("\n");
     }
     if (isMediaPlayerIssuedPending) return "จ่ายแล้ว / รอระบุป้ายโฆษณา";
     return selectedItem.current_location || (selectedItem.quantity_in_stock && selectedItem.quantity_in_stock > 0 ? "อยู่ในคลัง (ยังไม่ระบุตำแหน่ง)" : "ไม่พบตำแหน่งปัจจุบัน");
-  }, [selectedItem, currentInstallations, isMediaPlayerIssuedPending]);
+  }, [selectedItem, currentInstallations, isMediaPlayerIssuedPending, toolActivity.data]);
 
   // ── Fetch media-player billboard history (uninstalls) ──
   const { data: mediaPlayerBillboardHistory = [] } = useQuery({
@@ -520,6 +551,9 @@ export default function StockCard() {
   const timeline: TimelineEvent[] = useMemo(() => {
     if (!selectedItemId) return [];
     const events: TimelineEvent[] = [];
+    if (selectedItemType === "tool" && toolActivity.data) {
+      events.push(...toolStockEvents(toolActivity.data.loans, toolActivity.data.history));
+    }
 
     // Stock movements — strip raw UUIDs from detail (legacy data may contain them)
     const UUID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
@@ -625,12 +659,20 @@ export default function StockCard() {
       }
     }
 
-    return events;
-  }, [selectedItemId, movements, billboardHistory, mediaPlayerBillboardHistory, swapBillboardMap]);
+    return selectedItemType === "tool" ? events.reverse() : events;
+  }, [selectedItemId, selectedItemType, toolActivity.data, movements, billboardHistory, mediaPlayerBillboardHistory, swapBillboardMap]);
 
   // ── Filtered timeline ──
   const filteredTimeline = useMemo(() => {
     return timeline.filter(e => {
+      if (selectedItemType === "tool") {
+        const time = new Date(e.date).getTime();
+        if (dateRange?.from && time < dateRange.from.getTime()) return false;
+        if (dateRange?.to) {
+          const end = new Date(dateRange.to); end.setHours(23, 59, 59, 999);
+          if (time > end.getTime()) return false;
+        }
+      }
       if (filterMovements.length > 0) {
         const mapped = e.type === "install" ? "install_to_billboard" : e.type === "uninstall" ? "return_from_billboard" : e.type;
         if (!filterMovements.includes(mapped)) return false;
@@ -638,7 +680,7 @@ export default function StockCard() {
       if (filterConditions.length > 0 && e.condition && !filterConditions.includes(e.condition)) return false;
       return true;
     });
-  }, [timeline, filterMovements, filterConditions]);
+  }, [timeline, filterMovements, filterConditions, dateRange, selectedItemType]);
 
   // ── Timeline pagination ──
   const {
@@ -715,9 +757,10 @@ export default function StockCard() {
   // ── Export to Excel ──
   const handleExportExcel = useCallback(() => {
     if (!selectedItem) return;
-    exportStockCardExcel(selectedItem, filteredTimeline, journeys, currentInstallations.length);
+    if (selectedItem.type === "tool" && !toolSummary) return;
+    exportStockCardExcel(selectedItem, filteredTimeline, journeys, currentInstallations.length, toolSummary);
     toast({ title: "ส่งออก Excel สำเร็จ" });
-  }, [selectedItem, filteredTimeline, journeys, currentInstallations]);
+  }, [selectedItem, filteredTimeline, journeys, currentInstallations, toolSummary]);
 
   // ── Export to PDF ──
   const handleExportPDF = useCallback(() => {
@@ -1051,6 +1094,14 @@ export default function StockCard() {
               </div>
 
               {/* Summary cards */}
+              {selectedItem.type === "tool" ? (
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-3" aria-label="ยอดเครื่องมือ">
+                  {[
+                    ["จำนวนทั้งหมด", toolSummary?.total], ["ในคลัง", toolSummary?.stock],
+                    ["ถือครอง / ยืม", toolSummary?.held], ["รอคลังรับคืน", toolSummary?.pendingReturn], ["PM สำเร็จ (ครั้ง)", toolSummary?.pmCount],
+                  ].map(([label, value]) => <div key={label} className="bg-muted/50 rounded-lg p-3 text-center"><div className="text-2xl font-bold text-foreground">{value ?? "—"}</div><div className="text-xs text-muted-foreground">{label}</div></div>)}
+                </div>
+              ) : (
               <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:w-auto">
                 <div className="bg-muted/50 rounded-xl p-3 text-center">
                   <div className="text-2xl font-bold text-foreground">{selectedItem.quantity_in_stock}</div>
@@ -1073,6 +1124,7 @@ export default function StockCard() {
                   <div className="text-xs text-muted-foreground">ความเคลื่อนไหว</div>
                 </div>
               </div>
+              )}
             </div>
 
             {(isMediaPlayerIssuedPending || pendingIssuedSummary.count > 0) && (
@@ -1128,6 +1180,7 @@ export default function StockCard() {
           <CardContent className="space-y-4">
             {/* Lifecycle ProcessTracker */}
             {(() => {
+              if (selectedItem.type === "tool") return null;
               const hasReceive = timeline.some(e => e.type === "receive");
               const hasIssue = timeline.some(e => e.type === "issue");
               const hasInstall = timeline.some(e => e.type === "install" || e.type === "install_to_billboard");
@@ -1298,7 +1351,11 @@ export default function StockCard() {
               );
             })()}
 
-            {filteredTimeline.length === 0 ? (
+            {selectedItem.type === "tool" && toolActivity.isPending ? (
+              <div role="status" className="flex items-center justify-center gap-2 py-8 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />กำลังโหลดประวัติเครื่องมือ...</div>
+            ) : selectedItem.type === "tool" && toolActivity.isError ? (
+              <div role="alert" className="py-8 text-center text-destructive">โหลดประวัติเครื่องมือไม่สำเร็จ <Button variant="outline" onClick={() => void toolActivity.refetch()}>ลองใหม่</Button></div>
+            ) : filteredTimeline.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <Package className="w-10 h-10 mx-auto mb-2 opacity-30" />
                 <p>ไม่พบข้อมูลความเคลื่อนไหว</p>
