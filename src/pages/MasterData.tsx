@@ -47,8 +47,7 @@ import { ToolCategoryList } from "@/components/tools/ToolCategoryList";
 import { ToolSubcategoryList } from "@/components/tools/ToolSubcategoryList";
 import { CategoryAccordion } from "@/components/category/CategoryAccordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { TechnicianForm } from "@/components/tools/TechnicianForm";
-import { TechnicianList } from "@/components/tools/TechnicianList";
+import { TechnicianRegistry } from "@/components/tools/TechnicianRegistry";
 import { SimpleListManager } from "@/components/master-data/SimpleListManager";
 import { RepairActionsManager } from "@/components/master-data/RepairActionsManager";
 import { BillboardDbConnection } from "@/components/master-data/BillboardDbConnection";
@@ -104,7 +103,7 @@ const MasterData = () => {
         </p>
       </div>
 
-      <Tabs key={tabParam ?? "default"} defaultValue={tabParam === "billboard_sync" && isSuperAdmin ? "billboard_sync" : defaultTab} className="w-full">
+      <Tabs key={tabParam ?? "default"} defaultValue={tabParam && tabOrder.some(([key, accessible]) => key === tabParam && accessible) ? tabParam : tabParam === "billboard_sync" && isSuperAdmin ? "billboard_sync" : defaultTab} className="w-full">
         <div className="w-full overflow-x-auto pb-2">
           <TabsList className="inline-flex w-max h-10 mb-0">
             {can("md_equipment") && (
@@ -170,7 +169,7 @@ const MasterData = () => {
             {can("md_technicians") && (
               <TabsTrigger value="technicians" className="gap-1.5 text-xs px-3">
                 <Users className="h-3.5 w-3.5" />
-                ช่าง
+                ทะเบียนช่าง
               </TabsTrigger>
             )}
             {can("md_pm_action_types") && (
@@ -520,15 +519,11 @@ const MasterData = () => {
                   <CardDescription>
                     จัดการข้อมูลช่างและเครื่องมือประจำตัว
                   </CardDescription>
-                  <p className="text-xs text-muted-foreground mt-1 bg-muted/50 p-2 rounded">
-                    💡 <strong>หมายเหตุ:</strong> เพิ่มช่างที่นี่ แล้วไปจัดกลุ่มเครื่องมือประจำตัวช่างแต่ละคนได้โดยกดปุ่ม 🔧 ที่แต่ละแถว
-                  </p>
                 </div>
-                <TechnicianForm onSuccess={handleSuccess} />
               </div>
             </CardHeader>
             <CardContent>
-              <TechnicianList refreshKey={refreshKey} />
+              <TechnicianRegistry />
             </CardContent>
           </Card>
         </TabsContent>
