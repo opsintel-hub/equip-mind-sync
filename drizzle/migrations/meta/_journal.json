@@ -323,6 +323,13 @@
       "when": 1794560442516,
       "tag": "0045_approved_master_reads_owner_bound_uploads",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1794636613065,
+      "tag": "0046_scoped_technician_registry_import",
+      "breakpoints": true
     }
   ]
 }

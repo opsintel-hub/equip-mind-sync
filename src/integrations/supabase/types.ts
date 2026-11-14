@@ -7853,6 +7853,7 @@ export type Database = {
         Args: { p_rows: Json; p_rpc: string }
         Returns: Json
       }
+      import_technician_roster: { Args: { p_rows: Json }; Returns: Json }
       import_tool_row: { Args: { p: Json }; Returns: Json }
       is_approved_user: { Args: { _user_id: string }; Returns: boolean }
       issue_old_part_candidates: { Args: { _item_id: string }; Returns: Json }
