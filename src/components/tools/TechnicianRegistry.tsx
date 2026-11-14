@@ -104,7 +104,7 @@ export function TechnicianRegistry() {
       <input ref={file} type="file" accept=".xlsx,.xls" className="hidden" onChange={e => void readFile(e.target.files?.[0])}/>
     </div>
     <div className="flex flex-wrap gap-2">
-      <DepartmentMultiFilter value={departments} onChange={setDepartments}/>
+      <DepartmentMultiFilter value={departments} onChange={setDepartments} allowedDepartments={viewable}/>
       <Input className="w-full sm:w-64" aria-label="ค้นหาช่าง" placeholder="ค้นหารหัส ชื่อ หรือเบอร์โทร" value={search} onChange={e => setSearch(e.target.value)}/>
       <div className="w-40"><SearchableSelect value={status} onValueChange={setStatus} options={[{value:"all",label:"ทุกสถานะ"},{value:"active",label:"ใช้งาน"},{value:"inactive",label:"ปิดใช้งาน"}]}/></div>
     </div>

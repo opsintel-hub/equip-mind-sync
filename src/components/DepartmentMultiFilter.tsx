@@ -11,16 +11,17 @@ interface DepartmentMultiFilterProps {
   value: string[];
   onChange: (value: string[]) => void;
   showAll?: boolean;
+  allowedDepartments?: string[];
 }
 
-export function DepartmentMultiFilter({ value, onChange, showAll = true }: DepartmentMultiFilterProps) {
+export function DepartmentMultiFilter({ value, onChange, showAll = true, allowedDepartments }: DepartmentMultiFilterProps) {
   const { getViewableDepartments, isAdmin, loading } = useDepartmentPermissions();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [moreBelow, setMoreBelow] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const viewableDepartments = getViewableDepartments();
+  const viewableDepartments = getViewableDepartments().filter(d => !allowedDepartments || allowedDepartments.includes(d));
 
   // Auto-select if only one department and not admin
   useEffect(() => {
