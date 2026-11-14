@@ -1,0 +1,9 @@
+import { test, expect } from "bun:test";
+import { parseRoster, rosterDepartments } from "./technicianRoster";
+test("same name in the same department cannot silently duplicate", () => expect(() => parseRoster([{ 'Full Name': 'สมชาย  ใจดี', Department: 'Digital Media' }, { 'Full Name': 'สมชาย ใจดี', Department: 'Digital Media' }], ['Digital Media'])).toThrow());
+test("same name in different departments remains distinct", () => expect(parseRoster([{ 'Full Name': 'สมชาย ใจดี', Department: 'Digital Media' }, { 'Full Name': 'สมชาย ใจดี', Department: 'Bus Media' }], ['Digital Media','Bus Media'])).toHaveLength(2));
+test("import cannot use departments outside permissions", () => expect(() => parseRoster([{ 'Full Name': 'สมชาย ใจดี', Department: 'Bus Media' }], ['Digital Media'])).toThrow());
+test("omitted fields preserve existing status and contact", () => expect(parseRoster([{ 'Full Name': 'สมชาย ใจดี', Department: 'Digital Media' }], ['Digital Media'])[0]).toEqual({name:'สมชาย ใจดี',department:'Digital Media'}));
+test("inactive Excel value is retained", () => expect(parseRoster([{'ชื่อ-นามสกุล':'สมชาย ใจดี','ฝ่าย':'Digital Media','สถานะ':'ปิดใช้งาน'}], ['Digital Media'])[0].is_active).toBe(false));
+test("ordinary department permissions never expand to every department", () => expect(rosterDepartments(false,['Digital Media','Bus Media'],[{department:'Digital Media',can_view:true,can_create:false,can_edit:false}], 'view')).toEqual(['Digital Media']));
+test("super admin can manage every department", () => expect(rosterDepartments(true,['Digital Media','Bus Media'],[], 'edit')).toEqual(['Digital Media','Bus Media']));
